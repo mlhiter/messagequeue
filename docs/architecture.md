@@ -1,0 +1,113 @@
+# Architecture
+
+## System Boundary
+
+MessageQueue is an independent deployable system. Its repository, releases,
+images, CRDs, controller, backend, and frontend are owned here. It does not
+import KubeBlocks APIs or rely on code being added to the Sealos monorepo.
+
+```text
+Browser
+  |
+  v
+Management UI -> Backend API -> Kubernetes API
+                       |              |
+                       |              v
+                       |       MessageQueue CR
+                       |              |
+                       |              v
+                       |       MessageQueue Controller
+                       |              |
+                       |              v
+                       |       Strimzi CRs -> Kafka
+                       |
+                       +-> VictoriaMetrics / VictoriaLogs
+
+Optional user path: authenticated entry -> Kafbat UI -> Kafka
+```
+
+## Components
+
+### Management UI
+
+The first-party interface owns cluster creation, lifecycle operations,
+credentials, status, logs, metrics, and operation history. It never delegates
+management workflows to Kafbat UI.
+
+### Backend API
+
+The backend authenticates the Sealos session, derives the workspace namespace,
+performs permission checks, talks to Kubernetes, and exposes fixed metric and
+log query contracts. It must not accept arbitrary namespaces, PromQL, or LogsQL
+from browsers.
+
+### MessageQueue Controller
+
+The controller reconciles the namespaced `MessageQueue` product resource into
+Strimzi `Kafka`, `KafkaNodePool`, and `KafkaUser` resources plus supporting
+Secrets and NetworkPolicies. Strimzi, not this controller, owns Kafka Pods,
+Services, StatefulSets, and rolling-update mechanics.
+
+### User-Facing Kafka Console
+
+Kafbat UI is optional and provides topic, partition, message, consumer-group,
+offset, and Kafka ACL operations. It is isolated from the management UI and
+receives controller-generated, read-only configuration. Dynamic configuration
+is disabled.
+
+## Resource Placement
+
+### Workspace Namespace
+
+- `MessageQueue`, `Kafka`, `KafkaNodePool`, and `KafkaUser` resources
+- Kafka workloads, Services, PVCs, Secrets, and NetworkPolicies
+- Optional Kafbat Deployment, Service, and configuration Secret
+- Metrics endpoints and Strimzi Kafka Exporter workloads
+
+### MessageQueue System Namespace
+
+- Management frontend and backend
+- MessageQueue controller
+- Shared `VMPodScrape` or equivalent scrape definitions that select managed
+  Kafka workloads across namespaces
+- Shared `VMRule` definitions grouped by workspace and cluster labels
+
+### Platform Observability Namespace
+
+- VictoriaMetrics storage, query, and collection services
+- VictoriaLogs, log collectors, VMAlert, and notification infrastructure
+
+No per-cluster monitoring control resource is required in the workspace
+namespace. Cluster deletion naturally removes metric endpoints and log sources.
+
+## API Ownership
+
+The product API will use `messagequeue.sealos.io/v1alpha1`. `MessageQueue`
+remains namespaced and records desired engine, topology, resources, storage,
+authentication, listener, monitoring, console, suspension, and deletion-policy
+settings. Status records observed generation, effective version, endpoints,
+non-secret references, topology, and Kubernetes-style conditions.
+
+Kafka is the only accepted engine in v1alpha1. Engine-specific fields are kept
+under a Kafka block so RabbitMQ can be added later without forcing common
+semantics where the brokers differ.
+
+## Security Model
+
+- Workspace identity is derived server-side from authenticated context.
+- Kubernetes authorization remains the final permission check.
+- Secrets are referenced by name in status and fetched only for authorized
+  server-side operations.
+- Broker authentication uses TLS, SCRAM-SHA-512, and Kafka ACLs by default.
+- Kafbat has no public Service or Kubernetes API token. Network policy permits
+  only approved ingress and Kafka-related egress.
+- Metrics and log queries are selected by server-owned identifiers and are
+  always constrained by workspace namespace and cluster labels.
+
+## Failure and Rollback
+
+Observability and Kafbat failures degrade their own features but do not block
+Kafka reconciliation. Rolling back the UI, backend, or MessageQueue controller
+must not delete Strimzi resources. Strimzi and its CRDs must remain installed
+while managed Kafka resources exist. Kafka version downgrades are not treated as
+a general rollback mechanism.

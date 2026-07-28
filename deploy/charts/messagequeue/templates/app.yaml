@@ -1,0 +1,22 @@
+{{- if .Values.app.enabled }}
+apiVersion: app.sealos.io/v1
+kind: App
+metadata:
+  name: {{ required "app.name is required" .Values.app.name | quote }}
+  namespace: {{ required "app.namespace is required" .Values.app.namespace | quote }}
+  labels:
+    {{- include "messagequeue.labels" . | nindent 4 }}
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name | quote }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace | quote }}
+spec:
+  data:
+    desc: {{ required "app.description is required" .Values.app.description | quote }}
+    url: {{ required "app.url is required when app.enabled" .Values.app.url | quote }}
+  displayType: {{ .Values.app.displayType | quote }}
+  i18n:
+    {{- toYaml .Values.app.i18n | nindent 4 }}
+  icon: {{ required "app.icon is required when app.enabled" .Values.app.icon | quote }}
+  name: {{ required "app.displayName is required" .Values.app.displayName | quote }}
+  type: {{ .Values.app.type | quote }}
+{{- end }}

@@ -54,20 +54,22 @@ docs/          Architecture, information architecture, references, and runbook
 - [docs/ia.md](docs/ia.md): management UI information architecture
 - [docs/references.md](docs/references.md): upstream projects and dependency boundaries
 - [docs/runbook.md](docs/runbook.md): deployment and incident boundaries
-- [docs/decisions/0001-standalone-architecture.md](docs/decisions/0001-standalone-architecture.md):
-  accepted repository and runtime ownership decision
+- [docs/decisions/](docs/decisions/): accepted architecture and rollout decisions
 
 ## Development Status
 
-Release `0.1.4` provides a deployable Kafka control plane: Strimzi `0.46.0`
+Release `0.1.6` provides a deployable Kafka control plane: Strimzi `0.46.0`
 reconciles Kafka `3.9.0`/`4.0.0` KRaft resources, the backend exposes namespaced
 status/log/metrics contracts, and the first-party UI supports create, detail,
 logs, and explicit degraded metrics. The cluster-62 smoke path creates
-`ns-admin/kafka-dev` and verifies SCRAM produce/consume.
+`ns-admin/kafka-dev`, verifies SCRAM produce/consume, and registers an HTTPS
+`MessageQueue` iframe entry on Sealos Desktop.
 
 Known limits are deliberate: metrics currently return a bounded degraded state
 until the platform VictoriaMetrics adapter is connected, historical logs are
-not implemented, and Kafbat is not deployed by this chart.
+not implemented, public Desktop installs keep cluster creation disabled until
+Sealos session/workspace identity is connected, and Kafbat is not deployed by
+this chart.
 
 ## Checks
 

@@ -16,7 +16,9 @@ It deliberately does not live in, or require changes to, the Sealos monorepo.
   workspace namespace after the control plane and Strimzi are ready.
 - `cluster-62-smoke.sh`: a non-destructive cluster-62 preflight/render script.
   Set `APPLY=1` to install or upgrade the control plane and create the smoke
-  workspace; the script never deletes an existing resource.
+  workspace; the script never deletes an existing resource. It also registers
+  the `app-system/messagequeue` desktop entry and configures the public HTTPS
+  host `messagequeue.192.168.0.62.nip.io`.
 - `kafka-roundtrip-smoke.sh`: creates a short-lived, resource-bounded Kafka
   client Job, mounts only the generated client password, and verifies a real
   SCRAM produce/consume round-trip without printing Secret data.
@@ -61,9 +63,9 @@ helm upgrade --install messagequeue deploy/charts/messagequeue \
   --set images.controller.repository=<registry>/messagequeue-controller \
   --set images.backend.repository=<registry>/messagequeue-backend \
   --set images.frontend.repository=<registry>/messagequeue-frontend \
-  --set images.controller.tag=v0.1.4 \
-  --set images.backend.tag=v0.1.4 \
-  --set images.frontend.tag=v0.1.4
+  --set images.controller.tag=v0.1.6 \
+  --set images.backend.tag=v0.1.6 \
+  --set images.frontend.tag=v0.1.6
 ```
 
 `docker buildx bake -f deploy/docker-bake.hcl --push` defaults test builds to
@@ -95,3 +97,15 @@ The test Job requests `250m/512Mi` and limits `1 CPU/1Gi` because the test
 cluster's `ns-admin` LimitRange defaults containers to `50m/64Mi`, which is too
 small for two Kafka Java CLI processes. The Job is TTL-cleaned; its test topic
 is intentionally retained for review.
+
+The script enables the chart's optional Sealos `App` registration. The App is
+stored in `app-system`, points to the same HTTPS Ingress as the management UI,
+and uses `/logo.svg` from the frontend image. If `wildcard-cert` is absent from
+`messagequeue-system`, the script copies the platform certificate from
+`TLS_SOURCE_NAMESPACE` (default `dbprovider-frontend`) without printing its
+data.
+
+The public Desktop entry is read-only while the backend is using the fixed
+cluster-62 workspace fallback. The chart renders `MESSAGEQUEUE_ALLOW_CREATE`
+and `CREATE_ENABLED` as `false` by default; enable writes only after the Sealos
+session/workspace adapter is connected.

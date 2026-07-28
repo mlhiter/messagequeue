@@ -1,7 +1,7 @@
 # Runbook
 
 This runbook covers the deployable Kafka vertical slice. The tested release
-uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.4`.
+uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.6`.
 
 ## Deployment Order
 
@@ -49,6 +49,16 @@ ready Strimzi resources, expected broker and controller Pods, bound PVCs, and
 a working authenticated client. Metrics may still show an explicit degraded
 state until the platform VictoriaMetrics adapter is connected; this does not
 make Kafka management unhealthy.
+
+For Sealos Desktop delivery, additionally verify `app-system/messagequeue`,
+the `messagequeue.192.168.0.62.nip.io` Ingress, `/logo.svg`, and a real iframe
+open from the Desktop. A public HTTP 200 alone does not prove the desktop entry
+or embedded management workflow works.
+
+Until the Sealos session/workspace adapter replaces the fixed workspace
+fallback identity, the public Desktop entry must keep
+`MESSAGEQUEUE_ALLOW_CREATE=false` and `CREATE_ENABLED=false`. List, detail,
+logs, and metrics checks remain valid; creation is deliberately disabled.
 
 ## Degraded Dependencies
 

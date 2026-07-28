@@ -43,5 +43,9 @@ The list and detail views distinguish loading, empty, ready, provisioning,
 degraded, failed, deleting, suspended, and permission-denied states. If the API
 is unreachable, the UI renders clearly labelled read-only demo data so the
 control surface remains inspectable; create and observability actions still
-require a working backend. A metrics provider response with `degraded: true`
-is rendered as “Metrics unavailable” rather than as zero-valued data.
+require a working backend. Public desktop installs keep create disabled until
+the Sealos session/workspace adapter is connected. The browser reads
+`window.MESSAGEQUEUE_CREATE_ENABLED` from `config.js`; when it is false, the
+create button is hidden and the form refuses to open. A metrics provider
+response with `degraded: true` is rendered as “Metrics unavailable” rather than
+as zero-valued data.

@@ -71,6 +71,8 @@ is disabled.
 - Shared `VMPodScrape` or equivalent scrape definitions that select managed
   Kafka workloads across namespaces
 - Shared `VMRule` definitions grouped by workspace and cluster labels
+- Optional `app.sealos.io/v1 App` registration for the Desktop launcher that
+  points at the public HTTPS Ingress
 
 ### Platform Observability Namespace
 
@@ -98,6 +100,9 @@ semantics where the brokers differ.
 - Kubernetes authorization remains the final permission check.
 - Secrets are referenced by name in status and fetched only for authorized
   server-side operations.
+- Public desktop installs keep cluster creation disabled until the Sealos
+  session/workspace adapter is connected; list/detail/logs/metrics remain
+  available in read-only mode.
 - Broker authentication uses TLS, SCRAM-SHA-512, and Kafka ACLs by default.
 - Kafbat has no public Service or Kubernetes API token. Network policy permits
   only approved ingress and Kafka-related egress.

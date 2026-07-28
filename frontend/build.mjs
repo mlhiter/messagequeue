@@ -6,5 +6,5 @@ const root = dirname(fileURLToPath(import.meta.url));
 const output = resolve(root, "dist");
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
-for (const file of ["index.html", "styles.css", "app.js", "config.js"]) await cp(resolve(root, file), resolve(output, file));
+for (const file of ["index.html", "styles.css", "app.js", "config.js", "logo.svg"]) await cp(resolve(root, file), resolve(output, file));
 console.log(`Built frontend to ${output}`);

@@ -40,12 +40,12 @@ React component library and is not used to implement the management UI.
   library, image, or migration adapter belongs in this repository.
 
 The current deployment pins Strimzi `0.46.0` and Kafka `3.9.0` by operator
-contract. MessageQueue `v0.1.4` images were published to the test registry as
+contract. MessageQueue `v0.1.6` images were published to the test registry as
 amd64 OCI indexes:
 
-- controller: `sha256:9be690438e9b740efe8f1a275120fa4dc8bdbb1270a895e843ebfaed0e6eea7b`
-- backend: `sha256:ed6d9a34766b52a5f29ec85f6b10f761566d2d9eff49c805461aa6f5bb9594a5`
-- frontend: `sha256:335076639f24bc9fb6e1976396d0b390cff59b31eaace51a8f3c269f27c3a131`
+- controller: `sha256:94e02ec6805c4dd36f3d7f834ae1bc45f2b7fd99df721f425fc694cb8bc03a9e`
+- backend: `sha256:61f62b63ba9dde2a71cb970235481d46ae90d60022b7f66256cd07160437c6bc`
+- frontend: `sha256:e995cf790dcfaa5a1c4cbf876cb9a7d8d0a2de80d45f1d2677fc6007b817b310`
 
 Production values should set `global.imagePolicy.requireDigest=true` and use
 these or a separately reviewed immutable digest set.

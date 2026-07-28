@@ -45,7 +45,7 @@ resolve credentials without exposing their values to the browser.
 | --- | --- | --- |
 | `GET` | `/healthz` | Process health; does not require workspace identity. |
 | `GET` | `/api/v1/messagequeues` | List resources in the authenticated namespace. |
-| `POST` | `/api/v1/messagequeues` | Create a Kafka resource in the authenticated namespace. |
+| `POST` | `/api/v1/messagequeues` | Create a Kafka resource in the authenticated namespace when create is enabled. Public desktop installs keep this disabled until the Sealos session/workspace adapter is connected. |
 | `GET` | `/api/v1/messagequeues/{name}` | Return spec and observed status. |
 | `GET` | `/api/v1/messagequeues/{name}/status` | Return observed status only. |
 | `GET` | `/api/v1/messagequeues/{name}/logs` | Return bounded pod logs. |
@@ -61,7 +61,8 @@ flags are intentionally not written into the Kubernetes CR.
 
 The accepted Kafka versions match the controller contract: `3.9.0` and
 `4.0.0`. An omitted version/replica/storage value is defaulted by the
-controller.
+controller. When `MESSAGEQUEUE_ALLOW_CREATE=false`, `POST /api/v1/messagequeues`
+returns `403` and the public Desktop entry remains read-only.
 
 ```json
 {

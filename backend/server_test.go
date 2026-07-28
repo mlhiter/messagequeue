@@ -19,9 +19,10 @@ func (i staticIdentity) Identity(_ context.Context, _ *http.Request) (Identity, 
 func newTestServer() (*Server, *MemoryStore) {
 	store := NewMemoryStore()
 	return &Server{
-		Store:    store,
-		Metrics:  FixedMetricsProvider{Values: map[string]MetricResponse{"broker_count": {Unit: "count", Values: []MetricPoint{{Value: 1}}}}},
-		Identity: staticIdentity{Namespace: "ns-test", UserID: "user-1"},
+		Store:       store,
+		Metrics:     FixedMetricsProvider{Values: map[string]MetricResponse{"broker_count": {Unit: "count", Values: []MetricPoint{{Value: 1}}}}},
+		Identity:    staticIdentity{Namespace: "ns-test", UserID: "user-1"},
+		AllowCreate: true,
 	}, store
 }
 
@@ -88,6 +89,18 @@ func TestCreateListDetailAndStatusUseIdentityNamespace(t *testing.T) {
 	server.ServeHTTP(recording, request)
 	if recording.Code != http.StatusOK || !strings.Contains(recording.Body.String(), `"phase":"Pending"`) {
 		t.Fatalf("status response = %d %s", recording.Code, recording.Body.String())
+	}
+}
+
+func TestCreateDisabledRequiresAuthenticatedWorkspaceSession(t *testing.T) {
+	server, _ := newTestServer()
+	server.AllowCreate = false
+	body := `{"name":"orders","spec":{"engine":"kafka","kafka":{"replicas":1},"resources":{"cpu":"1","memory":"2Gi"},"storage":{"size":"10Gi"}}}`
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(body))
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusForbidden {
+		t.Fatalf("create disabled status = %d, body=%s", recording.Code, recording.Body.String())
 	}
 }
 

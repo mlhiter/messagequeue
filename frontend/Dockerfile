@@ -1,7 +1,7 @@
 FROM node:22-alpine AS build
 
 WORKDIR /src
-COPY frontend/package.json frontend/build.mjs frontend/index.html frontend/styles.css frontend/app.js frontend/config.js ./
+COPY frontend/package.json frontend/build.mjs frontend/index.html frontend/styles.css frontend/app.js frontend/config.js frontend/logo.svg ./
 RUN npm run build
 
 FROM nginx:1.27-alpine

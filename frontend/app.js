@@ -74,6 +74,7 @@
       detailTabsLabel: "集群详情选项卡",
       conditionPlaceholder: "控制器尚未上报条件。",
       eventPlaceholder: "暂无最近事件。",
+      overview: "概览",
       controllerEvent: "控制器事件",
       connections: "连接",
       clientConnection: "客户端连接",
@@ -98,6 +99,7 @@
       logsOptional:
         "历史或实时日志是可选的平台依赖，不会阻塞 Kafka 操作。",
       logsFetchNote: (name) => `日志通过固定的服务端查询获取，范围限定为 ${name}。`,
+      logs: "日志",
       loadMetrics: "加载指标",
       retryMetrics: "重试指标",
       brokerHealth: "Broker 健康",
@@ -113,6 +115,7 @@
       metricsMessagesOut: "消息流出",
       metricsUnderReplicated: "未同步副本",
       metricsConsumerLag: "消费者堆积",
+      metrics: "指标",
       perSecond: "每秒",
       partitions: "分区",
       messages: "条消息",
@@ -251,6 +254,7 @@
       detailTabsLabel: "Cluster detail tabs",
       conditionPlaceholder: "The controller has not reported a condition yet.",
       eventPlaceholder: "No recent events reported.",
+      overview: "Overview",
       controllerEvent: "Controller event",
       connections: "Connections",
       clientConnection: "Client connection",
@@ -274,6 +278,7 @@
       loadingLogs: "Loading broker logs…",
       logsOptional: "Historical or live logs are an optional platform dependency and do not block Kafka operations.",
       logsFetchNote: (name) => `Logs are fetched through a fixed server-owned query scoped to ${name}.`,
+      logs: "Logs",
       loadMetrics: "Load metrics",
       retryMetrics: "Retry metrics",
       brokerHealth: "Broker health",
@@ -286,6 +291,7 @@
       metricsMessagesOut: "Messages out",
       metricsUnderReplicated: "Under-replicated",
       metricsConsumerLag: "Consumer lag",
+      metrics: "Metrics",
       perSecond: "per second",
       partitions: "partitions",
       messages: "messages",
@@ -552,6 +558,78 @@
     }).format(date);
   }
 
+  function formatRelativeTime(value) {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    const diffMinutes = Math.round((date.getTime() - Date.now()) / 60000);
+    const absMinutes = Math.abs(diffMinutes);
+    const locale = state.language === "zh" ? "zh-CN" : "en";
+    const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+    if (absMinutes < 60) return formatter.format(diffMinutes, "minute");
+    const diffHours = Math.round(diffMinutes / 60);
+    if (Math.abs(diffHours) < 24) return formatter.format(diffHours, "hour");
+    const diffDays = Math.round(diffMinutes / 1440);
+    return formatter.format(diffDays, "day");
+  }
+
+  function formatEventTime(event) {
+    if (!event) return "—";
+    return formatRelativeTime(event.lastTimestamp || event.timestamp || event.time);
+  }
+
+  function formatBrokerCount(count) {
+    const value = Number(count) || 0;
+    if (state.language === "zh") return `${value} 个 broker`;
+    return `${value} broker${value === 1 ? "" : "s"}`;
+  }
+
+  function formatBrokerStorage(size) {
+    return state.language === "zh" ? `${size} Gi / broker` : `${size} Gi / broker`;
+  }
+
+  function formatConditionType(type) {
+    const value = String(type || message("statusUnknown"));
+    if (state.language !== "zh") return value;
+    const map = {
+      Ready: "就绪",
+      ObservabilityReady: "可观测性就绪",
+      Degraded: "降级",
+      Progressing: "推进中",
+      Suspended: "已挂起"
+    };
+    return map[value] || value;
+  }
+
+  function formatConditionStatus(status) {
+    const value = String(status || message("statusUnknown"));
+    if (state.language !== "zh") return value;
+    const map = {
+      True: "是",
+      False: "否",
+      Unknown: "未知"
+    };
+    return map[value] || value;
+  }
+
+  function localizeBackendText(text) {
+    const value = String(text || "");
+    if (state.language !== "zh") return value;
+    const map = {
+      "Strimzi reports the Kafka cluster is ready": "Strimzi 表示 Kafka 集群已就绪",
+      "reconciliation is active": "调谐正在进行",
+      "Waiting for the Kafka broker pod to become Ready.": "等待 Kafka broker Pod 就绪。",
+      "Reconciling Strimzi resources.": "正在协调 Strimzi 资源。",
+      "Kafka brokers are accepting connections.": "Kafka broker 正在接受连接。",
+      "Broker metrics and logs are available.": "Broker 指标和日志已可用。",
+      "Kafka user credentials reconciled.": "Kafka 用户凭据已完成协调。",
+      "All 3 brokers reported Ready.": "3 个 broker 已全部就绪。",
+      "MessageQueue accepted by the controller.": "MessageQueue 已被控制器接收。",
+      "Kafka resource created through Strimzi.": "Kafka 资源正在通过 Strimzi 创建。"
+    };
+    return map[value] || value;
+  }
+
   function parseSizeGi(value) {
     const match = String(value ?? "").match(/([0-9]+(?:\.[0-9]+)?)/);
     return match ? Number(match[1]) : 20;
@@ -559,6 +637,8 @@
 
   function demoClustersFor(language) {
     const zh = language === "zh";
+    const now = Date.now();
+    const minutesAgo = (minutes) => new Date(now - minutes * 60 * 1000).toISOString();
     return [
       {
         metadata: {
@@ -593,8 +673,8 @@
             }
           ],
           events: [
-            { time: "12 min ago", message: zh ? message("demoReadyEvent1") : message("demoReadyEvent1") },
-            { time: "18 min ago", message: zh ? message("demoReadyEvent2") : message("demoReadyEvent2") }
+            { lastTimestamp: minutesAgo(12), message: message("demoReadyEvent1") },
+            { lastTimestamp: minutesAgo(18), message: message("demoReadyEvent2") }
           ]
         }
       },
@@ -625,8 +705,8 @@
             }
           ],
           events: [
-            { time: "2 min ago", message: zh ? message("demoProvisioningEvent1") : message("demoProvisioningEvent1") },
-            { time: "1 min ago", message: zh ? message("demoProvisioningEvent2") : message("demoProvisioningEvent2") }
+            { lastTimestamp: minutesAgo(2), message: message("demoProvisioningEvent1") },
+            { lastTimestamp: minutesAgo(1), message: message("demoProvisioningEvent2") }
           ]
         }
       }
@@ -769,7 +849,7 @@
     list.innerHTML = clusters
       .map((cluster) => {
         const [label, statusClass] = statusLabel(cluster.phase);
-        return `<button type="button" class="cluster-row ${cluster.name === state.selected ? "is-selected" : ""}" data-cluster="${escapeHtml(cluster.name)}" aria-pressed="${cluster.name === state.selected}"><span><span class="cluster-name">${escapeHtml(cluster.name)}</span><span class="cluster-meta"><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("kafka"))} ${escapeHtml(cluster.version)}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-topology"><strong>${cluster.brokers} broker${cluster.brokers === 1 ? "" : "s"}</strong><span>${cluster.storageGi} Gi / broker</span></span><span class="cluster-action" aria-hidden="true">›</span></button>`;
+        return `<button type="button" class="cluster-row ${cluster.name === state.selected ? "is-selected" : ""}" data-cluster="${escapeHtml(cluster.name)}" aria-pressed="${cluster.name === state.selected}"><span><span class="cluster-name">${escapeHtml(cluster.name)}</span><span class="cluster-meta"><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("kafka"))} ${escapeHtml(cluster.version)}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-topology"><strong>${escapeHtml(formatBrokerCount(cluster.brokers))}</strong><span>${escapeHtml(formatBrokerStorage(cluster.storageGi))}</span></span><span class="cluster-action" aria-hidden="true">›</span></button>`;
       })
       .join("");
   }
@@ -784,7 +864,7 @@
           ? message("retainData")
           : message("controllerDefault");
 
-    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("observedState"))}</h3><span>${escapeHtml(message("generation"))} ${escapeHtml(cluster.status.observedGeneration || "—")}</span></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("engine"))}</dt><dd>${escapeHtml(message("engineName"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaVersion"))}</dt><dd>${escapeHtml(cluster.version)}</dd></div><div class="info-item"><dt>${escapeHtml(message("topology"))}</dt><dd>${cluster.brokers} broker${cluster.brokers === 1 ? "" : "s"}</dd></div><div class="info-item"><dt>${escapeHtml(message("storage"))}</dt><dd>${cluster.storageGi} Gi / broker</dd></div><div class="info-item"><dt>${escapeHtml(message("bootstrapEndpoint"))}</dt><dd><code>${escapeHtml(cluster.endpoint)}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("deletionPolicy"))}</dt><dd>${escapeHtml(deletionPolicy)}</dd></div></dl></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("conditions"))}</h3><span>${escapeHtml(message("controllerReported"))}</span></div><div class="condition-list">${conditions.map((condition) => `<div class="condition-row"><strong>${escapeHtml(condition.type || "Condition")} · ${escapeHtml(condition.status || message("statusUnknown"))}</strong><span>${escapeHtml(condition.message || condition.reason || message("conditionPlaceholder"))}</span></div>`).join("")}</div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("recentEvents"))}</h3><span>${escapeHtml(message("latestFirst"))}</span></div><div class="event-list">${events.map((event) => `<div class="event-row"><time>${escapeHtml(event.time || formatTime(event.lastTimestamp))}</time><p>${escapeHtml(event.message || event.reason || message("controllerEvent"))}</p></div>`).join("")}</div></section>`;
+    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("observedState"))}</h3><span>${escapeHtml(message("generation"))} ${escapeHtml(cluster.status.observedGeneration || "—")}</span></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("engine"))}</dt><dd>${escapeHtml(message("engineName"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaVersion"))}</dt><dd>${escapeHtml(cluster.version)}</dd></div><div class="info-item"><dt>${escapeHtml(message("topology"))}</dt><dd>${escapeHtml(formatBrokerCount(cluster.brokers))}</dd></div><div class="info-item"><dt>${escapeHtml(message("storage"))}</dt><dd>${escapeHtml(formatBrokerStorage(cluster.storageGi))}</dd></div><div class="info-item"><dt>${escapeHtml(message("bootstrapEndpoint"))}</dt><dd><code>${escapeHtml(cluster.endpoint)}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("deletionPolicy"))}</dt><dd>${escapeHtml(deletionPolicy)}</dd></div></dl></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("conditions"))}</h3><span>${escapeHtml(message("controllerReported"))}</span></div><div class="condition-list">${conditions.map((condition) => `<div class="condition-row"><strong>${escapeHtml(formatConditionType(condition.type))} · ${escapeHtml(formatConditionStatus(condition.status))}</strong><span>${escapeHtml(localizeBackendText(condition.message || condition.reason || message("conditionPlaceholder")))}</span></div>`).join("")}</div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("recentEvents"))}</h3><span>${escapeHtml(message("latestFirst"))}</span></div><div class="event-list">${events.map((event) => `<div class="event-row"><time>${escapeHtml(formatEventTime(event))}</time><p>${escapeHtml(localizeBackendText(event.message || event.reason || message("controllerEvent")))}</p></div>`).join("")}</div></section>`;
   }
 
   function connectionsHtml(cluster) {

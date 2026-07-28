@@ -5,9 +5,9 @@ Kubernetes. The first supported engine is Apache Kafka, orchestrated by
 Strimzi. RabbitMQ is a planned engine, not part of the first release.
 
 > [!NOTE]
-> This repository is in its foundation stage. It currently records product,
-> architecture, security, and operational contracts before application code is
-> scaffolded.
+> The first Kafka vertical slice is implemented and has been smoke-tested on
+> cluster 62. Metrics storage integration and the optional user console remain
+> follow-up work.
 
 ## Scope
 
@@ -59,11 +59,15 @@ docs/          Architecture, information architecture, references, and runbook
 
 ## Development Status
 
-The next implementation milestone is a vertical slice that creates a
-`MessageQueue` resource, reconciles a single-node Kafka development cluster,
-and exposes status through the management UI. Runtime dependencies and build
-commands will be added with that slice rather than guessed during repository
-initialization.
+Release `0.1.4` provides a deployable Kafka control plane: Strimzi `0.46.0`
+reconciles Kafka `3.9.0`/`4.0.0` KRaft resources, the backend exposes namespaced
+status/log/metrics contracts, and the first-party UI supports create, detail,
+logs, and explicit degraded metrics. The cluster-62 smoke path creates
+`ns-admin/kafka-dev` and verifies SCRAM produce/consume.
+
+Known limits are deliberate: metrics currently return a bounded degraded state
+until the platform VictoriaMetrics adapter is connected, historical logs are
+not implemented, and Kafbat is not deployed by this chart.
 
 ## Checks
 

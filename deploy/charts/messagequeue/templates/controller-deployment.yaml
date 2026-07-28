@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "messagequeue.fullname" . }}-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "messagequeue.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+spec:
+  replicas: {{ .Values.controller.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "messagequeue.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        {{- include "messagequeue.labels" . | nindent 8 }}
+        app.kubernetes.io/component: controller
+        messagequeue.sealos.io/metrics: control-plane
+    spec:
+      serviceAccountName: {{ include "messagequeue.controllerServiceAccount" . }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      {{- include "messagequeue.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: controller
+          image: {{ include "messagequeue.image" (dict "root" . "image" .Values.images.controller) | quote }}
+          imagePullPolicy: IfNotPresent
+          args:
+            - --log-level={{ .Values.controller.logLevel }}
+            - --metrics-bind-address=:{{ .Values.controller.metrics.port }}
+            - --health-probe-bind-address=:{{ .Values.controller.health.port }}
+            - --leader-elect={{ .Values.controller.leaderElection }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.controller.metrics.port }}
+              protocol: TCP
+            - name: health
+              containerPort: {{ .Values.controller.health.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.controller.health.path }}
+              port: health
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.controller.health.path }}
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}

@@ -39,5 +39,13 @@ React component library and is not used to implement the management UI.
 - KubeBlocks is historical context only. No KubeBlocks runtime resource, API,
   library, image, or migration adapter belongs in this repository.
 
-Dependency versions and image digests must be pinned in deployment manifests
-and recorded here when the first implementation slice is added.
+The current deployment pins Strimzi `0.46.0` and Kafka `3.9.0` by operator
+contract. MessageQueue `v0.1.4` images were published to the test registry as
+amd64 OCI indexes:
+
+- controller: `sha256:9be690438e9b740efe8f1a275120fa4dc8bdbb1270a895e843ebfaed0e6eea7b`
+- backend: `sha256:ed6d9a34766b52a5f29ec85f6b10f761566d2d9eff49c805461aa6f5bb9594a5`
+- frontend: `sha256:335076639f24bc9fb6e1976396d0b390cff59b31eaace51a8f3c269f27c3a131`
+
+Production values should set `global.imagePolicy.requireDigest=true` and use
+these or a separately reviewed immutable digest set.

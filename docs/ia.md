@@ -29,7 +29,7 @@ Tabs are ordered by operational frequency:
 
 1. Overview: desired and observed state, endpoints, topology, and recent events
 2. Connections: client configuration, credential rotation, and copyable examples
-3. Monitoring: resources, broker health, partition health, throughput, and lag
+3. Metrics: resources, broker health, partition health, throughput, and lag
 4. Logs: pod, container, time range, live follow, previous container, and search
 5. Operations: scaling, restart, upgrade, suspension, and operation history
 6. Settings: deletion policy and advanced engine settings

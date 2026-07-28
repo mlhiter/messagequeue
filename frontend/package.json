@@ -1,0 +1,11 @@
+{
+  "name": "@messagequeue/management-ui",
+  "version": "0.1.4",
+  "private": true,
+  "description": "First-party MessageQueue Kafka management UI",
+  "scripts": {
+    "build": "node build.mjs",
+    "serve": "python3 -m http.server 4173",
+    "test": "node --check app.js && node test.mjs"
+  }
+}

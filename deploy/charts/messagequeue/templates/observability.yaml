@@ -1,0 +1,46 @@
+{{- if and .Values.observability.serviceMonitor.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "messagequeue.fullname" . }}-control-plane
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "messagequeue.labels" . | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      messagequeue.sealos.io/metrics: control-plane
+  endpoints:
+    - port: metrics
+      path: {{ .Values.controller.metrics.path }}
+      interval: {{ .Values.observability.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.observability.serviceMonitor.scrapeTimeout }}
+{{- else if .Values.observability.serviceMonitor.enabled }}
+{{- fail "observability.serviceMonitor.enabled requires monitoring.coreos.com/v1" }}
+{{- end }}
+{{- if and .Values.observability.vmServiceScrape.enabled (.Capabilities.APIVersions.Has "operator.victoriametrics.com/v1beta1") }}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: {{ include "messagequeue.fullname" . }}-kafka
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "messagequeue.labels" . | nindent 4 }}
+spec:
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      {{ .Values.observability.vmServiceScrape.kafkaMetricsLabel }}: {{ .Values.observability.vmServiceScrape.kafkaMetricsValue }}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: {{ .Values.observability.vmServiceScrape.interval }}
+      scrapeTimeout: {{ .Values.observability.vmServiceScrape.scrapeTimeout }}
+{{- else if .Values.observability.vmServiceScrape.enabled }}
+{{- fail "observability.vmServiceScrape.enabled requires operator.victoriametrics.com/v1beta1" }}
+{{- end }}

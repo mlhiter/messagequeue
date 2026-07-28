@@ -1,0 +1,14 @@
+apiVersion: v2
+name: messagequeue
+description: Standalone MessageQueue control plane for Kafka on Kubernetes
+type: application
+version: 0.1.4
+appVersion: 0.1.4
+kubeVersion: ">=1.25.0-0"
+keywords:
+  - kafka
+  - strimzi
+  - messagequeue
+home: https://github.com/mlhiter/messagequeue
+sources:
+  - https://github.com/mlhiter/messagequeue

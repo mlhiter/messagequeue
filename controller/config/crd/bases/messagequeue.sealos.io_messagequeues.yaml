@@ -1,0 +1,150 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: messagequeues.messagequeue.sealos.io
+spec:
+  group: messagequeue.sealos.io
+  scope: Namespaced
+  names:
+    plural: messagequeues
+    singular: messagequeue
+    kind: MessageQueue
+    shortNames:
+      - mq
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Engine
+          type: string
+          jsonPath: .spec.engine
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Ready
+          type: string
+          jsonPath: .status.conditions[?(@.type=="Ready")].status
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: A namespaced message broker managed by MessageQueue.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              properties:
+                engine:
+                  type: string
+                  enum: [kafka]
+                  default: kafka
+                version:
+                  type: string
+                  enum: [3.9.0, 4.0.0]
+                replicas:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  maximum: 9
+                kafka:
+                  type: object
+                  properties:
+                    version:
+                      type: string
+                      enum: [3.9.0, 4.0.0]
+                    replicas:
+                      type: integer
+                      format: int32
+                      minimum: 1
+                      maximum: 9
+                topology:
+                  type: object
+                  properties:
+                    mode:
+                      type: string
+                      enum: [combined]
+                      default: combined
+                    replicas:
+                      type: integer
+                      format: int32
+                      minimum: 1
+                      maximum: 9
+                resources:
+                  type: object
+                  properties:
+                    cpu:
+                      type: string
+                    memory:
+                      type: string
+                storage:
+                  type: object
+                  properties:
+                    size:
+                      type: string
+                    className:
+                      type: string
+                    deleteClaim:
+                      type: boolean
+                deletionPolicy:
+                  type: string
+                  enum: [Delete, Retain]
+                  default: Delete
+                suspend:
+                  type: boolean
+                  default: false
+            status:
+              type: object
+              properties:
+                observedGeneration:
+                  type: integer
+                  format: int64
+                phase:
+                  type: string
+                kafkaRef:
+                  type: string
+                nodePoolRef:
+                  type: string
+                clientSecretRef:
+                  type: string
+                endpoints:
+                  type: array
+                  items:
+                    type: string
+                readyReplicas:
+                  type: integer
+                  format: int32
+                message:
+                  type: string
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys:
+                    - type
+                  items:
+                    type: object
+                    required: [type, status, reason, lastTransitionTime]
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      observedGeneration:
+                        type: integer
+                        format: int64
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      reason:
+                        type: string
+                      message:
+                        type: string

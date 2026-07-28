@@ -15,12 +15,17 @@ can implement without redefining ownership or tenancy.
 
 ## Release 0.1: Standalone Kafka Control Plane
 
+Status: the first deployable slice is running on cluster 62. The remaining
+items below are intentionally tracked rather than implied by the current
+release.
+
 - Install Strimzi and the MessageQueue controller independently of Sealos and
   KubeBlocks codebases.
 - Create, list, inspect, and delete development and production Kafka topologies.
 - Provide internal connection information and generated client credentials.
-- Expose observed status, Kubernetes events, live logs, and core metrics in the
-  first-party management UI.
+- Expose observed status and live logs in the first-party management UI; expose
+  a fixed metrics contract with an explicit degraded state until the platform
+  metrics adapter is connected.
 
 Exit criteria: a user can create Kafka, produce and consume a test message, find
 an actionable failure, and delete or retain storage according to policy.

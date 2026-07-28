@@ -1,8 +1,7 @@
 # Runbook
 
-This runbook defines operational boundaries before deployment manifests exist.
-Concrete release commands and image digests will be added with the first
-deployable vertical slice.
+This runbook covers the deployable Kafka vertical slice. The tested release
+uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.4`.
 
 ## Deployment Order
 
@@ -13,12 +12,14 @@ deployable vertical slice.
 4. Install the backend and management UI, then register the application entry.
 5. Install shared scrape and alert definitions when the target monitoring CRDs
    are available.
-6. Create a development `MessageQueue` and validate produce, consume, logs,
-   metrics, suspension, recovery, and deletion policy.
+6. Create a development `MessageQueue` and validate produce, consume, live
+   logs, and the explicit metrics-degraded state. Suspension, recovery,
+   scaling, deletion, and storage-policy workflows remain follow-up checks
+   until their v0.2 operations are implemented.
 
 ## Health Checks
 
-Use these resource-level checks after the corresponding manifests exist:
+Use these resource-level checks after deployment:
 
 ```bash
 kubectl get messagequeues.messagequeue.sealos.io -A
@@ -27,9 +28,27 @@ kubectl -n <workspace> get pods,pvc,networkpolicy
 kubectl -n messagequeue-system get deploy,pods
 ```
 
+For cluster 62, use only the explicitly approved kubeconfig:
+
+```bash
+KUBECONFIG_PATH=~/.kube/62 \
+APPLY=1 ./deploy/cluster-62-smoke.sh
+KUBECONFIG_PATH=~/.kube/62 \
+WORKSPACE_NAMESPACE=ns-admin CLUSTER_NAME=kafka-dev \
+./deploy/kafka-roundtrip-smoke.sh
+```
+
+The round-trip command mounts the generated `kafka-dev-client` password into a
+temporary Job and prints only a success marker. It must not be changed to dump
+Secret data. The Job requests `250m/512Mi` and limits `1 CPU/1Gi`; this is
+required on the test cluster because the `ns-admin` LimitRange defaults Java
+containers to `50m/64Mi`.
+
 A healthy cluster has a current `observedGeneration`, a true `Ready` condition,
-ready Strimzi resources, expected broker and controller Pods, bound PVCs, a
-working authenticated client, and successful fixed-query metric responses.
+ready Strimzi resources, expected broker and controller Pods, bound PVCs, and
+a working authenticated client. Metrics may still show an explicit degraded
+state until the platform VictoriaMetrics adapter is connected; this does not
+make Kafka management unhealthy.
 
 ## Degraded Dependencies
 

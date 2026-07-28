@@ -1,0 +1,122 @@
+global:
+  # The Helm release must be installed into this namespace. Kubernetes uses
+  # .Release.Namespace for all namespaced objects in this chart.
+  systemNamespace: messagequeue-system
+  imagePullSecrets: []
+  imagePolicy:
+    # Set true in release values after the registry has produced immutable
+    # digests. Foundation/dev installs may use the pinned version tags below.
+    requireDigest: false
+
+images:
+  controller:
+    repository: ghcr.io/mlhiter/messagequeue-controller
+    tag: v0.1.4
+    digest: ""
+  backend:
+    repository: ghcr.io/mlhiter/messagequeue-backend
+    tag: v0.1.4
+    digest: ""
+  frontend:
+    repository: ghcr.io/mlhiter/messagequeue-frontend
+    tag: v0.1.4
+    digest: ""
+
+serviceAccount:
+  controller:
+    create: true
+    name: ""
+  backend:
+    create: true
+    name: ""
+  frontend:
+    create: true
+    name: ""
+
+controller:
+  replicas: 1
+  leaderElection: true
+  logLevel: info
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  health:
+    port: 8081
+    path: /healthz
+  metrics:
+    port: 8080
+    path: /metrics
+
+backend:
+  replicas: 2
+  port: 8080
+  # The current backend authenticates a single server-owned workspace. A
+  # platform session adapter can replace this value when multi-workspace
+  # identity routing is implemented.
+  workspaceNamespace: ns-admin
+  userID: messagequeue-backend
+  logLevel: info
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  health:
+    path: /healthz
+    readyPath: /readyz
+
+frontend:
+  replicas: 2
+  port: 3000
+  servicePort: 80
+  apiBaseURL: /api
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  health:
+    path: /healthz
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+
+observability:
+  # These optional resources are created in the system namespace. They only
+  # render when the corresponding operator CRD is present in the cluster.
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+  vmServiceScrape:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    kafkaMetricsLabel: messagequeue.sealos.io/metrics
+    kafkaMetricsValue: kafka
+
+podDisruptionBudget:
+  controller:
+    enabled: false
+    minAvailable: 1
+  backend:
+    enabled: true
+    minAvailable: 1
+  frontend:
+    enabled: true
+    minAvailable: 1
+
+networkPolicy:
+  enabled: false

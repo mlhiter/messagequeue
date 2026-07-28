@@ -1,0 +1,22 @@
+apiVersion: messagequeue.sealos.io/v1alpha1
+kind: MessageQueue
+metadata:
+  name: kafka-dev
+  # Supply the authenticated user's workspace namespace with `kubectl -n`.
+  # The control plane is never installed in the workspace namespace.
+spec:
+  engine: kafka
+  kafka:
+    version: 3.9.0
+    replicas: 1
+  topology:
+    mode: combined
+    replicas: 1
+  resources:
+    cpu: 500m
+    memory: 1Gi
+  storage:
+    size: 10Gi
+    deleteClaim: false
+  deletionPolicy: Retain
+  suspend: false

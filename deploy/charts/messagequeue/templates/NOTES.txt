@@ -1,0 +1,16 @@
+MessageQueue control plane {{ .Chart.AppVersion }} is installed in namespace
+{{ .Release.Namespace }}.
+
+The release does not create a workspace or Kafka workload. Install the pinned
+Strimzi prerequisite first, then apply a MessageQueue resource in the user's
+workspace namespace:
+
+  kubectl apply -n <workspace-namespace> -f deploy/examples/messagequeue-dev.yaml
+
+Control-plane services:
+
+  {{ include "messagequeue.fullname" . }}-frontend (port {{ .Values.frontend.servicePort }})
+  {{ include "messagequeue.fullname" . }}-backend (port {{ .Values.backend.port }})
+
+No Secret data is printed by this note. Retrieve credentials only through an
+authorized backend operation.

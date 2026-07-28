@@ -4,59 +4,1073 @@
   const API_BASE = (window.MESSAGEQUEUE_API_BASE || "/api").replace(/\/$/, "");
   const API_PREFIX = "/v1/messagequeues";
   const CREATE_ENABLED = window.MESSAGEQUEUE_CREATE_ENABLED !== false;
-  const DEMO_CLUSTERS = [
-    {
-      metadata: { name: "orders-prod", namespace: "workspace-main", creationTimestamp: "2026-07-24T06:08:00Z" },
-      spec: { engine: "kafka", kafka: { version: "3.9.0", replicas: 3 }, storage: { size: "64Gi", className: "premium-rwo" }, deletionPolicy: "Retain" },
-      status: { phase: "Ready", ready: true, observedGeneration: 4, endpoint: "orders-prod-kafka-bootstrap.workspace-main.svc:9092", lastTransitionTime: "2026-07-24T06:14:18Z", conditions: [{ type: "Ready", status: "True", reason: "KafkaReady", message: "Kafka brokers are accepting connections." }, { type: "ObservabilityReady", status: "True", reason: "ScrapeConfigured", message: "Broker metrics and logs are available." }], events: [{ time: "12 min ago", message: "KafkaUser credentials reconciled." }, { time: "18 min ago", message: "All 3 brokers reported Ready." }] }
-    },
-    {
-      metadata: { name: "events-dev", namespace: "workspace-main", creationTimestamp: "2026-07-28T03:52:00Z" },
-      spec: { engine: "kafka", kafka: { version: "3.9.0", replicas: 1 }, storage: { size: "20Gi", className: "standard" }, deletionPolicy: "Retain" },
-      status: { phase: "Provisioning", ready: false, observedGeneration: 1, endpoint: "Pending", lastTransitionTime: "2026-07-28T03:52:00Z", conditions: [{ type: "Ready", status: "False", reason: "WaitingForBrokers", message: "Waiting for the Kafka broker pod to become Ready." }], events: [{ time: "2 min ago", message: "MessageQueue accepted by the controller." }, { time: "1 min ago", message: "Kafka resource created through Strimzi." }] }
-    }
-  ];
+  const DEFAULT_LANGUAGE = "zh";
+  const STORAGE_KEY = "messagequeue.locale";
 
-  const state = { clusters: [], selected: null, tab: "overview", loading: true, apiState: "loading", apiMessage: "", search: "", observability: {}, createSubmitting: false };
+  const LOCALES = {
+    zh: {
+      languageName: "中文",
+      switchLanguage: "EN",
+      title: "MessageQueue | 消息队列",
+      description: "MessageQueue Kafka 管理控制台",
+      brandSubtitle: "工作空间控制平面",
+      navClusters: "集群",
+      navOperations: "操作",
+      workspace: "工作空间",
+      workspaceOwner: "工作空间所有者",
+      ownerRole: "Owner",
+      breadcrumbWorkspace: "工作空间",
+      breadcrumbClusters: "集群",
+      sectionTag: "消息代理 / Kafka",
+      pageTitle: "集群",
+      pageDescription: "在你的工作空间中部署和运维 Kafka。",
+      createCluster: "创建集群",
+      apiConnecting: "连接中",
+      apiConnected: "API 已连接",
+      apiDegraded: "API 降级",
+      accessDenied: "访问受限",
+      totalClusters: "集群总数",
+      observedInWorkspace: "在当前工作空间中观测到",
+      ready: "就绪",
+      observedAndServing: "已观测且可服务",
+      attention: "关注",
+      provisioningOrDegraded: "正在创建或异常",
+      engine: "引擎",
+      kafka: "Kafka",
+      strimziManaged: "Strimzi 托管",
+      yourClusters: "你的集群",
+      clusterResourcesReadOnly: (count) => `${count} 个资源 · 只读`,
+      clusterResourcesInWorkspace: (count) => `${count} 个资源 · 当前工作空间`,
+      loadingClusters: "正在加载集群…",
+      searchPlaceholder: "搜索",
+      noKafkaClustersYet: "还没有 Kafka 集群",
+      noMatchingClusters: "没有匹配的集群",
+      createDevClusterHint: "创建一个开发集群开始发送消息。",
+      createDisabledHint: "在工作空间会话身份接入前，创建功能已关闭。",
+      tryDifferentName: "换个名字试试，或者清空搜索。",
+      selectACluster: "选择一个集群",
+      selectAClusterHint: "从列表中选择一个资源查看它的观测状态。",
+      apiUnavailableTitle: "管理 API 不可用",
+      apiUnavailableCopy: (message) => message || "这里展示的是明确标注的演示数据。要改动资源，需要可用的 API。",
+      permissionDeniedTitle: "权限不足",
+      permissionDeniedCopy: "当前会话无法读取这个工作空间的 MessageQueue 资源。",
+      demoDataTitle: "演示数据",
+      demoDataCopy: "后端不可达时，会显示只读的演示数据。",
+      observedState: "观测状态",
+      generation: "代数",
+      engineName: "Apache Kafka",
+      kafkaVersion: "Kafka 版本",
+      topology: "拓扑",
+      storage: "存储",
+      bootstrapEndpoint: "Bootstrap 端点",
+      deletionPolicy: "删除策略",
+      retainData: "保留数据",
+      deleteWithCluster: "随集群删除",
+      controllerDefault: "控制器默认",
+      conditions: "条件",
+      controllerReported: "控制器上报",
+      recentEvents: "最近事件",
+      latestFirst: "最新在前",
+      detailTabsLabel: "集群详情选项卡",
+      conditionPlaceholder: "控制器尚未上报条件。",
+      eventPlaceholder: "暂无最近事件。",
+      controllerEvent: "控制器事件",
+      connections: "连接",
+      clientConnection: "客户端连接",
+      credentialsStayServerSide: "凭据保留在服务端",
+      credentialsProtected:
+        "通过授权的服务端操作获取短期客户端配置。密码和私钥不会出现在浏览器日志或状态中。",
+      authentication: "认证",
+      transport: "传输",
+      mechanism: "机制",
+      kafkaUser: "Kafka 用户",
+      access: "访问",
+      tls: "TLS",
+      scramSha512: "SCRAM-SHA-512",
+      workspaceScoped: "工作空间级别",
+      copy: "复制",
+      liveLogs: "实时日志",
+      loadLogs: "加载日志",
+      retryLogs: "重试日志",
+      brokerLogs: "Broker 日志",
+      logsUnavailable: "日志不可用",
+      loadingLogs: "正在加载 broker 日志…",
+      logsOptional:
+        "历史或实时日志是可选的平台依赖，不会阻塞 Kafka 操作。",
+      logsFetchNote: (name) => `日志通过固定的服务端查询获取，范围限定为 ${name}。`,
+      loadMetrics: "加载指标",
+      retryMetrics: "重试指标",
+      brokerHealth: "Broker 健康",
+      loadingMetrics: "正在加载 broker 指标…",
+      metricsUnavailable: "指标不可用",
+      metricsOptional:
+        "VictoriaMetrics 可能不可用，或者还没有为这个工作空间配置。",
+      metricsFetchNote:
+        "指标使用固定的服务端查询。命名空间和集群选择器由后端注入。",
+      metricsProviderMissing:
+        "指标提供器未配置，不会影响 Kafka 操作。",
+      metricsMessagesIn: "消息进入",
+      metricsMessagesOut: "消息流出",
+      metricsUnderReplicated: "未同步副本",
+      metricsConsumerLag: "消费者堆积",
+      perSecond: "每秒",
+      partitions: "分区",
+      messages: "条消息",
+      refresh: "刷新",
+      refreshData: "刷新数据",
+      openHelp: "打开帮助",
+      switchLanguageLabel: "切换语言",
+      newResource: "新资源",
+      createKafkaCluster: "创建 Kafka 集群",
+      createDescription: "控制器会在你的工作空间命名空间里创建 Strimzi 资源。",
+      close: "关闭",
+      clusterName: "集群名称",
+      required: "必填",
+      lowercaseHint: "仅支持小写字母、数字和连字符。",
+      kafkaVersionLabel: "Kafka 版本",
+      recommended: "推荐",
+      brokerCount: "Broker 数量",
+      brokerCountHint: "生产环境建议至少 3 个 broker。",
+      storagePerBroker: "每个 Broker 的存储",
+      storageClass: "存储类",
+      deletionPolicyLabel: "删除策略",
+      storageClassPlaceholder: "默认集群存储",
+      resourceFootprint: "资源占用",
+      resourceFootprintCopy:
+        "1 个 broker · 20 Gi 存储 · TLS + SCRAM 认证 · 保留数据",
+      creationAsync: "创建是异步的。你可以在集群详情里跟踪观测状态。",
+      lastTransition: "最后变更",
+      cancel: "取消",
+      create: "创建",
+      formError: "请输入合法的集群名称，并检查各项配置。",
+      formPermissionDenied: "权限不足：当前工作空间不能创建集群。",
+      formCreateFailed: (message) => `集群创建失败：${message}`,
+      createButton: "创建集群",
+      createButtonShort: "+ 创建",
+      statusUnknown: "未知",
+      statusReady: "就绪",
+      statusProvisioning: "准备中",
+      statusUpdating: "更新中",
+      statusDegraded: "降级",
+      statusFailed: "失败",
+      statusSuspended: "已挂起",
+      statusDeleting: "删除中",
+      statusLabel: "状态",
+      loadingDemoClusters: "正在加载观测到的集群…",
+      stateReadyMeta: "已观测且可服务",
+      stateAttentionMeta: "正在创建或异常",
+      demoReadyEvent1: "Kafka 用户凭据已完成协调。",
+      demoReadyEvent2: "3 个 broker 已全部就绪。",
+      demoProvisioningEvent1: "MessageQueue 已被控制器接收。",
+      demoProvisioningEvent2: "Kafka 资源正在通过 Strimzi 创建。",
+      demoReadyCondition1: "Kafka Broker 正在接受连接。",
+      demoReadyCondition2: "Broker 指标和日志已可用。",
+      demoProvisioningCondition1: "等待 Kafka broker Pod 就绪。",
+      demoProvisioningCondition2: "正在协调 Strimzi 资源。",
+      noRecentEvents: "暂无最近事件。",
+      noConditions: "控制器尚未上报条件。",
+      clusterScopedAccess: "工作空间范围访问",
+      credentialSafety: "密码和私钥不会出现在浏览器日志里。",
+      topicPlaceholder: "示例：orders-dev",
+      topbarHelp: "帮助",
+      topbarRefresh: "刷新",
+      managementApiUnavailable:
+        "后端不可达。这里显示只读演示数据；请先接通 API 再创建资源。",
+      clusterCreationDisabled:
+        "在工作空间会话身份接入前，集群创建已禁用。",
+      loadingState: "正在加载…",
+      noHelp: "暂无帮助内容",
+      operationsComingSoon: "运维功能正在完善中",
+      readOnlySuffix: "只读",
+      workspaceReady: "工作空间已就绪",
+      workspacePending: "工作空间加载中"
+    },
+    en: {
+      languageName: "EN",
+      switchLanguage: "中文",
+      title: "MessageQueue | Message Brokers",
+      description: "MessageQueue Kafka management console",
+      brandSubtitle: "Workspace control plane",
+      navClusters: "Clusters",
+      navOperations: "Operations",
+      workspace: "Workspace",
+      workspaceOwner: "Workspace owner",
+      ownerRole: "Owner",
+      breadcrumbWorkspace: "Workspace",
+      breadcrumbClusters: "Clusters",
+      sectionTag: "Message brokers / Kafka",
+      pageTitle: "Clusters",
+      pageDescription: "Provision and operate Kafka in your workspace.",
+      createCluster: "Create cluster",
+      apiConnecting: "Connecting",
+      apiConnected: "API connected",
+      apiDegraded: "API degraded",
+      accessDenied: "Access denied",
+      totalClusters: "Total clusters",
+      observedInWorkspace: "Observed in this workspace",
+      ready: "Ready",
+      observedAndServing: "Observed and serving",
+      attention: "Attention",
+      provisioningOrDegraded: "Provisioning or degraded",
+      engine: "Engine",
+      kafka: "Kafka",
+      strimziManaged: "Strimzi managed",
+      yourClusters: "Your clusters",
+      clusterResourcesReadOnly: (count) => `${count} resource${count === 1 ? "" : "s"} · read only`,
+      clusterResourcesInWorkspace: (count) => `${count} resource${count === 1 ? "" : "s"} in your workspace`,
+      loadingClusters: "Loading clusters…",
+      searchPlaceholder: "Search",
+      noKafkaClustersYet: "No Kafka clusters yet",
+      noMatchingClusters: "No matching clusters",
+      createDevClusterHint: "Create a development cluster to start producing messages.",
+      createDisabledHint: "Cluster creation is disabled until workspace session identity is connected.",
+      tryDifferentName: "Try a different name or clear the search.",
+      selectACluster: "Select a cluster",
+      selectAClusterHint: "Choose a resource from the list to inspect its observed status.",
+      apiUnavailableTitle: "Management API unavailable",
+      apiUnavailableCopy: (message) => message || "Showing clearly labelled demo data. Changes require an available API.",
+      permissionDeniedTitle: "Permission denied",
+      permissionDeniedCopy: "Your session cannot read MessageQueue resources in this workspace.",
+      demoDataTitle: "Demo data",
+      demoDataCopy: "When the backend cannot be reached, the app falls back to read-only demo data.",
+      observedState: "Observed state",
+      generation: "generation",
+      engineName: "Apache Kafka",
+      kafkaVersion: "Kafka version",
+      topology: "Topology",
+      storage: "Storage",
+      bootstrapEndpoint: "Bootstrap endpoint",
+      deletionPolicy: "Deletion policy",
+      retainData: "Retain data",
+      deleteWithCluster: "Delete with cluster",
+      controllerDefault: "Controller default",
+      conditions: "Conditions",
+      controllerReported: "controller reported",
+      recentEvents: "Recent events",
+      latestFirst: "latest first",
+      detailTabsLabel: "Cluster detail tabs",
+      conditionPlaceholder: "The controller has not reported a condition yet.",
+      eventPlaceholder: "No recent events reported.",
+      controllerEvent: "Controller event",
+      connections: "Connections",
+      clientConnection: "Client connection",
+      credentialsStayServerSide: "Credentials stay server-side",
+      credentialsProtected:
+        "Retrieve a short-lived client configuration through an authorized server operation. Passwords and private keys are never rendered in browser logs or status.",
+      authentication: "Authentication",
+      transport: "Transport",
+      mechanism: "Mechanism",
+      kafkaUser: "Kafka user",
+      access: "Access",
+      tls: "TLS",
+      scramSha512: "SCRAM-SHA-512",
+      workspaceScoped: "Workspace scoped",
+      copy: "Copy",
+      liveLogs: "Live logs",
+      loadLogs: "Load logs",
+      retryLogs: "Retry logs",
+      brokerLogs: "Broker logs",
+      logsUnavailable: "Logs unavailable",
+      loadingLogs: "Loading broker logs…",
+      logsOptional: "Historical or live logs are an optional platform dependency and do not block Kafka operations.",
+      logsFetchNote: (name) => `Logs are fetched through a fixed server-owned query scoped to ${name}.`,
+      loadMetrics: "Load metrics",
+      retryMetrics: "Retry metrics",
+      brokerHealth: "Broker health",
+      loadingMetrics: "Loading broker metrics…",
+      metricsUnavailable: "Metrics unavailable",
+      metricsOptional: "VictoriaMetrics may be unavailable or not configured for this workspace.",
+      metricsFetchNote: "Metrics use a fixed server-owned query. Namespace and cluster selectors are injected by the backend.",
+      metricsProviderMissing: "The metrics provider is not configured; Kafka operations are unaffected.",
+      metricsMessagesIn: "Messages in",
+      metricsMessagesOut: "Messages out",
+      metricsUnderReplicated: "Under-replicated",
+      metricsConsumerLag: "Consumer lag",
+      perSecond: "per second",
+      partitions: "partitions",
+      messages: "messages",
+      refresh: "Refresh",
+      refreshData: "Refresh data",
+      openHelp: "Open help",
+      switchLanguageLabel: "Switch language",
+      newResource: "New resource",
+      createKafkaCluster: "Create Kafka cluster",
+      createDescription: "The controller will provision Strimzi resources in your workspace namespace.",
+      close: "Close",
+      clusterName: "Cluster name",
+      required: "required",
+      lowercaseHint: "Lowercase letters, numbers, and hyphens only.",
+      kafkaVersionLabel: "Kafka version",
+      recommended: "recommended",
+      brokerCount: "Broker count",
+      brokerCountHint: "Use 3+ brokers for production.",
+      storagePerBroker: "Storage per broker",
+      storageClass: "Storage class",
+      deletionPolicyLabel: "Deletion policy",
+      storageClassPlaceholder: "Default cluster storage",
+      resourceFootprint: "Resource footprint",
+      resourceFootprintCopy: "1 broker · 20 Gi storage · TLS + SCRAM authentication · Retain data",
+      creationAsync: "Creation is asynchronous. You can follow the observed state from the cluster detail.",
+      lastTransition: "last transition",
+      cancel: "Cancel",
+      create: "Create",
+      formError: "Enter a valid cluster name and check the requested values.",
+      formPermissionDenied: "Permission denied: your workspace cannot create clusters.",
+      formCreateFailed: (message) => `Cluster creation failed: ${message}`,
+      createButton: "Create cluster",
+      createButtonShort: "+ Create",
+      statusUnknown: "Unknown",
+      statusReady: "Ready",
+      statusProvisioning: "Provisioning",
+      statusUpdating: "Updating",
+      statusDegraded: "Degraded",
+      statusFailed: "Failed",
+      statusSuspended: "Suspended",
+      statusDeleting: "Deleting",
+      statusLabel: "Status",
+      loadingDemoClusters: "Loading observed clusters…",
+      stateReadyMeta: "Observed and serving",
+      stateAttentionMeta: "Provisioning or degraded",
+      demoReadyEvent1: "Kafka user credentials reconciled.",
+      demoReadyEvent2: "All 3 brokers reported Ready.",
+      demoProvisioningEvent1: "MessageQueue accepted by the controller.",
+      demoProvisioningEvent2: "Kafka resource created through Strimzi.",
+      demoReadyCondition1: "Kafka brokers are accepting connections.",
+      demoReadyCondition2: "Broker metrics and logs are available.",
+      demoProvisioningCondition1: "Waiting for the Kafka broker pod to become Ready.",
+      demoProvisioningCondition2: "Reconciling Strimzi resources.",
+      noRecentEvents: "No recent events reported.",
+      noConditions: "The controller has not reported a condition yet.",
+      clusterScopedAccess: "Workspace scoped access",
+      credentialSafety: "Passwords and private keys are never rendered in browser logs.",
+      topicPlaceholder: "Example: orders-dev",
+      topbarHelp: "Help",
+      topbarRefresh: "Refresh",
+      managementApiUnavailable:
+        "The backend could not be reached. Demo data is read only; connect the API before creating resources.",
+      clusterCreationDisabled: "Cluster creation is disabled until workspace session identity is connected.",
+      loadingState: "Loading…",
+      noHelp: "No help content yet",
+      operationsComingSoon: "Operations are still being polished",
+      readOnlySuffix: "read only",
+      workspaceReady: "Workspace ready",
+      workspacePending: "Workspace loading"
+    }
+  };
+
+  const STATUS_MAP = {
+    zh: {
+      ready: ["就绪", "ready"],
+      provisioning: ["准备中", "provisioning"],
+      creating: ["准备中", "provisioning"],
+      updating: ["更新中", "updating"],
+      degraded: ["降级", "degraded"],
+      failed: ["失败", "failed"],
+      suspended: ["已挂起", "suspended"],
+      deleting: ["删除中", "deleting"]
+    },
+    en: {
+      ready: ["Ready", "ready"],
+      provisioning: ["Provisioning", "provisioning"],
+      creating: ["Provisioning", "provisioning"],
+      updating: ["Updating", "updating"],
+      degraded: ["Degraded", "degraded"],
+      failed: ["Failed", "failed"],
+      suspended: ["Suspended", "suspended"],
+      deleting: ["Deleting", "deleting"]
+    }
+  };
+
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : "";
+  }
+
+  function setCookie(name, value, days = 30) {
+    const sameSite = location.protocol === "https:" ? "None" : "Lax";
+    const secure = location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${days * 24 * 60 * 60}; SameSite=${sameSite}${secure}`;
+  }
+
+  function detectLanguage() {
+    const candidates = [
+      window.MESSAGEQUEUE_LOCALE,
+      getCookie("MESSAGEQUEUE_LOCALE"),
+      getCookie("NEXT_LOCALE"),
+      localStorage.getItem(STORAGE_KEY),
+      navigator.language,
+      DEFAULT_LANGUAGE
+    ];
+    for (const candidate of candidates) {
+      const lang = String(candidate || "").toLowerCase();
+      if (lang.startsWith("zh")) return "zh";
+      if (lang.startsWith("en")) return "en";
+    }
+    return DEFAULT_LANGUAGE;
+  }
+
+  const state = {
+    clusters: [],
+    selected: null,
+    tab: "overview",
+    loading: true,
+    apiState: "loading",
+    apiMessage: "",
+    search: "",
+    observability: {},
+    createSubmitting: false,
+    language: detectLanguage()
+  };
+
   const $ = (selector) => document.querySelector(selector);
-  const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character]));
-  const formatTime = (value) => { if (!value) return "Unknown"; const date = new Date(value); return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date); };
-  const formatStatus = (phase) => { const value = String(phase || "Unknown").toLowerCase(); const map = { ready: ["Ready", "ready"], provisioning: ["Provisioning", "provisioning"], creating: ["Provisioning", "provisioning"], updating: ["Updating", "updating"], degraded: ["Degraded", "degraded"], failed: ["Failed", "failed"], suspended: ["Suspended", "suspended"], deleting: ["Deleting", "deleting"] }; return map[value] || [phase || "Unknown", "degraded"]; };
-  const parseSizeGi = (value) => { const match = String(value ?? "").match(/([0-9]+(?:\.[0-9]+)?)/); return match ? Number(match[1]) : 20; };
-  const normalize = (raw) => { const metadata = raw?.metadata || {}; const spec = raw?.spec || {}; const kafka = spec.kafka || {}; const storage = spec.storage || {}; const status = raw?.status || {}; const conditions = Array.isArray(status.conditions) ? status.conditions : []; const phase = status.phase || (conditions.find((condition) => condition.type === "Ready" && condition.status === "True") ? "Ready" : "Provisioning"); const firstEndpoint = status.endpoints?.[0]; const endpoint = status.endpoint || status.bootstrapEndpoint || (typeof firstEndpoint === "string" ? firstEndpoint : firstEndpoint ? `${firstEndpoint.host}:${firstEndpoint.port}` : "Pending"); return { raw, metadata, spec, kafka, storage, status, conditions, name: metadata.name || raw.name || "unnamed-cluster", namespace: metadata.namespace || raw.namespace || "workspace", brokers: Number(kafka.brokers || kafka.replicas || spec.replicas || spec.brokers || status.topology?.brokers || 1), storageGi: parseSizeGi(kafka.storageGi || storage.size || spec.storageGi || 20), version: kafka.version || status.version || spec.version || "3.9.0", storageClass: kafka.storageClass || storage.storageClass || storage.className || storage.class || "default", deletionPolicy: spec.deletionPolicy || storage.deletionPolicy || "unspecified", phase, endpoint, lastTransitionTime: status.lastTransitionTime || status.conditions?.[0]?.lastTransitionTime || metadata.creationTimestamp || raw.creationTimestamp, events: Array.isArray(status.events) ? status.events : [] }; };
-  const normalizedClusters = () => state.clusters.map(normalize);
-  const selectedCluster = () => normalizedClusters().find((cluster) => cluster.name === state.selected) || normalizedClusters()[0] || null;
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character]));
+  }
+
+  function interpolate(template, params = {}) {
+    return String(template).replace(/\{\{(\w+)\}\}/g, (_, key) => escapeHtml(params[key] ?? ""));
+  }
+
+  function message(key, params = {}) {
+    const locale = LOCALES[state.language] || LOCALES.zh;
+    const fallback = LOCALES.en;
+    const raw = locale[key] ?? fallback[key] ?? key;
+    return typeof raw === "function" ? raw(params?.count ?? params.message ?? params.name ?? params) : interpolate(raw, params);
+  }
+
+  function applyLanguage(lang) {
+    state.language = lang === "en" ? "en" : "zh";
+    localStorage.setItem(STORAGE_KEY, state.language);
+    setCookie("MESSAGEQUEUE_LOCALE", state.language);
+    setCookie("NEXT_LOCALE", state.language);
+    document.documentElement.lang = state.language === "zh" ? "zh-CN" : "en";
+    const title = message("title");
+    document.title = title;
+    const description = $("meta[name='description']");
+    if (description) description.setAttribute("content", message("description"));
+  }
+
+  function localizeStaticShell() {
+    const staticMap = [
+      ["brand-subtitle", "brandSubtitle"],
+      ["nav-clusters-label", "navClusters"],
+      ["nav-operations-label", "navOperations"],
+      ["workspace-label", "workspace"],
+      ["workspace-owner-title", "workspaceOwner"],
+      ["workspace-owner-role", "ownerRole"],
+      ["breadcrumb-workspace", "breadcrumbWorkspace"],
+      ["breadcrumb-clusters", "breadcrumbClusters"],
+      ["section-tag", "sectionTag"],
+      ["page-title", "pageTitle"],
+      ["page-description", "pageDescription"],
+      ["create-button", "createButton"],
+      ["stat-label-total", "totalClusters"],
+      ["stat-total-meta", "observedInWorkspace"],
+      ["stat-label-ready", "ready"],
+      ["stat-ready-meta", "observedAndServing"],
+      ["stat-label-attention", "attention"],
+      ["stat-attention-meta", "provisioningOrDegraded"],
+      ["stat-label-engine", "engine"],
+      ["stat-engine-meta", "strimziManaged"],
+      ["cluster-list-title", "yourClusters"],
+      ["search-input", "searchPlaceholder"],
+      ["create-eyebrow", "newResource"],
+      ["create-title", "createKafkaCluster"],
+      ["create-description", "createDescription"],
+      ["field-name-label", "clusterName"],
+      ["field-name-required", "required"],
+      ["field-name-help", "lowercaseHint"],
+      ["field-version-label", "kafkaVersionLabel"],
+      ["field-version-recommended", "recommended"],
+      ["field-brokers-label", "brokerCount"],
+      ["field-brokers-help", "brokerCountHint"],
+      ["field-storage-label", "storagePerBroker"],
+      ["field-class-label", "storageClass"],
+      ["field-policy-label", "deletionPolicyLabel"],
+      ["field-class-placeholder", "storageClassPlaceholder"],
+      ["impact-heading", "resourceFootprint"],
+      ["impact-copy", "resourceFootprintCopy"],
+      ["impact-note", "creationAsync"],
+      ["cancel-button", "cancel"],
+      ["submit-create", "create"],
+      ["api-indicator-label", "apiConnecting"],
+      ["language-button", "languageName"]
+    ];
+
+    for (const [id, key] of staticMap) {
+      const node = document.getElementById(id);
+      if (!node) continue;
+      if (node.tagName === "INPUT") {
+        if (id === "search-input") node.setAttribute("placeholder", message(key));
+        continue;
+      }
+      node.textContent = message(key);
+    }
+
+    $("#refresh-button")?.setAttribute("aria-label", message("refreshData"));
+    $("#refresh-button")?.setAttribute("title", message("refreshData"));
+    $("#help-button")?.setAttribute("aria-label", message("openHelp"));
+    $("#help-button")?.setAttribute("title", message("openHelp"));
+    $("#language-button")?.setAttribute("aria-label", message("switchLanguageLabel"));
+    $("#language-button")?.setAttribute("title", message("switchLanguageLabel"));
+    $("#search-input")?.setAttribute("placeholder", message("searchPlaceholder"));
+    $("#create-button")?.classList.toggle("is-hidden", !CREATE_ENABLED);
+    $("#submit-create")?.setAttribute("value", "default");
+    $("#page-description")?.classList.toggle("is-hidden", false);
+
+    const kafkaVersion = $("#kafka-version");
+    if (kafkaVersion?.options?.[0]) kafkaVersion.options[0].textContent = `3.9.0 (${message("recommended")})`;
+    if (kafkaVersion?.options?.[1]) kafkaVersion.options[1].textContent = "4.0.0";
+    const deletionPolicy = $("#deletion-policy");
+    if (deletionPolicy?.options?.[0]) deletionPolicy.options[0].textContent = message("retainData");
+    if (deletionPolicy?.options?.[1]) deletionPolicy.options[1].textContent = message("deleteWithCluster");
+    $("#cluster-name")?.setAttribute("placeholder", "orders-dev");
+    $("#storage-class")?.setAttribute("placeholder", message("storageClassPlaceholder"));
+    $("#modal-close")?.setAttribute("aria-label", message("close"));
+    $("#modal-close")?.setAttribute("title", message("close"));
+    $("#form-error") && ($("#form-error").textContent = message("formError"));
+
+    const createButton = $("#create-button");
+    if (createButton) createButton.textContent = CREATE_ENABLED ? message("createButton") : "";
+  }
+
+  function statusLabel(phase) {
+    const value = String(phase || "unknown").toLowerCase();
+    return (STATUS_MAP[state.language] || STATUS_MAP.zh)[value] || [(state.language === "zh" ? "未知" : "Unknown"), "degraded"];
+  }
+
+  function formatTime(value) {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat(state.language === "zh" ? "zh-CN" : "en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(date);
+  }
+
+  function parseSizeGi(value) {
+    const match = String(value ?? "").match(/([0-9]+(?:\.[0-9]+)?)/);
+    return match ? Number(match[1]) : 20;
+  }
+
+  function demoClustersFor(language) {
+    const zh = language === "zh";
+    return [
+      {
+        metadata: {
+          name: "orders-prod",
+          namespace: "workspace-main",
+          creationTimestamp: "2026-07-24T06:08:00Z"
+        },
+        spec: {
+          engine: "kafka",
+          kafka: { version: "3.9.0", replicas: 3 },
+          storage: { size: "64Gi", className: "premium-rwo" },
+          deletionPolicy: "Retain"
+        },
+        status: {
+          phase: "Ready",
+          ready: true,
+          observedGeneration: 4,
+          endpoint: "orders-prod-kafka-bootstrap.workspace-main.svc:9092",
+          lastTransitionTime: "2026-07-24T06:14:18Z",
+          conditions: [
+            {
+              type: "Ready",
+              status: "True",
+              reason: "KafkaReady",
+              message: zh ? message("demoReadyCondition1") : message("demoReadyCondition1")
+            },
+            {
+              type: "ObservabilityReady",
+              status: "True",
+              reason: "ScrapeConfigured",
+              message: zh ? message("demoReadyCondition2") : message("demoReadyCondition2")
+            }
+          ],
+          events: [
+            { time: "12 min ago", message: zh ? message("demoReadyEvent1") : message("demoReadyEvent1") },
+            { time: "18 min ago", message: zh ? message("demoReadyEvent2") : message("demoReadyEvent2") }
+          ]
+        }
+      },
+      {
+        metadata: {
+          name: "events-dev",
+          namespace: "workspace-main",
+          creationTimestamp: "2026-07-28T03:52:00Z"
+        },
+        spec: {
+          engine: "kafka",
+          kafka: { version: "3.9.0", replicas: 1 },
+          storage: { size: "20Gi", className: "standard" },
+          deletionPolicy: "Retain"
+        },
+        status: {
+          phase: "Provisioning",
+          ready: false,
+          observedGeneration: 1,
+          endpoint: "Pending",
+          lastTransitionTime: "2026-07-28T03:52:00Z",
+          conditions: [
+            {
+              type: "Ready",
+              status: "False",
+              reason: "WaitingForBrokers",
+              message: zh ? message("demoProvisioningCondition1") : message("demoProvisioningCondition1")
+            }
+          ],
+          events: [
+            { time: "2 min ago", message: zh ? message("demoProvisioningEvent1") : message("demoProvisioningEvent1") },
+            { time: "1 min ago", message: zh ? message("demoProvisioningEvent2") : message("demoProvisioningEvent2") }
+          ]
+        }
+      }
+    ];
+  }
+
+  function normalizedClusters() {
+    return state.clusters.map((raw) => {
+      const metadata = raw?.metadata || {};
+      const spec = raw?.spec || {};
+      const kafka = spec.kafka || {};
+      const storage = spec.storage || {};
+      const status = raw?.status || {};
+      const conditions = Array.isArray(status.conditions) ? status.conditions : [];
+      const phase = status.phase || (conditions.find((condition) => condition.type === "Ready" && condition.status === "True") ? "Ready" : "Provisioning");
+      const firstEndpoint = status.endpoints?.[0];
+      const endpoint = status.endpoint || status.bootstrapEndpoint || (typeof firstEndpoint === "string" ? firstEndpoint : firstEndpoint ? `${firstEndpoint.host}:${firstEndpoint.port}` : "Pending");
+      return {
+        raw,
+        metadata,
+        spec,
+        kafka,
+        storage,
+        status,
+        conditions,
+        name: metadata.name || raw.name || "unnamed-cluster",
+        namespace: metadata.namespace || raw.namespace || "workspace",
+        brokers: Number(kafka.brokers || kafka.replicas || spec.replicas || spec.brokers || status.topology?.brokers || 1),
+        storageGi: parseSizeGi(kafka.storageGi || storage.size || spec.storageGi || 20),
+        version: kafka.version || status.version || spec.version || "3.9.0",
+        storageClass: kafka.storageClass || storage.storageClass || storage.className || storage.class || "default",
+        deletionPolicy: spec.deletionPolicy || storage.deletionPolicy || "unspecified",
+        phase,
+        endpoint,
+        lastTransitionTime: status.lastTransitionTime || status.conditions?.[0]?.lastTransitionTime || metadata.creationTimestamp || raw.creationTimestamp,
+        events: Array.isArray(status.events) ? status.events : []
+      };
+    });
+  }
+
+  function selectedCluster() {
+    return normalizedClusters().find((cluster) => cluster.name === state.selected) || normalizedClusters()[0] || null;
+  }
 
   async function request(path, options = {}) {
-    const response = await fetch(`${API_BASE}${path}`, { headers: { "Content-Type": "application/json", Accept: "application/json" }, credentials: "include", ...options });
-    if (response.status === 403) { const error = new Error("Permission denied"); error.code = 403; throw error; }
-    if (!response.ok) { const body = await response.text(); const error = new Error(body || `Request failed (${response.status})`); error.code = response.status; throw error; }
+    const response = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      credentials: "include",
+      ...options
+    });
+    if (response.status === 403) {
+      const error = new Error("Permission denied");
+      error.code = 403;
+      throw error;
+    }
+    if (!response.ok) {
+      const body = await response.text();
+      const error = new Error(body || `Request failed (${response.status})`);
+      error.code = response.status;
+      throw error;
+    }
     if (response.status === 204) return null;
     return response.json();
   }
 
-  function setApiState(apiState, message = "") { state.apiState = apiState; state.apiMessage = message; const indicator = $("#api-indicator"); indicator.dataset.state = apiState; $("#api-indicator-label").textContent = ({ loading: "Connecting", ready: "API connected", degraded: "API degraded", forbidden: "Access denied" })[apiState] || apiState; }
-  function renderNotice() { const region = $("#notice-region"); if (state.apiState === "degraded") region.innerHTML = `<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">!</span><div class="notice-copy"><strong>Management API unavailable</strong><p>${escapeHtml(state.apiMessage || "Showing clearly labelled demo data. Changes require an available API.")}</p></div><button class="icon-button notice-close" type="button" aria-label="关闭提示" data-action="dismiss-notice">×</button></div>`; else if (state.apiState === "forbidden") region.innerHTML = `<div class="notice" data-tone="error"><span class="notice-icon" aria-hidden="true">!</span><div class="notice-copy"><strong>Permission denied</strong><p>Your session cannot read MessageQueue resources in this workspace.</p></div></div>`; else region.innerHTML = ""; }
-  function renderStats(clusters) { const ready = clusters.filter((cluster) => formatStatus(cluster.phase)[1] === "ready").length; const attention = clusters.length - ready; $("#stat-total").textContent = state.loading ? "--" : clusters.length; $("#stat-ready").textContent = state.loading ? "--" : ready; $("#stat-attention").textContent = state.loading ? "--" : attention; $("#stat-total-meta").textContent = state.apiState === "degraded" ? "Demo data · API unavailable" : "Observed in this workspace"; $("#nav-count").textContent = state.loading ? "--" : clusters.length; $("#workspace-name").textContent = clusters[0]?.namespace || "workspace"; }
-  function filteredClusters() { const query = state.search.trim().toLowerCase(); return normalizedClusters().filter((cluster) => !query || `${cluster.name} ${cluster.namespace} ${cluster.version}`.toLowerCase().includes(query)); }
-  function renderClusterList() { const list = $("#cluster-list"); list.setAttribute("aria-busy", state.loading ? "true" : "false"); if (state.loading) { list.innerHTML = `<div class="loading-state"><span>Loading observed clusters…</span><span class="loading-bar" aria-hidden="true"></span></div>`; return; } const clusters = filteredClusters(); $("#list-subtitle").textContent = state.apiState === "degraded" || !CREATE_ENABLED ? `${clusters.length} resource${clusters.length === 1 ? "" : "s"} · read only` : `${clusters.length} resource${clusters.length === 1 ? "" : "s"} in your workspace`; if (!clusters.length) { const emptyCopy = CREATE_ENABLED ? "Create a development cluster to start producing messages." : "Cluster creation is disabled until workspace session identity is connected."; list.innerHTML = `<div class="empty-state"><strong>${state.search ? "No matching clusters" : "No Kafka clusters yet"}</strong><p>${state.search ? "Try a different name or clear the search." : emptyCopy}</p>${state.search || !CREATE_ENABLED ? "" : `<button class="button button-primary" type="button" data-action="open-create">+ Create cluster</button>`}</div>`; return; } list.innerHTML = clusters.map((cluster) => { const [label, statusClass] = formatStatus(cluster.phase); return `<button type="button" class="cluster-row ${cluster.name === state.selected ? "is-selected" : ""}" data-cluster="${escapeHtml(cluster.name)}" aria-pressed="${cluster.name === state.selected}"><span><span class="cluster-name">${escapeHtml(cluster.name)}</span><span class="cluster-meta"><code>${escapeHtml(cluster.namespace)}</code> · Kafka ${escapeHtml(cluster.version)}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-topology"><strong>${cluster.brokers} broker${cluster.brokers === 1 ? "" : "s"}</strong><span>${cluster.storageGi} Gi / broker</span></span><span class="cluster-action" aria-hidden="true">›</span></button>`; }).join(""); }
-  function renderDetail() { const panel = $("#detail-content"); const cluster = selectedCluster(); if (!cluster) { panel.innerHTML = `<div class="empty-state"><strong>Select a cluster</strong><p>Choose a resource from the list to inspect its observed status.</p></div>`; return; } const [label, statusClass] = formatStatus(cluster.phase); const tab = state.tab; panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · last transition ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div><div class="detail-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">↻ Refresh</button></div></div><div class="detail-tabs" role="tablist" aria-label="Cluster detail tabs">${[ ["overview", "Overview"], ["connections", "Connections"], ["logs", "Logs"], ["metrics", "Metrics"] ].map(([id, title]) => `<button class="tab-button ${tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${tab === id}" data-tab="${id}">${title}${id === "logs" && !state.observability.logs ? "" : ""}</button>`).join("")}</div><div class="detail-body">${tab === "overview" ? overviewHtml(cluster) : tab === "connections" ? connectionsHtml(cluster) : tab === "logs" ? logsHtml(cluster) : metricsHtml(cluster)}</div>`; if (tab === "logs" && state.observability.logs?.name === cluster.name && state.observability.logs.data) { const viewer = $("#log-viewer"); if (viewer) viewer.textContent = state.observability.logs.data; } }
-  function overviewHtml(cluster) { const conditions = cluster.conditions.length ? cluster.conditions : [{ type: "Ready", status: "Unknown", reason: "NoCondition", message: "The controller has not reported a condition yet." }]; const events = cluster.events.length ? cluster.events : [{ time: "—", message: "No recent events reported." }]; const deletionPolicy = cluster.deletionPolicy === "delete" || cluster.deletionPolicy === "Delete" ? "Delete with cluster" : cluster.deletionPolicy === "retain" || cluster.deletionPolicy === "Retain" ? "Retain data" : "Controller default"; return `<section class="detail-section"><div class="section-heading"><h3>Observed state</h3><span>generation ${escapeHtml(cluster.status.observedGeneration || "—")}</span></div><dl class="info-grid"><div class="info-item"><dt>Engine</dt><dd>Apache Kafka</dd></div><div class="info-item"><dt>Kafka version</dt><dd>${escapeHtml(cluster.version)}</dd></div><div class="info-item"><dt>Topology</dt><dd>${cluster.brokers} broker${cluster.brokers === 1 ? "" : "s"}</dd></div><div class="info-item"><dt>Storage</dt><dd>${cluster.storageGi} Gi / broker</dd></div><div class="info-item"><dt>Bootstrap endpoint</dt><dd><code>${escapeHtml(cluster.endpoint)}</code></dd></div><div class="info-item"><dt>Deletion policy</dt><dd>${deletionPolicy}</dd></div></dl></section><section class="detail-section"><div class="section-heading"><h3>Conditions</h3><span>controller reported</span></div><div class="condition-list">${conditions.map((condition) => `<div class="condition-row"><strong>${escapeHtml(condition.type || "Condition")} · ${escapeHtml(condition.status || "Unknown")}</strong><span>${escapeHtml(condition.message || condition.reason || "No message")}</span></div>`).join("")}</div></section><section class="detail-section"><div class="section-heading"><h3>Recent events</h3><span>latest first</span></div><div class="event-list">${events.map((event) => `<div class="event-row"><time>${escapeHtml(event.time || formatTime(event.lastTimestamp))}</time><p>${escapeHtml(event.message || event.reason || "Controller event")}</p></div>`).join("")}</div></section>`; }
-  function connectionsHtml(cluster) { return `<section class="detail-section"><div class="section-heading"><h3>Client connection</h3><span>credentials stay server-side</span></div><div class="connection-block"><div class="copy-row"><code>${escapeHtml(cluster.endpoint)}</code><button type="button" data-copy="${escapeHtml(cluster.endpoint)}">Copy</button></div><div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>Credentials are protected</strong><p>Retrieve a short-lived client configuration through an authorized server operation. Passwords and private keys are never rendered in browser logs or status.</p></div></div></div></section><section class="detail-section"><div class="section-heading"><h3>Authentication</h3></div><dl class="info-grid"><div class="info-item"><dt>Transport</dt><dd>TLS</dd></div><div class="info-item"><dt>Mechanism</dt><dd>SCRAM-SHA-512</dd></div><div class="info-item"><dt>Kafka user</dt><dd><code>${escapeHtml(cluster.name)}-client</code></dd></div><div class="info-item"><dt>Access</dt><dd>Workspace scoped</dd></div></dl></section>`; }
-  function logsHtml(cluster) { const result = state.observability.logs; if (result?.name === cluster.name && result.loading) return `<section class="detail-section"><div class="loading-state"><span>Loading broker logs…</span><span class="loading-bar" aria-hidden="true"></span></div></section>`; if (result?.name === cluster.name && result.error) return `<section class="detail-section"><div class="observability-box"><h3>Logs unavailable</h3><p>${escapeHtml(result.error)} Historical or live logs are an optional platform dependency and do not block Kafka operations.</p><button class="button button-secondary" type="button" data-action="load-logs">Retry logs</button></div></section>`; if (result?.name === cluster.name && result.data) return `<section class="detail-section"><div class="section-heading"><h3>Broker logs</h3><button class="button button-secondary" type="button" data-action="load-logs">Refresh</button></div><pre class="log-viewer" id="log-viewer">Loading…</pre></section>`; return `<section class="detail-section"><div class="observability-box"><h3>Live logs</h3><p>Logs are fetched through a fixed server-owned query scoped to <code>${escapeHtml(cluster.name)}</code>.</p><button class="button button-primary" type="button" data-action="load-logs">Load logs</button></div></section>`; }
-  function metricsHtml(cluster) { const result = state.observability.metrics; if (result?.name === cluster.name && result.loading) return `<section class="detail-section"><div class="loading-state"><span>Loading broker metrics…</span><span class="loading-bar" aria-hidden="true"></span></div></section>`; if (result?.name === cluster.name && result.error) return `<section class="detail-section"><div class="observability-box"><h3>Metrics unavailable</h3><p>${escapeHtml(result.error)} VictoriaMetrics may be unavailable or not configured for this workspace.</p><button class="button button-secondary" type="button" data-action="load-metrics">Retry metrics</button></div></section>`; const metrics = result?.data || null; if (!metrics) return `<section class="detail-section"><div class="observability-box"><h3>Broker health</h3><p>Metrics use a fixed server-owned query. Namespace and cluster selectors are injected by the backend.</p><button class="button button-primary" type="button" data-action="load-metrics">Load metrics</button></div></section>`; const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>Metrics unavailable</h3><p>${escapeHtml(result.message || "The metrics provider is not configured; Kafka operations are unaffected.")}</p></div>` : ""; return `<section class="detail-section"><div class="section-heading"><h3>Broker health</h3><button class="button button-secondary" type="button" data-action="load-metrics">Refresh</button></div><div class="metric-grid">${[["Messages in", metrics.messagesIn ?? "—", "per second"], ["Messages out", metrics.messagesOut ?? "—", "per second"], ["Under-replicated", metrics.underReplicated ?? "—", "partitions"], ["Consumer lag", metrics.consumerLag ?? "—", "messages"]].map(([name, value, unit]) => `<div class="metric-card"><span>${name}</span><strong>${escapeHtml(value)}</strong><small>${unit}</small></div>`).join("")}</div>${degradedNotice}</section>`; }
-  function render() { const clusters = filteredClusters(); renderNotice(); renderStats(clusters); renderClusterList(); renderDetail(); }
+  function setApiState(apiState, messageText = "") {
+    state.apiState = apiState;
+    state.apiMessage = messageText;
+    const indicator = $("#api-indicator");
+    if (indicator) indicator.dataset.state = apiState;
+    const labels = {
+      loading: message("apiConnecting"),
+      ready: message("apiConnected"),
+      degraded: message("apiDegraded"),
+      forbidden: message("accessDenied")
+    };
+    const indicatorLabel = $("#api-indicator-label");
+    if (indicatorLabel) indicatorLabel.textContent = labels[apiState] || apiState;
+  }
 
-  async function loadClusters() { state.loading = true; setApiState("loading"); render(); try { const payload = await request(API_PREFIX); const items = Array.isArray(payload) ? payload : payload?.items || payload?.data || payload?.clusters || []; state.clusters = items; state.selected = state.selected || items[0]?.metadata?.name || items[0]?.name || null; setApiState("ready"); } catch (error) { if (error.code === 403) { state.clusters = []; state.selected = null; setApiState("forbidden", error.message); } else { state.clusters = DEMO_CLUSTERS; state.selected = state.selected || DEMO_CLUSTERS[0].metadata.name; setApiState("degraded", "The backend could not be reached. Demo data is read only; connect the API before creating resources."); } } finally { state.loading = false; render(); } }
-  async function loadObservability(kind) { const cluster = selectedCluster(); if (!cluster) return; state.observability[kind] = { name: cluster.name, loading: true }; render(); try { const query = kind === "logs" ? "component=broker&tailLines=200" : "key=throughput"; const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/${kind}?${query}`); if (kind === "logs") { const lines = Array.isArray(payload?.lines) ? payload.lines.map((line) => `${line.timestamp ? `[${line.timestamp}] ` : ""}${line.message}`).join("\n") : payload?.text || payload?.data || ""; state.observability[kind] = { name: cluster.name, data: lines, degraded: payload?.degraded, message: payload?.message }; } else { const values = Array.isArray(payload?.values) ? payload.values : []; const latest = values[values.length - 1]?.value; state.observability[kind] = { name: cluster.name, data: { messagesIn: latest ?? "—", messagesOut: "—", underReplicated: "—", consumerLag: "—" }, degraded: payload?.degraded, message: payload?.message }; } } catch (error) { state.observability[kind] = { name: cluster.name, error: error.code === 403 ? "You do not have permission to view this resource." : "The observability service did not respond." }; } render(); }
-  async function createCluster(event) { if (event.submitter?.value === "cancel") return; event.preventDefault(); const form = event.currentTarget; const name = $("#cluster-name").value.trim(); const errorBox = $("#form-error"); if (!form.checkValidity()) { errorBox.hidden = false; errorBox.textContent = "Enter a valid cluster name and check the requested values."; form.reportValidity(); return; } state.createSubmitting = true; $("#submit-create").disabled = true; errorBox.hidden = true; try { await request(`${API_PREFIX}`, { method: "POST", body: JSON.stringify({ name, spec: { engine: "kafka", kafka: { version: $("#kafka-version").value, replicas: Number($("#broker-count").value) }, resources: { cpu: "1", memory: "2Gi" }, storage: { size: `${Number($("#storage-size").value)}Gi`, className: $("#storage-class").value.trim() || undefined }, deletionPolicy: $("#deletion-policy").value } }) }); $("#create-modal").close(); state.tab = "overview"; await loadClusters(); state.selected = name; render(); } catch (error) { errorBox.hidden = false; errorBox.textContent = error.code === 403 ? "Permission denied: your workspace cannot create clusters." : `Cluster creation failed: ${error.message}`; } finally { state.createSubmitting = false; $("#submit-create").disabled = false; } }
-  function updateImpact() { const brokers = Number($("#broker-count").value || 1); const storage = Number($("#storage-size").value || 20); const deletion = $("#deletion-policy").value === "Delete" ? "Delete data with cluster" : "Retain data"; $("#impact-copy").textContent = `${brokers} broker${brokers === 1 ? "" : "s"} · ${storage} Gi storage · TLS and SCRAM authentication · ${deletion}`; }
-  document.addEventListener("click", (event) => { const clusterButton = event.target.closest("[data-cluster]"); if (clusterButton) { state.selected = clusterButton.dataset.cluster; state.tab = "overview"; state.observability = {}; render(); return; } const tabButton = event.target.closest("[data-tab]"); if (tabButton) { state.tab = tabButton.dataset.tab; render(); return; } const action = event.target.closest("[data-action]")?.dataset.action; if (action === "open-create" && CREATE_ENABLED) { $("#create-modal").showModal(); $("#cluster-name").focus(); } if (action === "dismiss-notice") { $("#notice-region").innerHTML = ""; } if (action === "refresh-detail") loadClusters(); if (action === "load-logs") loadObservability("logs"); if (action === "load-metrics") loadObservability("metrics"); const copyButton = event.target.closest("[data-copy]"); if (copyButton) { navigator.clipboard?.writeText(copyButton.dataset.copy).then(() => { const original = copyButton.textContent; copyButton.textContent = "Copied"; setTimeout(() => { copyButton.textContent = original; }, 1400); }).catch(() => {}); } });
-  $("#create-button").hidden = !CREATE_ENABLED;
-  if (CREATE_ENABLED) $("#create-button").addEventListener("click", () => { $("#create-modal").showModal(); $("#cluster-name").focus(); });
-  $("#create-form").addEventListener("submit", createCluster);
-  ["#broker-count", "#storage-size", "#deletion-policy"].forEach((selector) => $(selector).addEventListener("input", updateImpact));
-  $("#search-input").addEventListener("input", (event) => { state.search = event.target.value; render(); });
-  $("#refresh-button").addEventListener("click", loadClusters);
-  loadClusters();
+  function renderNotice() {
+    const region = $("#notice-region");
+    if (!region) return;
+    if (state.apiState === "degraded") {
+      region.innerHTML = `<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">!</span><div class="notice-copy"><strong>${escapeHtml(message("apiUnavailableTitle"))}</strong><p>${escapeHtml(message("apiUnavailableCopy", { message: state.apiMessage }))}</p></div><button class="icon-button notice-close" type="button" aria-label="${escapeHtml(message("close"))}" data-action="dismiss-notice">×</button></div>`;
+    } else if (state.apiState === "forbidden") {
+      region.innerHTML = `<div class="notice" data-tone="error"><span class="notice-icon" aria-hidden="true">!</span><div class="notice-copy"><strong>${escapeHtml(message("permissionDeniedTitle"))}</strong><p>${escapeHtml(message("permissionDeniedCopy"))}</p></div></div>`;
+    } else {
+      region.innerHTML = "";
+    }
+  }
+
+  function renderStats(clusters) {
+    const ready = clusters.filter((cluster) => statusLabel(cluster.phase)[1] === "ready").length;
+    const attention = clusters.length - ready;
+    const set = (id, value) => {
+      const node = $(id);
+      if (node) node.textContent = value;
+    };
+    set("#stat-total", state.loading ? "—" : String(clusters.length));
+    set("#stat-ready", state.loading ? "—" : String(ready));
+    set("#stat-attention", state.loading ? "—" : String(attention));
+    set("#stat-total-meta", state.apiState === "degraded" ? message("demoDataCopy") : message("observedInWorkspace"));
+    set("#stat-ready-meta", message("stateReadyMeta"));
+    set("#stat-attention-meta", message("stateAttentionMeta"));
+    set("#stat-engine-meta", message("strimziManaged"));
+    set("#nav-count", state.loading ? "—" : String(clusters.length));
+    set("#workspace-name", clusters[0]?.namespace || message("workspacePending"));
+    set("#workspace-name-state", state.loading ? message("workspacePending") : message("workspaceReady"));
+  }
+
+  function filteredClusters() {
+    const query = state.search.trim().toLowerCase();
+    return normalizedClusters().filter((cluster) => !query || `${cluster.name} ${cluster.namespace} ${cluster.version}`.toLowerCase().includes(query));
+  }
+
+  function renderClusterList() {
+    const list = $("#cluster-list");
+    if (!list) return;
+    list.setAttribute("aria-busy", state.loading ? "true" : "false");
+    if (state.loading) {
+      list.innerHTML = `<div class="loading-state"><span>${escapeHtml(message("loadingDemoClusters"))}</span><span class="loading-bar" aria-hidden="true"></span></div>`;
+      return;
+    }
+
+    const clusters = filteredClusters();
+    const subtitle = state.apiState === "degraded" || !CREATE_ENABLED ? message("clusterResourcesReadOnly", { count: clusters.length }) : message("clusterResourcesInWorkspace", { count: clusters.length });
+    const subtitleNode = $("#list-subtitle");
+    if (subtitleNode) subtitleNode.textContent = subtitle;
+
+    if (!clusters.length) {
+      const emptyCopy = CREATE_ENABLED ? message("createDevClusterHint") : message("createDisabledHint");
+      list.innerHTML = `<div class="empty-state"><strong>${escapeHtml(state.search ? message("noMatchingClusters") : message("noKafkaClustersYet"))}</strong><p>${escapeHtml(state.search ? message("tryDifferentName") : emptyCopy)}</p>${state.search || !CREATE_ENABLED ? "" : `<button class="button button-primary" type="button" data-action="open-create">${escapeHtml(message("createButtonShort"))}</button>`}</div>`;
+      return;
+    }
+
+    list.innerHTML = clusters
+      .map((cluster) => {
+        const [label, statusClass] = statusLabel(cluster.phase);
+        return `<button type="button" class="cluster-row ${cluster.name === state.selected ? "is-selected" : ""}" data-cluster="${escapeHtml(cluster.name)}" aria-pressed="${cluster.name === state.selected}"><span><span class="cluster-name">${escapeHtml(cluster.name)}</span><span class="cluster-meta"><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("kafka"))} ${escapeHtml(cluster.version)}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-topology"><strong>${cluster.brokers} broker${cluster.brokers === 1 ? "" : "s"}</strong><span>${cluster.storageGi} Gi / broker</span></span><span class="cluster-action" aria-hidden="true">›</span></button>`;
+      })
+      .join("");
+  }
+
+  function overviewHtml(cluster) {
+    const conditions = cluster.conditions.length ? cluster.conditions : [{ type: "Ready", status: "Unknown", reason: "NoCondition", message: message("noConditions") }];
+    const events = cluster.events.length ? cluster.events : [{ time: "—", message: message("noRecentEvents") }];
+    const deletionPolicy =
+      cluster.deletionPolicy === "delete" || cluster.deletionPolicy === "Delete"
+        ? message("deleteWithCluster")
+        : cluster.deletionPolicy === "retain" || cluster.deletionPolicy === "Retain"
+          ? message("retainData")
+          : message("controllerDefault");
+
+    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("observedState"))}</h3><span>${escapeHtml(message("generation"))} ${escapeHtml(cluster.status.observedGeneration || "—")}</span></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("engine"))}</dt><dd>${escapeHtml(message("engineName"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaVersion"))}</dt><dd>${escapeHtml(cluster.version)}</dd></div><div class="info-item"><dt>${escapeHtml(message("topology"))}</dt><dd>${cluster.brokers} broker${cluster.brokers === 1 ? "" : "s"}</dd></div><div class="info-item"><dt>${escapeHtml(message("storage"))}</dt><dd>${cluster.storageGi} Gi / broker</dd></div><div class="info-item"><dt>${escapeHtml(message("bootstrapEndpoint"))}</dt><dd><code>${escapeHtml(cluster.endpoint)}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("deletionPolicy"))}</dt><dd>${escapeHtml(deletionPolicy)}</dd></div></dl></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("conditions"))}</h3><span>${escapeHtml(message("controllerReported"))}</span></div><div class="condition-list">${conditions.map((condition) => `<div class="condition-row"><strong>${escapeHtml(condition.type || "Condition")} · ${escapeHtml(condition.status || message("statusUnknown"))}</strong><span>${escapeHtml(condition.message || condition.reason || message("conditionPlaceholder"))}</span></div>`).join("")}</div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("recentEvents"))}</h3><span>${escapeHtml(message("latestFirst"))}</span></div><div class="event-list">${events.map((event) => `<div class="event-row"><time>${escapeHtml(event.time || formatTime(event.lastTimestamp))}</time><p>${escapeHtml(event.message || event.reason || message("controllerEvent"))}</p></div>`).join("")}</div></section>`;
+  }
+
+  function connectionsHtml(cluster) {
+    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("clientConnection"))}</h3><span>${escapeHtml(message("credentialsStayServerSide"))}</span></div><div class="connection-block"><div class="copy-row"><code>${escapeHtml(cluster.endpoint)}</code><button type="button" data-copy="${escapeHtml(cluster.endpoint)}">${escapeHtml(message("copy"))}</button></div><div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("credentialsProtected"))}</strong><p>${escapeHtml(message("credentialSafety"))}</p></div></div></div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("authentication"))}</h3></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("transport"))}</dt><dd>${escapeHtml(message("tls"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("mechanism"))}</dt><dd>${escapeHtml(message("scramSha512"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaUser"))}</dt><dd><code>${escapeHtml(cluster.name)}-client</code></dd></div><div class="info-item"><dt>${escapeHtml(message("access"))}</dt><dd>${escapeHtml(message("workspaceScoped"))}</dd></div></dl></section>`;
+  }
+
+  function logsHtml(cluster) {
+    const result = state.observability.logs;
+    if (result?.name === cluster.name && result.loading) {
+      return `<section class="detail-section"><div class="loading-state"><span>${escapeHtml(message("loadingLogs"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
+    }
+    if (result?.name === cluster.name && result.error) {
+      return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("logsUnavailable"))}</h3><p>${escapeHtml(result.error)} ${escapeHtml(message("logsOptional"))}</p><button class="button button-secondary" type="button" data-action="load-logs">${escapeHtml(message("retryLogs"))}</button></div></section>`;
+    }
+    if (result?.name === cluster.name && result.data) {
+      return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("brokerLogs"))}</h3><button class="button button-secondary" type="button" data-action="load-logs">${escapeHtml(message("refresh"))}</button></div><pre class="log-viewer" id="log-viewer">Loading…</pre></section>`;
+    }
+    return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("liveLogs"))}</h3><p>${escapeHtml(message("logsFetchNote", { name: cluster.name }))}</p><button class="button button-primary" type="button" data-action="load-logs">${escapeHtml(message("loadLogs"))}</button></div></section>`;
+  }
+
+  function metricsHtml(cluster) {
+    const result = state.observability.metrics;
+    if (result?.name === cluster.name && result.loading) {
+      return `<section class="detail-section"><div class="loading-state"><span>${escapeHtml(message("loadingMetrics"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
+    }
+    if (result?.name === cluster.name && result.error) {
+      return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("metricsUnavailable"))}</h3><p>${escapeHtml(result.error)} ${escapeHtml(message("metricsOptional"))}</p><button class="button button-secondary" type="button" data-action="load-metrics">${escapeHtml(message("retryMetrics"))}</button></div></section>`;
+    }
+    const metrics = result?.data || null;
+    if (!metrics) {
+      return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("brokerHealth"))}</h3><p>${escapeHtml(message("metricsFetchNote"))}</p><button class="button button-primary" type="button" data-action="load-metrics">${escapeHtml(message("loadMetrics"))}</button></div></section>`;
+    }
+    const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("metricsUnavailable"))}</h3><p>${escapeHtml(result.message || message("metricsProviderMissing"))}</p></div>` : "";
+    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("brokerHealth"))}</h3><button class="button button-secondary" type="button" data-action="load-metrics">${escapeHtml(message("refresh"))}</button></div><div class="metric-grid">${[
+      [message("metricsMessagesIn"), metrics.messagesIn ?? "—", message("perSecond")],
+      [message("metricsMessagesOut"), metrics.messagesOut ?? "—", message("perSecond")],
+      [message("metricsUnderReplicated"), metrics.underReplicated ?? "—", message("partitions")],
+      [message("metricsConsumerLag"), metrics.consumerLag ?? "—", message("messages")]
+    ]
+      .map(
+        ([name, value, unit]) => `<div class="metric-card"><span>${escapeHtml(name)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(unit)}</small></div>`
+      )
+      .join("")}</div>${degradedNotice}</section>`;
+  }
+
+  function renderDetail() {
+    const panel = $("#detail-content");
+    if (!panel) return;
+    const cluster = selectedCluster();
+    if (!cluster) {
+      panel.innerHTML = `<div class="empty-state"><strong>${escapeHtml(message("selectACluster"))}</strong><p>${escapeHtml(message("selectAClusterHint"))}</p></div>`;
+      return;
+    }
+
+    const [label, statusClass] = statusLabel(cluster.phase);
+    const tabs = [
+      ["overview", message("overview")],
+      ["connections", message("connections")],
+      ["logs", message("logs")],
+      ["metrics", message("metrics")]
+    ];
+
+    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div><div class="detail-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button></div></div><div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${state.tab === "overview" ? overviewHtml(cluster) : state.tab === "connections" ? connectionsHtml(cluster) : state.tab === "logs" ? logsHtml(cluster) : metricsHtml(cluster)}</div>`;
+
+    if (state.tab === "logs" && state.observability.logs?.name === cluster.name && state.observability.logs.data) {
+      const viewer = $("#log-viewer");
+      if (viewer) viewer.textContent = state.observability.logs.data;
+    }
+  }
+
+  function render() {
+    localizeStaticShell();
+    const clusters = filteredClusters();
+    renderNotice();
+    renderStats(clusters);
+    renderClusterList();
+    renderDetail();
+    const operationsHint = $("#operations-hint");
+    if (operationsHint) operationsHint.textContent = message("operationsComingSoon");
+  }
+
+  async function loadClusters() {
+    state.loading = true;
+    setApiState("loading");
+    render();
+    try {
+      const payload = await request(API_PREFIX);
+      const items = Array.isArray(payload) ? payload : payload?.items || payload?.data || payload?.clusters || [];
+      state.clusters = items;
+      state.selected = state.selected || items[0]?.metadata?.name || items[0]?.name || null;
+      setApiState("ready");
+    } catch (error) {
+      if (error.code === 403) {
+        state.clusters = [];
+        state.selected = null;
+        setApiState("forbidden", message("permissionDeniedCopy"));
+      } else {
+        state.clusters = demoClustersFor(state.language);
+        state.selected = state.clusters[0]?.metadata?.name || state.clusters[0]?.name || null;
+        setApiState("degraded", message("managementApiUnavailable"));
+      }
+    } finally {
+      state.loading = false;
+      render();
+    }
+  }
+
+  async function loadObservability(kind) {
+    const cluster = selectedCluster();
+    if (!cluster) return;
+    state.observability[kind] = { name: cluster.name, loading: true };
+    render();
+    try {
+      const query = kind === "logs" ? "component=broker&tailLines=200" : "key=throughput";
+      const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/${kind}?${query}`);
+      if (kind === "logs") {
+        const lines = Array.isArray(payload?.lines)
+          ? payload.lines.map((line) => `${line.timestamp ? `[${line.timestamp}] ` : ""}${line.message}`).join("\n")
+          : payload?.text || payload?.data || "";
+        state.observability[kind] = { name: cluster.name, data: lines, degraded: payload?.degraded, message: payload?.message };
+      } else {
+        const values = Array.isArray(payload?.values) ? payload.values : [];
+        const latest = values[values.length - 1]?.value;
+        state.observability[kind] = {
+          name: cluster.name,
+          data: { messagesIn: latest ?? "—", messagesOut: "—", underReplicated: "—", consumerLag: "—" },
+          degraded: payload?.degraded,
+          message: payload?.message
+        };
+      }
+    } catch (error) {
+      state.observability[kind] = {
+        name: cluster.name,
+        error: error.code === 403 ? message("permissionDeniedCopy") : message("managementApiUnavailable")
+      };
+    }
+    render();
+  }
+
+  async function createCluster(event) {
+    if (event.submitter?.value === "cancel") return;
+    event.preventDefault();
+    const form = event.currentTarget;
+    const name = $("#cluster-name").value.trim();
+    const errorBox = $("#form-error");
+    if (!form.checkValidity()) {
+      errorBox.hidden = false;
+      errorBox.textContent = message("formError");
+      form.reportValidity();
+      return;
+    }
+
+    state.createSubmitting = true;
+    $("#submit-create").disabled = true;
+    errorBox.hidden = true;
+    try {
+      await request(`${API_PREFIX}`, {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          spec: {
+            engine: "kafka",
+            kafka: {
+              version: $("#kafka-version").value,
+              replicas: Number($("#broker-count").value)
+            },
+            resources: { cpu: "1", memory: "2Gi" },
+            storage: {
+              size: `${Number($("#storage-size").value)}Gi`,
+              className: $("#storage-class").value.trim() || undefined
+            },
+            deletionPolicy: $("#deletion-policy").value
+          }
+        })
+      });
+      $("#create-modal").close();
+      state.tab = "overview";
+      await loadClusters();
+      state.selected = name;
+      render();
+    } catch (error) {
+      errorBox.hidden = false;
+      errorBox.textContent = error.code === 403 ? message("formPermissionDenied") : message("formCreateFailed", { message: error.message });
+    } finally {
+      state.createSubmitting = false;
+      $("#submit-create").disabled = false;
+    }
+  }
+
+  function bindEvents() {
+    $("#refresh-button")?.addEventListener("click", loadClusters);
+    $("#help-button")?.addEventListener("click", () => alert(message("noHelp")));
+    $("#language-button")?.addEventListener("click", () => {
+      applyLanguage(state.language === "zh" ? "en" : "zh");
+      render();
+    });
+    $("#search-input")?.addEventListener("input", (event) => {
+      state.search = event.currentTarget.value;
+      renderClusterList();
+      renderDetail();
+    });
+    $("#create-button")?.addEventListener("click", () => {
+      if (!CREATE_ENABLED) return;
+      $("#create-modal")?.showModal();
+    });
+    $("#cluster-list")?.addEventListener("click", (event) => {
+      const row = event.target.closest("[data-cluster]");
+      const action = event.target.closest("[data-action]");
+      if (action?.dataset.action === "open-create") {
+        $("#create-modal")?.showModal();
+        return;
+      }
+      if (!row) return;
+      state.selected = row.dataset.cluster;
+      renderDetail();
+      renderClusterList();
+    });
+    $("#detail-content")?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+      if (button.dataset.action === "refresh-detail") {
+        loadClusters();
+        return;
+      }
+      if (button.dataset.action === "load-logs") {
+        loadObservability("logs");
+        return;
+      }
+      if (button.dataset.action === "load-metrics") {
+        loadObservability("metrics");
+        return;
+      }
+      const copyValue = button.getAttribute("data-copy");
+      if (copyValue) navigator.clipboard?.writeText(copyValue);
+    });
+    $("#detail-content")?.addEventListener("click", (event) => {
+      const tabButton = event.target.closest("[data-tab]");
+      if (!tabButton) return;
+      state.tab = tabButton.dataset.tab;
+      renderDetail();
+    });
+    $("#create-form")?.addEventListener("submit", createCluster);
+    $("#create-modal")?.addEventListener("close", () => {
+      const errorBox = $("#form-error");
+      if (errorBox) errorBox.hidden = true;
+      $("#submit-create").disabled = false;
+    });
+    $("#create-modal")?.addEventListener("click", (event) => {
+      if (event.target === $("#create-modal")) $("#create-modal").close();
+    });
+    $("#submit-create")?.addEventListener("click", () => {
+      if (!CREATE_ENABLED) return;
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && $("#create-modal")?.open) {
+        $("#create-modal").close();
+      }
+    });
+  }
+
+  function initFormDefaults() {
+    const storageClass = $("#storage-class");
+    if (storageClass) storageClass.setAttribute("placeholder", message("storageClassPlaceholder"));
+    $("#cluster-name")?.setAttribute("placeholder", "orders-dev");
+    $("#kafka-version")?.options?.[0] && ($("#kafka-version").options[0].textContent = `3.9.0 (${message("recommended")})`);
+    $("#kafka-version")?.options?.[1] && ($("#kafka-version").options[1].textContent = "4.0.0");
+    $("#deletion-policy")?.options?.[0] && ($("#deletion-policy").options[0].textContent = message("retainData"));
+    $("#deletion-policy")?.options?.[1] && ($("#deletion-policy").options[1].textContent = message("deleteWithCluster"));
+    $("#impact-copy").textContent = message("resourceFootprintCopy");
+    $("#create-title").textContent = message("createKafkaCluster");
+    $("#create-description").textContent = message("createDescription");
+    $("#create-eyebrow").textContent = message("newResource");
+    $("#impact-heading").textContent = message("resourceFootprint");
+    $("#impact-note").textContent = message("creationAsync");
+    $("#cancel-button").textContent = message("cancel");
+    $("#submit-create").textContent = message("create");
+    $("#form-error").textContent = message("formError");
+  }
+
+  function boot() {
+    applyLanguage(state.language);
+    initFormDefaults();
+    bindEvents();
+    render();
+    loadClusters();
+  }
+
+  boot();
 })();

@@ -25,6 +25,12 @@ scanning, and Kubernetes Dashboard for resource truth. The result must not look
 like a marketing landing page, a raw YAML editor, the existing database
 provider, or Kafbat UI.
 
+The MessageQueue shell should follow the Sealos desktop convention: dark
+sidebar, pale workspace canvas, low-radius cards, subtle borders, restrained
+blue-violet emphasis, and dense control panels rather than decorative tiles.
+The management UI defaults to Chinese and keeps English as an explicit toggle,
+so every visible label, empty state, and form helper must be i18n-ready.
+
 **Key Characteristics:**
 
 - Restrained, information-first composition

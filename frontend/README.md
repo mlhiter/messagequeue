@@ -49,3 +49,6 @@ the Sealos session/workspace adapter is connected. The browser reads
 create button is hidden and the form refuses to open. A metrics provider
 response with `degraded: true` is rendered as “Metrics unavailable” rather than
 as zero-valued data.
+
+The shell defaults to Chinese and exposes an in-app language toggle so every
+headline, helper, and empty state stays localizable without hardcoded strings.

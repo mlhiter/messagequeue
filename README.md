@@ -65,6 +65,9 @@ logs, and explicit degraded metrics. The cluster-62 smoke path creates
 `ns-admin/kafka-dev`, verifies SCRAM produce/consume, and registers an HTTPS
 `MessageQueue` iframe entry on Sealos Desktop.
 
+The management UI now follows the Sealos desktop visual language more closely
+and defaults to Chinese, with an English toggle for the same shell and forms.
+
 Known limits are deliberate: metrics currently return a bounded degraded state
 until the platform VictoriaMetrics adapter is connected, historical logs are
 not implemented, public Desktop installs keep cluster creation disabled until

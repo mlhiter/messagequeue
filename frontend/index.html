@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f5f7fb" />
     <meta name="description" content="MessageQueue Kafka 管理控制台" />
-    <title>MessageQueue | Kafka clusters</title>
+    <title>MessageQueue | 消息队列</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -15,29 +15,37 @@
           <span class="brand-mark" aria-hidden="true">MQ</span>
           <span>
             <strong>MessageQueue</strong>
-            <small>Workspace control plane</small>
+            <small id="brand-subtitle">工作空间控制平面</small>
           </span>
         </div>
+
         <nav class="primary-nav" aria-label="产品导航">
           <button class="nav-item is-active" type="button" data-nav="clusters" aria-current="page">
             <span class="nav-icon" aria-hidden="true">▦</span>
-            <span>Clusters</span>
-            <span class="nav-count" id="nav-count">--</span>
+            <span id="nav-clusters-label">集群</span>
+            <span class="nav-count" id="nav-count">—</span>
           </button>
           <button class="nav-item" type="button" data-nav="operations">
             <span class="nav-icon" aria-hidden="true">↗</span>
-            <span>Operations</span>
+            <span id="nav-operations-label">操作</span>
           </button>
         </nav>
+
         <div class="sidebar-footer">
           <div class="workspace-selector" aria-label="当前工作空间">
             <span class="workspace-avatar" aria-hidden="true">W</span>
-            <span class="workspace-copy"><small>Workspace</small><strong id="workspace-name">loading</strong></span>
+            <span class="workspace-copy">
+              <small id="workspace-label">工作空间</small>
+              <strong id="workspace-name">加载中</strong>
+            </span>
             <span class="chevron" aria-hidden="true">⌄</span>
           </div>
           <button class="user-menu" type="button" aria-label="打开账户菜单">
-            <span class="user-avatar" aria-hidden="true">ML</span>
-            <span><strong>Workspace owner</strong><small>Owner</small></span>
+            <span class="user-avatar" aria-hidden="true">MQ</span>
+            <span>
+              <strong id="workspace-owner-title">工作空间所有者</strong>
+              <small id="workspace-owner-role">Owner</small>
+            </span>
             <span class="chevron" aria-hidden="true">⌄</span>
           </button>
         </div>
@@ -45,38 +53,69 @@
 
       <main class="main-content">
         <header class="topbar">
-          <div class="breadcrumbs"><span>Workspace</span><span aria-hidden="true">/</span><strong>Clusters</strong></div>
+          <div class="breadcrumbs">
+            <span id="breadcrumb-workspace">工作空间</span>
+            <span aria-hidden="true">/</span>
+            <strong id="breadcrumb-clusters">集群</strong>
+          </div>
           <div class="topbar-actions">
-            <span class="api-indicator" id="api-indicator" data-state="loading"><span class="indicator-dot" aria-hidden="true"></span><span id="api-indicator-label">Connecting</span></span>
+            <span class="api-indicator" id="api-indicator" data-state="loading">
+              <span class="indicator-dot" aria-hidden="true"></span>
+              <span id="api-indicator-label">连接中</span>
+            </span>
             <button class="icon-button" type="button" title="刷新数据" aria-label="刷新数据" id="refresh-button">↻</button>
-            <button class="help-button" type="button" aria-label="打开帮助">?</button>
+            <button class="lang-button" type="button" id="language-button" title="切换语言" aria-label="切换语言">EN</button>
+            <button class="help-button" type="button" aria-label="打开帮助" id="help-button">?</button>
           </div>
         </header>
 
         <div class="page-body">
           <section class="page-heading" aria-labelledby="page-title">
             <div>
-              <p class="eyebrow">MESSAGE BROKERS / KAFKA</p>
-              <h1 id="page-title">Clusters</h1>
-              <p class="page-description">Provision and operate Kafka in your workspace.</p>
+              <p class="eyebrow" id="section-tag">消息代理 / Kafka</p>
+              <h1 id="page-title">集群</h1>
+              <p class="page-description" id="page-description">在你的工作空间中部署和运维 Kafka。</p>
             </div>
-            <button class="button button-primary" type="button" id="create-button"><span aria-hidden="true">+</span> Create cluster</button>
+            <button class="button button-primary" type="button" id="create-button">创建集群</button>
           </section>
 
           <div id="notice-region" aria-live="polite"></div>
 
           <section class="stat-grid" aria-label="集群概览">
-            <div class="stat-item"><span class="stat-label">Total clusters</span><strong id="stat-total">--</strong><span class="stat-meta" id="stat-total-meta">Loading observed state</span></div>
-            <div class="stat-item"><span class="stat-label">Ready</span><strong id="stat-ready">--</strong><span class="stat-meta success-text" id="stat-ready-meta">Observed and serving</span></div>
-            <div class="stat-item"><span class="stat-label">Attention</span><strong id="stat-attention">--</strong><span class="stat-meta warning-text" id="stat-attention-meta">Provisioning or degraded</span></div>
-            <div class="stat-item"><span class="stat-label">Engine</span><strong>Kafka</strong><span class="stat-meta">Strimzi managed</span></div>
+            <div class="stat-item">
+              <span class="stat-label" id="stat-label-total">集群总数</span>
+              <strong id="stat-total">—</strong>
+              <span class="stat-meta" id="stat-total-meta">在当前工作空间中观测到</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label" id="stat-label-ready">就绪</span>
+              <strong id="stat-ready">—</strong>
+              <span class="stat-meta success-text" id="stat-ready-meta">已观测且可服务</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label" id="stat-label-attention">关注</span>
+              <strong id="stat-attention">—</strong>
+              <span class="stat-meta warning-text" id="stat-attention-meta">正在创建或异常</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label" id="stat-label-engine">引擎</span>
+              <strong>Kafka</strong>
+              <span class="stat-meta" id="stat-engine-meta">Strimzi 托管</span>
+            </div>
           </section>
 
           <div class="content-grid">
             <section class="cluster-panel" aria-labelledby="cluster-list-title">
               <div class="panel-toolbar">
-                <div><h2 id="cluster-list-title">Your clusters</h2><p class="panel-subtitle" id="list-subtitle">Loading clusters…</p></div>
-                <label class="search-field"><span class="sr-only">Search clusters</span><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Search" autocomplete="off" /></label>
+                <div>
+                  <h2 id="cluster-list-title">你的集群</h2>
+                  <p class="panel-subtitle" id="list-subtitle">正在加载集群…</p>
+                </div>
+                <label class="search-field">
+                  <span class="sr-only">搜索集群</span>
+                  <span aria-hidden="true">⌕</span>
+                  <input id="search-input" type="search" placeholder="搜索" autocomplete="off" />
+                </label>
               </div>
               <div id="cluster-list" class="cluster-list" aria-live="polite" aria-busy="true"></div>
             </section>
@@ -85,26 +124,74 @@
               <div id="detail-content"></div>
             </section>
           </div>
+
+          <p id="operations-hint" class="operations-hint" aria-live="polite">运维功能正在完善中</p>
         </div>
       </main>
     </div>
 
     <dialog class="modal" id="create-modal" aria-labelledby="create-title">
       <form method="dialog" id="create-form" novalidate>
-        <div class="modal-header"><div><p class="eyebrow">NEW RESOURCE</p><h2 id="create-title">Create Kafka cluster</h2><p class="modal-description">The controller will provision Strimzi resources in your workspace namespace.</p></div><button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭">×</button></div>
-        <div class="form-body">
-          <div id="form-error" class="form-error" role="alert" hidden></div>
-          <div class="field-grid">
-            <label class="field field-wide"><span>Cluster name <em>required</em></span><input required pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?" maxlength="40" id="cluster-name" name="name" placeholder="orders-dev" /><small>Lowercase letters, numbers, and hyphens.</small></label>
-            <label class="field"><span>Kafka version</span><select id="kafka-version" name="version"><option value="3.9.0">3.9.0 (recommended)</option><option value="4.0.0">4.0.0</option></select></label>
-            <label class="field"><span>Broker count</span><input id="broker-count" name="brokers" type="number" value="1" min="1" max="9" step="1" /><small>Use 3+ brokers for production.</small></label>
-            <label class="field"><span>Storage per broker</span><div class="input-suffix"><input id="storage-size" name="storageGi" type="number" value="20" min="1" step="1" /><span>Gi</span></div></label>
-            <label class="field"><span>Storage class</span><input id="storage-class" name="storageClass" value="" placeholder="Default cluster storage" /></label>
-            <label class="field"><span>Deletion policy</span><select id="deletion-policy" name="deletionPolicy"><option value="Retain">Retain data</option><option value="Delete">Delete data with cluster</option></select></label>
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow" id="create-eyebrow">新资源</p>
+            <h2 id="create-title">创建 Kafka 集群</h2>
+            <p class="modal-description" id="create-description">控制器会在你的工作空间命名空间里创建 Strimzi 资源。</p>
           </div>
-          <div class="impact-box"><div class="impact-heading"><span aria-hidden="true">i</span><strong>Resource footprint</strong></div><p id="impact-copy">1 broker · 20 Gi storage · TLS and SCRAM authentication · Retain data</p><small>Creation is asynchronous. You can follow the observed state from the cluster detail.</small></div>
+          <button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭" id="modal-close">×</button>
         </div>
-        <div class="modal-footer"><button class="button button-secondary" value="cancel" type="submit">Cancel</button><button class="button button-primary" id="submit-create" value="default" type="submit">Create cluster</button></div>
+        <div class="form-body">
+          <div id="form-error" class="form-error" role="alert" hidden>请输入合法的集群名称，并检查各项配置。</div>
+          <div class="field-grid">
+            <label class="field field-wide">
+              <span id="field-name-label">集群名称 <em id="field-name-required">必填</em></span>
+              <input required pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?" maxlength="40" id="cluster-name" name="name" placeholder="orders-dev" />
+              <small id="field-name-help">仅支持小写字母、数字和连字符。</small>
+            </label>
+            <label class="field">
+              <span id="field-version-label">Kafka 版本 <em id="field-version-recommended">推荐</em></span>
+              <select id="kafka-version" name="version">
+                <option value="3.9.0">3.9.0</option>
+                <option value="4.0.0">4.0.0</option>
+              </select>
+            </label>
+            <label class="field">
+              <span id="field-brokers-label">Broker 数量</span>
+              <input id="broker-count" name="brokers" type="number" value="1" min="1" max="9" step="1" />
+              <small id="field-brokers-help">生产环境建议至少 3 个 broker。</small>
+            </label>
+            <label class="field">
+              <span id="field-storage-label">每个 Broker 的存储</span>
+              <div class="input-suffix">
+                <input id="storage-size" name="storageGi" type="number" value="20" min="1" step="1" />
+                <span>Gi</span>
+              </div>
+            </label>
+            <label class="field">
+              <span id="field-class-label">存储类</span>
+              <input id="storage-class" name="storageClass" value="" placeholder="默认集群存储" />
+            </label>
+            <label class="field">
+              <span id="field-policy-label">删除策略</span>
+              <select id="deletion-policy" name="deletionPolicy">
+                <option value="Retain">保留数据</option>
+                <option value="Delete">随集群删除</option>
+              </select>
+            </label>
+          </div>
+          <div class="impact-box">
+            <div class="impact-heading">
+              <span aria-hidden="true">i</span>
+              <strong id="impact-heading">资源占用</strong>
+            </div>
+            <p id="impact-copy">1 个 broker · 20 Gi 存储 · TLS + SCRAM 认证 · 保留数据</p>
+            <small id="impact-note">创建是异步的。你可以在集群详情里跟踪观测状态。</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="button button-secondary" value="cancel" type="submit" id="cancel-button">取消</button>
+          <button class="button button-primary" id="submit-create" value="default" type="submit">创建</button>
+        </div>
       </form>
     </dialog>
     <script src="config.js"></script>

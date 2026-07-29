@@ -479,31 +479,24 @@
     state.route = parseRoute();
   }
 
-  function navigateToList() {
-    const target = "#/clusters";
+  function commitRouteHash(target) {
     if (location.hash !== target) {
       location.hash = target;
-      return;
     }
     syncRouteFromLocation();
     window.scrollTo({ top: 0, behavior: "auto" });
     render();
   }
 
+  function navigateToList() {
+    commitRouteHash("#/clusters");
+  }
+
   function navigateToCluster(name) {
     if (!name) return;
-    const target = `#/clusters/${encodeURIComponent(name)}`;
-    if (location.hash !== target) {
-      state.tab = "overview";
-      state.observability = {};
-      location.hash = target;
-      return;
-    }
     state.tab = "overview";
     state.observability = {};
-    syncRouteFromLocation();
-    window.scrollTo({ top: 0, behavior: "auto" });
-    render();
+    commitRouteHash(`#/clusters/${encodeURIComponent(name)}`);
   }
 
   function escapeHtml(value) {
@@ -998,7 +991,7 @@
       .map((cluster) => {
         const [label, statusClass] = statusLabel(cluster.phase);
         const href = `#/clusters/${encodeURIComponent(cluster.name)}`;
-        return `<a class="cluster-row" href="${href}" aria-label="${escapeHtml(message("openDetail"))} ${escapeHtml(cluster.name)}"><span class="cluster-name-cell"><span class="cluster-name">${escapeHtml(cluster.name)}</span><span class="cluster-meta"><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("generation"))} ${escapeHtml(cluster.status.observedGeneration || "—")}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-version">${escapeHtml(cluster.version)}</span><span class="cluster-topology"><strong>${escapeHtml(formatBrokerCount(cluster.brokers))}</strong></span><span class="cluster-storage">${escapeHtml(formatBrokerStorage(cluster.storageGi))}</span><span class="cluster-namespace"><code>${escapeHtml(cluster.namespace)}</code></span><span class="cluster-updated">${escapeHtml(formatTime(cluster.lastTransitionTime))}</span><span class="cluster-action" aria-hidden="true">›</span></a>`;
+        return `<a class="cluster-row" href="${href}" data-cluster-name="${escapeHtml(cluster.name)}" aria-label="${escapeHtml(message("openDetail"))} ${escapeHtml(cluster.name)}"><span class="cluster-name-cell"><span class="cluster-name">${escapeHtml(cluster.name)}</span><span class="cluster-meta"><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("generation"))} ${escapeHtml(cluster.status.observedGeneration || "—")}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-version">${escapeHtml(cluster.version)}</span><span class="cluster-topology"><strong>${escapeHtml(formatBrokerCount(cluster.brokers))}</strong></span><span class="cluster-storage">${escapeHtml(formatBrokerStorage(cluster.storageGi))}</span><span class="cluster-namespace"><code>${escapeHtml(cluster.namespace)}</code></span><span class="cluster-updated">${escapeHtml(formatTime(cluster.lastTransitionTime))}</span><span class="cluster-action" aria-hidden="true">›</span></a>`;
       })
       .join("")}</div></div>`;
   }
@@ -1223,6 +1216,18 @@
         event.preventDefault();
         $("#create-modal")?.showModal();
         return;
+      }
+      const row = event.target.closest("[data-cluster-name]");
+      if (
+        row &&
+        event.button === 0 &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        navigateToCluster(row.dataset.clusterName);
       }
     });
     $("#detail-content")?.addEventListener("click", (event) => {

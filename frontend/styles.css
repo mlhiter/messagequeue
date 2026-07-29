@@ -308,6 +308,29 @@ pre {
   transform: scale(0.97);
 }
 
+.button:disabled,
+.icon-button:disabled,
+.lang-button:disabled {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.72;
+}
+
+.button-primary:disabled {
+  border-color: #c7d2fe;
+  background: #c7d2fe;
+  color: #ffffff;
+}
+
+.button-secondary:disabled,
+.icon-button:disabled,
+.lang-button:disabled {
+  border-color: #d7dfeb;
+  background: #ffffff;
+  color: var(--faint);
+}
+
 .button:focus-visible,
 .icon-button:focus-visible,
 .lang-button:focus-visible,

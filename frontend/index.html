@@ -11,126 +11,49 @@
   <body>
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <div id="app" class="app-shell">
-      <aside class="sidebar" aria-label="主导航">
+      <header class="app-header" aria-label="MessageQueue 顶栏">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">MQ</span>
-          <span>
+          <span class="brand-copy">
             <strong>MessageQueue</strong>
             <small id="brand-subtitle">工作空间控制平面</small>
           </span>
         </div>
 
-        <nav class="primary-nav" aria-label="产品导航">
-          <button class="nav-item is-active" type="button" data-nav="clusters" aria-current="page">
-            <span class="nav-icon" aria-hidden="true">▦</span>
-            <span id="nav-clusters-label">集群</span>
-            <span class="nav-count" id="nav-count">—</span>
+        <div class="header-actions">
+          <span class="api-indicator" id="api-indicator" data-state="loading">
+            <span class="indicator-dot" aria-hidden="true"></span>
+            <span id="api-indicator-label">连接中</span>
+          </span>
+          <label class="search-field">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input id="search-input" type="search" placeholder="搜索集群" autocomplete="off" />
+          </label>
+          <button class="icon-button" type="button" title="刷新数据" aria-label="刷新数据" id="refresh-button">
+            ↻
           </button>
-          <button class="nav-item" type="button" data-nav="operations">
-            <span class="nav-icon" aria-hidden="true">↗</span>
-            <span id="nav-operations-label">操作</span>
+          <button class="lang-button" type="button" id="language-button" title="切换语言" aria-label="切换语言">
+            EN
           </button>
-        </nav>
-
-        <div class="sidebar-footer">
-          <div class="workspace-selector" aria-label="当前工作空间">
-            <span class="workspace-avatar" aria-hidden="true">W</span>
-            <span class="workspace-copy">
-              <small id="workspace-label">工作空间</small>
-              <strong id="workspace-name">加载中</strong>
-            </span>
-            <span class="chevron" aria-hidden="true">⌄</span>
-          </div>
-          <button class="user-menu" type="button" aria-label="打开账户菜单">
-            <span class="user-avatar" aria-hidden="true">MQ</span>
-            <span>
-              <strong id="workspace-owner-title">工作空间所有者</strong>
-              <small id="workspace-owner-role">Owner</small>
-            </span>
-            <span class="chevron" aria-hidden="true">⌄</span>
-          </button>
+          <button class="button button-primary" type="button" id="create-button">新建</button>
         </div>
-      </aside>
+      </header>
 
       <main class="main-content" id="main-content" tabindex="-1">
-        <header class="topbar">
-          <div class="breadcrumbs">
-            <span id="breadcrumb-workspace">工作空间</span>
-            <span aria-hidden="true">/</span>
-            <strong id="breadcrumb-clusters">集群</strong>
-          </div>
-          <div class="topbar-actions">
-            <span class="api-indicator" id="api-indicator" data-state="loading">
-              <span class="indicator-dot" aria-hidden="true"></span>
-              <span id="api-indicator-label">连接中</span>
-            </span>
-            <button class="icon-button" type="button" title="刷新数据" aria-label="刷新数据" id="refresh-button">↻</button>
-            <button class="lang-button" type="button" id="language-button" title="切换语言" aria-label="切换语言">EN</button>
-            <button class="help-button" type="button" aria-label="打开帮助" id="help-button">?</button>
-          </div>
-        </header>
+        <h1 id="page-title" class="sr-only">MessageQueue | 消息队列</h1>
+        <p id="page-description" class="sr-only">MessageQueue Kafka 管理控制台</p>
 
-        <div class="page-body">
-          <section class="page-heading" aria-labelledby="page-title">
-            <div>
-              <p class="eyebrow" id="section-tag">消息代理 / Kafka</p>
-              <h1 id="page-title">集群</h1>
-              <p class="page-description" id="page-description">在你的工作空间中部署和运维 Kafka。</p>
-            </div>
-            <div class="page-heading-actions">
-              <button class="button button-secondary is-hidden" type="button" id="back-button">集群列表</button>
-              <button class="button button-primary" type="button" id="create-button">新建集群</button>
-            </div>
-          </section>
+        <section class="route-panel list-panel" id="list-panel" aria-labelledby="cluster-list-title">
+          <h2 id="cluster-list-title" class="sr-only">你的集群</h2>
+          <div id="cluster-list" class="cluster-list" aria-live="polite" aria-busy="true"></div>
+        </section>
 
-          <section class="stat-grid" id="stat-grid" aria-label="集群概览">
-            <div class="stat-item">
-              <span class="stat-label" id="stat-label-total">集群总数</span>
-              <strong id="stat-total">—</strong>
-              <span class="stat-meta" id="stat-total-meta">在当前工作空间中观测到</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label" id="stat-label-ready">就绪</span>
-              <strong id="stat-ready">—</strong>
-              <span class="stat-meta success-text" id="stat-ready-meta">已观测且可服务</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label" id="stat-label-attention">关注</span>
-              <strong id="stat-attention">—</strong>
-              <span class="stat-meta warning-text" id="stat-attention-meta">正在创建或异常</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label" id="stat-label-engine">引擎</span>
-              <strong>Kafka</strong>
-              <span class="stat-meta" id="stat-engine-meta">Strimzi 托管</span>
-            </div>
-          </section>
+        <section class="route-panel detail-panel is-hidden" id="detail-panel" aria-labelledby="detail-title">
+          <div id="detail-content"></div>
+        </section>
 
-          <div class="route-surface" id="route-surface">
-            <section class="cluster-panel route-panel" id="list-panel" aria-labelledby="cluster-list-title">
-              <div class="panel-toolbar">
-                <div>
-                  <h2 id="cluster-list-title">你的集群</h2>
-                  <p class="panel-subtitle" id="list-subtitle">正在加载集群…</p>
-                </div>
-                <label class="search-field">
-                  <span class="sr-only">搜索集群</span>
-                  <span aria-hidden="true">⌕</span>
-                  <input id="search-input" type="search" placeholder="搜索" autocomplete="off" />
-                </label>
-              </div>
-              <div id="cluster-list" class="cluster-list" aria-live="polite" aria-busy="true"></div>
-            </section>
-
-            <section class="detail-panel route-panel is-hidden" id="detail-panel" aria-labelledby="detail-title">
-              <div id="detail-content"></div>
-            </section>
-          </div>
-
-          <div id="notice-region" aria-live="polite"></div>
-
-          <p id="operations-hint" class="operations-hint" aria-live="polite">运维功能正在完善中</p>
-        </div>
+        <div id="notice-region" aria-live="polite"></div>
+        <p id="operations-hint" class="operations-hint sr-only">运维功能正在完善中</p>
       </main>
     </div>
 
@@ -140,7 +63,9 @@
           <div>
             <p class="eyebrow" id="create-eyebrow">新资源</p>
             <h2 id="create-title">创建 Kafka 集群</h2>
-            <p class="modal-description" id="create-description">控制器会在你的工作空间命名空间里创建 Strimzi 资源。</p>
+            <p class="modal-description" id="create-description">
+              控制器会在你的工作空间命名空间里创建 Strimzi 资源。
+            </p>
           </div>
           <button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭" id="modal-close">×</button>
         </div>
@@ -149,7 +74,14 @@
           <div class="field-grid">
             <label class="field field-wide">
               <span id="field-name-label">集群名称 <em id="field-name-required">必填</em></span>
-              <input required pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?" maxlength="40" id="cluster-name" name="name" placeholder="orders-dev" />
+              <input
+                required
+                pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+                maxlength="40"
+                id="cluster-name"
+                name="name"
+                placeholder="orders-dev"
+              />
               <small id="field-name-help">仅支持小写字母、数字和连字符。</small>
             </label>
             <label class="field">

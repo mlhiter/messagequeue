@@ -66,12 +66,13 @@ cluster-62 smoke path creates
 `ns-admin/kafka-dev`, verifies SCRAM produce/consume, and registers an HTTPS
 `MessageQueue` iframe entry on Sealos Desktop.
 
-The management UI now follows the Sealos desktop visual language more closely
-and defaults to Chinese, with an English toggle for the same shell and forms.
+The management UI now uses a DevBox-style list-first shell: a compact top
+header, dense table rows, and a dedicated per-cluster detail page. It defaults
+to Chinese, with an English toggle for the same shell and forms.
 
 Known limits are deliberate: metrics currently return a bounded degraded state
 until the platform VictoriaMetrics adapter is connected, historical logs are
-not implemented, public Desktop installs show a disabled new-cluster entry
+not implemented, public Desktop installs show a disabled create action
 until Sealos session/workspace identity is connected, and Kafbat is not deployed
 by this chart.
 

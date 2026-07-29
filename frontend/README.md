@@ -2,7 +2,9 @@
 
 This directory contains the first-party MessageQueue management interface. It
 owns cluster creation, lifecycle, status, connections, logs, and metrics. Kafbat
-is an optional user-facing Kafka console and is not embedded here.
+is an optional user-facing Kafka console and is not embedded here. The current
+shell is list-first, with a compact header, search and create actions on the
+top bar, dense table rows, and a separate detail page.
 
 ## Local development
 
@@ -31,11 +33,12 @@ The static UI uses hash routes so it can run behind the existing nginx static
 entrypoint:
 
 - `#/clusters`: the entry cluster list page with search and a header-level
-  new-cluster action.
+  create action.
 - `#/clusters/{name}`: a dedicated cluster detail page with Overview,
   Connections, Logs, and Metrics tabs.
 
 Do not reintroduce a split view that renders the list and detail side by side.
+Do not reintroduce a sidebar-first shell for this UI.
 
 ## API contract used by the UI
 
@@ -58,7 +61,7 @@ control surface remains inspectable; create and observability actions still
 require a working backend. Public desktop installs keep create disabled until
 the Sealos session/workspace adapter is connected. The browser reads
 `window.MESSAGEQUEUE_CREATE_ENABLED` from `config.js`; when it is false, the
-new-cluster button remains visible but disabled and the form refuses to open. A
+create button remains visible but disabled and the form refuses to open. A
 metrics provider response with `degraded: true` is rendered as “Metrics
 unavailable” rather than as zero-valued data.
 

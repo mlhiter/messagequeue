@@ -15,16 +15,17 @@ should be dense enough for repeated operations without feeling compressed or
 decorative. Familiar controls, stable layout, and explicit status carry more
 weight than visual novelty.
 
-The reference register is Sealos for workspace context, Grafana for operational
-scanning, and Kubernetes Dashboard for resource truth. The result must not look
-like a marketing landing page, a raw YAML editor, the existing database
-provider, or Kafbat UI.
+The reference register is DevBox for the list-first shell and header actions,
+Sealos for workspace context, Grafana for operational scanning, and Kubernetes
+Dashboard for resource truth. The result must not look like a marketing
+landing page, a raw YAML editor, the existing database provider, or Kafbat UI.
 
-The MessageQueue shell follows the Sealos desktop convention with a light
-workspace canvas, pale sidebar, white operational surfaces, soft borders,
-restrained blue emphasis, and dense control panels rather than decorative
+The MessageQueue shell follows a list-first operational convention with a light
+workspace canvas, a compact top header, white operational surfaces, soft
+borders, restrained blue emphasis, and dense row cards rather than decorative
 tiles. The management UI defaults to Chinese and keeps English as an explicit
-toggle, so every visible label, empty state, and form helper must be i18n-ready.
+toggle, so every visible label, empty state, and form helper must be
+i18n-ready.
 
 **Key Characteristics:**
 
@@ -66,7 +67,7 @@ surrounding content.
 ## Interaction Model
 
 The entry route is the cluster list. Its job is to orient, search, create, and
-open a resource. The new-cluster action sits in the page header; public Desktop
+open a resource. The create action sits in the page header; public Desktop
 installs keep it visibly disabled until workspace identity is connected.
 
 Cluster rows navigate to a dedicated detail page. Detail pages own overview,
@@ -93,4 +94,5 @@ the cluster list. Do not reintroduce a two-pane list-plus-detail layout.
 - **Don't** copy the existing database provider information architecture.
 - **Don't** present Kafbat UI as the MessageQueue management interface.
 - **Don't** put list and detail information into one split screen.
-- **Don't** use a dark, blue-heavy operations dashboard or color as decoration.
+- **Don't** reintroduce a sidebar-first shell or a dark, blue-heavy operations
+  dashboard.

@@ -45,7 +45,7 @@ amd64 OCI indexes:
 
 - controller: `sha256:94e02ec6805c4dd36f3d7f834ae1bc45f2b7fd99df721f425fc694cb8bc03a9e`
 - backend: `sha256:61f62b63ba9dde2a71cb970235481d46ae90d60022b7f66256cd07160437c6bc`
-- frontend: `sha256:ec0df7f20e42884e4df33083686a0e9de141949ebc1dbe70e4a6668f2cf666a4`
+- frontend: `sha256:6d94e4f96be60c566d1828ca7cf126b80b8762c283165d892c9dfcbf47f358af`
 
 Production values should set `global.imagePolicy.requireDigest=true` and use
 these or a separately reviewed immutable digest set.

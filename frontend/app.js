@@ -28,7 +28,7 @@
       detailPageDescription: "这里单独展示一个集群的状态、连接和可观测信息。",
       backToList: "集群列表",
       createCluster: "创建集群",
-      newCluster: "新建集群",
+      newCluster: "新建",
       apiConnecting: "连接中",
       apiConnected: "API 已连接",
       apiDegraded: "API 降级",
@@ -54,7 +54,7 @@
       updatedColumn: "最后变更",
       openDetail: "查看详情",
       loadingClusters: "正在加载集群…",
-      searchPlaceholder: "搜索",
+      searchPlaceholder: "搜索集群",
       noKafkaClustersYet: "还没有 Kafka 集群",
       noMatchingClusters: "没有匹配的集群",
       createDevClusterHint: "创建一个开发集群开始发送消息。",
@@ -220,7 +220,7 @@
       detailPageDescription: "Inspect the selected cluster's status, connections, logs, and metrics here.",
       backToList: "Cluster list",
       createCluster: "Create cluster",
-      newCluster: "New cluster",
+      newCluster: "New",
       apiConnecting: "Connecting",
       apiConnected: "API connected",
       apiDegraded: "API degraded",
@@ -246,7 +246,7 @@
       updatedColumn: "Last change",
       openDetail: "Open detail",
       loadingClusters: "Loading clusters…",
-      searchPlaceholder: "Search",
+      searchPlaceholder: "Search clusters",
       noKafkaClustersYet: "No Kafka clusters yet",
       noMatchingClusters: "No matching clusters",
       createDevClusterHint: "Create a development cluster to start producing messages.",
@@ -1073,7 +1073,7 @@
       ["metrics", message("metrics")]
     ];
 
-    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div><div class="detail-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button></div></div><div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${state.tab === "overview" ? overviewHtml(cluster) : state.tab === "connections" ? connectionsHtml(cluster) : state.tab === "logs" ? logsHtml(cluster) : metricsHtml(cluster)}</div>`;
+    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div><div class="detail-actions"><button class="button button-secondary" type="button" data-action="back-to-list">${escapeHtml(message("backToList"))}</button><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button></div></div><div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${state.tab === "overview" ? overviewHtml(cluster) : state.tab === "connections" ? connectionsHtml(cluster) : state.tab === "logs" ? logsHtml(cluster) : metricsHtml(cluster)}</div>`;
 
     if (state.tab === "logs" && state.observability.logs?.name === cluster.name && state.observability.logs.data) {
       const viewer = $("#log-viewer");

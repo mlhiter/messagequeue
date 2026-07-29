@@ -45,6 +45,8 @@ behavior.
   user-facing workflow requires browser or API acceptance coverage.
 - Missing metrics or historical logs must degrade the affected view without
   blocking Kafka provisioning.
+- The management UI follows Sealos Desktop language through the Desktop SDK
+  protocol. Do not add a separate in-app language toggle.
 
 ## Documentation
 

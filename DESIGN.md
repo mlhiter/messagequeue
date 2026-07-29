@@ -23,9 +23,9 @@ landing page, a raw YAML editor, the existing database provider, or Kafbat UI.
 The MessageQueue shell follows DevBox's list-first operational convention with
 a light zinc workspace canvas, a compact top header, white operational
 surfaces, hairline borders, black primary actions, semantic status colors, and
-dense row cards rather than decorative tiles. The management UI defaults to
-Chinese and keeps English as an explicit toggle, so every visible label, empty
-state, and form helper must be i18n-ready.
+dense row cards rather than decorative tiles. The management UI follows the
+Sealos Desktop language setting through the Desktop SDK protocol, so every
+visible label, empty state, and form helper must remain i18n-ready.
 
 **Key Characteristics:**
 

@@ -180,7 +180,6 @@ pre {
 
 .api-indicator,
 .icon-button,
-.lang-button,
 .button {
   display: inline-flex;
   align-items: center;
@@ -245,11 +244,6 @@ pre {
   color: var(--muted);
 }
 
-.lang-button {
-  padding: 0 14px;
-  color: var(--muted);
-}
-
 .button {
   padding: 0 16px;
   font-size: 14px;
@@ -280,7 +274,6 @@ pre {
 
 .button:hover,
 .icon-button:hover,
-.lang-button:hover,
 .api-indicator:hover {
   border-color: var(--line-strong);
 }
@@ -293,15 +286,13 @@ pre {
 
   .button-secondary:hover,
   .icon-button:hover,
-  .lang-button:hover,
   .api-indicator:hover {
     background: #fafafa;
   }
 }
 
 .button:disabled,
-.icon-button:disabled,
-.lang-button:disabled {
+.icon-button:disabled {
   cursor: not-allowed;
   box-shadow: none;
   opacity: 0.72;
@@ -314,8 +305,7 @@ pre {
 }
 
 .button-secondary:disabled,
-.icon-button:disabled,
-.lang-button:disabled {
+.icon-button:disabled {
   border-color: var(--line);
   background: #ffffff;
   color: var(--faint);
@@ -323,7 +313,6 @@ pre {
 
 .button:focus-visible,
 .icon-button:focus-visible,
-.lang-button:focus-visible,
 .search-field:focus-within,
 .cluster-row:focus-visible,
 .tab-button:focus-visible,

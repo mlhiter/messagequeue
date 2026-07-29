@@ -5,12 +5,13 @@
   const API_PREFIX = "/v1/messagequeues";
   const CREATE_ENABLED = window.MESSAGEQUEUE_CREATE_ENABLED !== false;
   const DEFAULT_LANGUAGE = "zh";
-  const STORAGE_KEY = "messagequeue.locale";
+  const SEALOS_DESKTOP_EVENT_API = "event-bus";
+  const SEALOS_DESKTOP_LANGUAGE_API = "getLanguage";
+  const SEALOS_DESKTOP_CHANGE_I18N_EVENT = "change_i18n";
+  const SEALOS_DESKTOP_REQUEST_TIMEOUT_MS = 3000;
 
   const LOCALES = {
     zh: {
-      languageName: "中文",
-      switchLanguage: "EN",
       title: "MessageQueue | 消息队列",
       description: "MessageQueue Kafka 管理控制台",
       brandSubtitle: "工作空间控制平面",
@@ -134,7 +135,6 @@
       refresh: "刷新",
       refreshData: "刷新数据",
       openHelp: "打开帮助",
-      switchLanguageLabel: "切换语言",
       newResource: "新资源",
       createKafkaCluster: "创建 Kafka 集群",
       createDescription: "控制器会在你的工作空间命名空间里创建 Strimzi 资源。",
@@ -201,8 +201,6 @@
       workspacePending: "工作空间加载中"
     },
     en: {
-      languageName: "EN",
-      switchLanguage: "中文",
       title: "MessageQueue | Message Brokers",
       description: "MessageQueue Kafka management console",
       brandSubtitle: "Workspace control plane",
@@ -322,7 +320,6 @@
       refresh: "Refresh",
       refreshData: "Refresh data",
       openHelp: "Open help",
-      switchLanguageLabel: "Switch language",
       newResource: "New resource",
       createKafkaCluster: "Create Kafka cluster",
       createDescription: "The controller will provision Strimzi resources in your workspace namespace.",
@@ -427,14 +424,12 @@
       window.MESSAGEQUEUE_LOCALE,
       getCookie("MESSAGEQUEUE_LOCALE"),
       getCookie("NEXT_LOCALE"),
-      localStorage.getItem(STORAGE_KEY),
       navigator.language,
       DEFAULT_LANGUAGE
     ];
     for (const candidate of candidates) {
-      const lang = String(candidate || "").toLowerCase();
-      if (lang.startsWith("zh")) return "zh";
-      if (lang.startsWith("en")) return "en";
+      const lang = normalizeLanguage(candidate);
+      if (lang) return lang;
     }
     return DEFAULT_LANGUAGE;
   }
@@ -514,9 +509,35 @@
     return typeof raw === "function" ? raw(params?.count ?? params.message ?? params.name ?? params) : interpolate(raw, params);
   }
 
+  function normalizeLanguage(raw) {
+    let value = "";
+    if (typeof raw === "string") {
+      value = raw;
+    } else if (raw && typeof raw === "object") {
+      const data = raw.data && typeof raw.data === "object" ? raw.data : {};
+      value =
+        raw.currentLanguage ||
+        data.currentLanguage ||
+        raw.lng ||
+        data.lng ||
+        raw.lang ||
+        data.lang ||
+        raw.language ||
+        data.language ||
+        raw.locale ||
+        data.locale ||
+        "";
+    }
+    const lang = String(value || "").trim().toLowerCase();
+    if (lang.startsWith("zh")) return "zh";
+    if (lang.startsWith("en")) return "en";
+    return "";
+  }
+
   function applyLanguage(lang) {
-    state.language = lang === "en" ? "en" : "zh";
-    localStorage.setItem(STORAGE_KEY, state.language);
+    const nextLanguage = normalizeLanguage(lang) || DEFAULT_LANGUAGE;
+    const changed = state.language !== nextLanguage;
+    state.language = nextLanguage;
     setCookie("MESSAGEQUEUE_LOCALE", state.language);
     setCookie("NEXT_LOCALE", state.language);
     document.documentElement.lang = state.language === "zh" ? "zh-CN" : "en";
@@ -524,6 +545,78 @@
     document.title = title;
     const description = $("meta[name='description']");
     if (description) description.setAttribute("content", message("description"));
+    if (changed && state.apiState === "degraded") {
+      state.clusters = demoClustersFor(state.language);
+    }
+    return changed;
+  }
+
+  function createMessageId() {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function requestSealosDesktopLanguage() {
+    if (window.top === window) {
+      return Promise.reject(new Error("not running in Sealos Desktop"));
+    }
+
+    const messageId = createMessageId();
+    const payload = {
+      messageId,
+      apiName: SEALOS_DESKTOP_LANGUAGE_API,
+      appKey: "",
+      clientLocation: window.location.origin,
+      success: false,
+      data: {}
+    };
+
+    return new Promise((resolve, reject) => {
+      const timer = window.setTimeout(() => {
+        window.removeEventListener("message", handleMessage);
+        reject(new Error("Sealos Desktop language request timed out"));
+      }, SEALOS_DESKTOP_REQUEST_TIMEOUT_MS);
+
+      function handleMessage(event) {
+        const data = event.data || {};
+        if (data.messageId !== messageId) return;
+        window.clearTimeout(timer);
+        window.removeEventListener("message", handleMessage);
+        if (data.success) {
+          resolve(data.data);
+        } else {
+          reject(new Error(data.message || "Sealos Desktop language request failed"));
+        }
+      }
+
+      window.addEventListener("message", handleMessage);
+      window.top?.postMessage(payload, "*");
+    });
+  }
+
+  async function syncSealosLanguage(eventData) {
+    let nextLanguage = normalizeLanguage(eventData);
+    if (!nextLanguage) {
+      try {
+        nextLanguage = normalizeLanguage(await requestSealosDesktopLanguage());
+      } catch {
+        return;
+      }
+    }
+    if (nextLanguage && applyLanguage(nextLanguage)) {
+      render();
+    }
+  }
+
+  function setupSealosLanguageSync() {
+    window.addEventListener("message", (event) => {
+      if (window.top !== window && event.source !== window.top) return;
+      const data = event.data || {};
+      if (data.apiName !== SEALOS_DESKTOP_EVENT_API || data.eventName !== SEALOS_DESKTOP_CHANGE_I18N_EVENT) return;
+      syncSealosLanguage(data.data || data);
+    });
+
+    syncSealosLanguage();
   }
 
   function localizeStaticShell() {
@@ -569,8 +662,7 @@
       ["impact-copy", "resourceFootprintCopy"],
       ["impact-note", "creationAsync"],
       ["cancel-button", "cancel"],
-      ["submit-create", "create"],
-      ["language-button", "languageName"]
+      ["submit-create", "create"]
     ];
 
     for (const [id, key] of staticMap) {
@@ -587,8 +679,6 @@
     $("#refresh-button")?.setAttribute("title", message("refreshData"));
     $("#help-button")?.setAttribute("aria-label", message("openHelp"));
     $("#help-button")?.setAttribute("title", message("openHelp"));
-    $("#language-button")?.setAttribute("aria-label", message("switchLanguageLabel"));
-    $("#language-button")?.setAttribute("title", message("switchLanguageLabel"));
     $("#search-input")?.setAttribute("placeholder", message("searchPlaceholder"));
     if ($("#create-button")) {
       $("#create-button").disabled = !CREATE_ENABLED;
@@ -1199,10 +1289,6 @@
   function bindEvents() {
     $("#refresh-button")?.addEventListener("click", loadClusters);
     $("#help-button")?.addEventListener("click", () => alert(message("noHelp")));
-    $("#language-button")?.addEventListener("click", () => {
-      applyLanguage(state.language === "zh" ? "en" : "zh");
-      render();
-    });
     $("#search-input")?.addEventListener("input", (event) => {
       state.search = event.currentTarget.value;
       renderClusterList();
@@ -1313,6 +1399,7 @@
     applyLanguage(state.language);
     initFormDefaults();
     bindEvents();
+    setupSealosLanguageSync();
     if (!location.hash || !location.hash.startsWith("#/clusters")) {
       history.replaceState(null, "", "#/clusters");
     }

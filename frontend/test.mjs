@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 const source = await readFile(new URL("./app.js", import.meta.url), "utf8");
 const html = await readFile(new URL("./index.html", import.meta.url), "utf8");
 const config = await readFile(new URL("./config.js", import.meta.url), "utf8");
+const styles = await readFile(new URL("./styles.css", import.meta.url), "utf8");
 
 const apiPrefix = source.match(/const API_PREFIX = "([^"]+)";/)?.[1];
 
@@ -31,7 +32,9 @@ if (
   !source.includes('SEALOS_DESKTOP_CHANGE_I18N_EVENT = "change_i18n"') ||
   !source.includes('SEALOS_DESKTOP_LANGUAGE_API = "getLanguage"') ||
   !source.includes("requestSealosDesktopLanguage") ||
-  !source.includes("setupSealosLanguageSync")
+  !source.includes("setupSealosLanguageSync") ||
+  !source.includes("event.source !== window.top") ||
+  !source.includes("window.top === window || event.source !== window.top")
 ) {
   throw new Error("Sealos Desktop language sync is missing");
 }
@@ -43,6 +46,12 @@ if (html.includes("language-button") || html.includes("lang-button") || source.i
 }
 if (!html.includes('id="back-button"') || !html.includes("header-back-button")) {
   throw new Error("top-left detail back button is missing from the shell");
+}
+if (
+  !styles.includes('.app-shell[data-view="detail"] .brand') ||
+  !styles.includes('.app-shell[data-view="detail"] .header-actions')
+) {
+  throw new Error("detail route should hide global brand and toolbar surfaces");
 }
 if (!config.includes("window.MESSAGEQUEUE_LOCALE")) {
   throw new Error("locale override hook is missing");

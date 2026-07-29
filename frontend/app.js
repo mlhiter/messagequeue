@@ -578,6 +578,7 @@
       }, SEALOS_DESKTOP_REQUEST_TIMEOUT_MS);
 
       function handleMessage(event) {
+        if (event.source !== window.top) return;
         const data = event.data || {};
         if (data.messageId !== messageId) return;
         window.clearTimeout(timer);
@@ -610,7 +611,7 @@
 
   function setupSealosLanguageSync() {
     window.addEventListener("message", (event) => {
-      if (window.top !== window && event.source !== window.top) return;
+      if (window.top === window || event.source !== window.top) return;
       const data = event.data || {};
       if (data.apiName !== SEALOS_DESKTOP_EVENT_API || data.eventName !== SEALOS_DESKTOP_CHANGE_I18N_EVENT) return;
       syncSealosLanguage(data.data || data);

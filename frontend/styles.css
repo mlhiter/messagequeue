@@ -122,6 +122,11 @@ pre {
   background: var(--page-bg);
 }
 
+.app-shell[data-view="detail"] .brand,
+.app-shell[data-view="detail"] .header-actions {
+  display: none;
+}
+
 .brand {
   display: flex;
   align-items: center;

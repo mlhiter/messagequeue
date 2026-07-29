@@ -20,12 +20,12 @@ Sealos for workspace context, Grafana for operational scanning, and Kubernetes
 Dashboard for resource truth. The result must not look like a marketing
 landing page, a raw YAML editor, the existing database provider, or Kafbat UI.
 
-The MessageQueue shell follows a list-first operational convention with a light
-workspace canvas, a compact top header, white operational surfaces, soft
-borders, restrained blue emphasis, and dense row cards rather than decorative
-tiles. The management UI defaults to Chinese and keeps English as an explicit
-toggle, so every visible label, empty state, and form helper must be
-i18n-ready.
+The MessageQueue shell follows DevBox's list-first operational convention with
+a light zinc workspace canvas, a compact top header, white operational
+surfaces, hairline borders, black primary actions, semantic status colors, and
+dense row cards rather than decorative tiles. The management UI defaults to
+Chinese and keeps English as an explicit toggle, so every visible label, empty
+state, and form helper must be i18n-ready.
 
 **Key Characteristics:**
 
@@ -37,10 +37,12 @@ i18n-ready.
 
 ## Colors
 
-Use a restrained strategy: neutral surfaces with one indigo product accent
-occupying no more than 10 percent of a screen. Current tokens live in
-`frontend/styles.css`; success, warning, error, and informational colors must
-remain perceptually distinct and must always be paired with text or icons.
+Use the Sealos/DevBox neutral palette: zinc canvas, white surfaces, zinc text
+and borders, and a black/zinc primary action. Blue is reserved for informational
+or provisioning state, not for decorative emphasis or button glow. Current
+tokens live in `frontend/styles.css`; success, warning, error, and
+informational colors must remain perceptually distinct and must always be
+paired with text or icons.
 
 **The Status-Only Color Rule.** Saturated color communicates action, selection,
 or state. It is never background decoration.
@@ -57,9 +59,10 @@ competing with tables, logs, metrics, or controls.
 
 ## Elevation
 
-The interface is flat by default. Depth comes from tonal surface changes,
-dividers, and explicit overlay states. Shadows are reserved for menus, dialogs,
-and transient overlays, never as decoration around every section.
+The interface is flat by default. List surfaces follow DevBox exactly:
+`0px 2px 8px -2px rgba(0, 0, 0, 0.08)`, `0.5px` borders, `8px` table-header
+radius, and `12px` row/card radius. Buttons do not use decorative shadows.
+Dialogs and popovers may use a restrained `shadow-lg`-class overlay treatment.
 
 **The Stable Surface Rule.** Hover and loading states must not resize or shift
 surrounding content.
@@ -73,6 +76,11 @@ installs keep it visibly disabled until workspace identity is connected.
 Cluster rows navigate to a dedicated detail page. Detail pages own overview,
 connection, logs, and metrics tabs, and always provide a clear return path to
 the cluster list. Do not reintroduce a two-pane list-plus-detail layout.
+
+Motion is intentionally quiet. List rows, tabs, buttons, and shell controls use
+explicit color or opacity transitions only. Do not add hover lift,
+`translateY`, active `scale`, animated shadow changes, bounce, or decorative
+page-enter motion.
 
 ## Do's and Don'ts
 

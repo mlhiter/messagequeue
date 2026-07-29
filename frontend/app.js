@@ -577,7 +577,6 @@
       ["impact-note", "creationAsync"],
       ["cancel-button", "cancel"],
       ["submit-create", "create"],
-      ["api-indicator-label", "apiConnecting"],
       ["language-button", "languageName"]
     ];
 
@@ -859,8 +858,12 @@
   function setApiState(apiState, messageText = "") {
     state.apiState = apiState;
     state.apiMessage = messageText;
+    renderApiIndicator();
+  }
+
+  function renderApiIndicator() {
     const indicator = $("#api-indicator");
-    if (indicator) indicator.dataset.state = apiState;
+    if (indicator) indicator.dataset.state = state.apiState;
     const labels = {
       loading: message("apiConnecting"),
       ready: message("apiConnected"),
@@ -868,7 +871,7 @@
       forbidden: message("accessDenied")
     };
     const indicatorLabel = $("#api-indicator-label");
-    if (indicatorLabel) indicatorLabel.textContent = labels[apiState] || apiState;
+    if (indicatorLabel) indicatorLabel.textContent = labels[state.apiState] || state.apiState;
   }
 
   function renderNotice() {
@@ -1083,6 +1086,7 @@
 
   function render() {
     localizeStaticShell();
+    renderApiIndicator();
     renderRouteChrome();
     const clusters = filteredClusters();
     renderNotice();

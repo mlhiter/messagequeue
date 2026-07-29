@@ -16,7 +16,7 @@ image_registry="${IMAGE_REGISTRY:-crpi-7jr40k6elhldekqp.cn-hangzhou.personal.cr.
 image_tag="${IMAGE_TAG:-v0.1.6}"
 controller_digest="${CONTROLLER_DIGEST:-sha256:94e02ec6805c4dd36f3d7f834ae1bc45f2b7fd99df721f425fc694cb8bc03a9e}"
 backend_digest="${BACKEND_DIGEST:-sha256:61f62b63ba9dde2a71cb970235481d46ae90d60022b7f66256cd07160437c6bc}"
-frontend_digest="${FRONTEND_DIGEST:-sha256:85122f7ee9e0ba456a54b21dc05ae568152b1955eb1ce1f271b38f82c5ccffe8}"
+frontend_digest="${FRONTEND_DIGEST:-sha256:2408c834f0216401fbc0294bef0a2a8303aa6e72af0d2b95301116e82b437019}"
 
 if [[ ! -r "$kubeconfig_path" ]]; then
   echo "kubeconfig is not readable: $kubeconfig_path" >&2

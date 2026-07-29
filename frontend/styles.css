@@ -267,6 +267,17 @@ pre {
   background: var(--surface);
 }
 
+.header-back-button {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+.header-back-button::before {
+  content: "←";
+  color: var(--muted);
+}
+
 .button:hover,
 .icon-button:hover,
 .lang-button:hover,
@@ -1216,6 +1227,10 @@ pre {
     align-items: flex-start;
     justify-content: flex-start;
     padding: 16px;
+  }
+
+  .header-back-button {
+    align-self: flex-start;
   }
 
   .header-actions {

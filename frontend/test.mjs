@@ -33,6 +33,9 @@ if (!source.includes("window.MESSAGEQUEUE_LOCALE") || !source.includes("applyLan
 if (!html.includes('lang="zh-CN"') || !html.includes("MessageQueue | 消息队列") || !html.includes("language-button")) {
   throw new Error("Chinese-first shell is missing");
 }
+if (!html.includes('id="back-button"') || !html.includes("header-back-button")) {
+  throw new Error("top-left detail back button is missing from the shell");
+}
 if (!config.includes("window.MESSAGEQUEUE_LOCALE")) {
   throw new Error("locale override hook is missing");
 }
@@ -47,6 +50,12 @@ if (!source.includes("function commitRouteHash(target)") || !functionBody("commi
 }
 if (!functionBody("navigateToList").includes('commitRouteHash("#/clusters")')) {
   throw new Error("detail back navigation does not commit the list route synchronously");
+}
+if (!source.includes('backButton.setAttribute("aria-label", message("backToList"))')) {
+  throw new Error("top-left back button is not localized for assistive labels");
+}
+if (source.includes('<div class="detail-actions"><button class="button button-secondary" type="button" data-action="back-to-list"')) {
+  throw new Error("detail card should not duplicate the top-left back button");
 }
 if (/location\.hash\s*=\s*target;\s*return;/.test(functionBody("navigateToList")) || /location\.hash\s*=\s*target;\s*return;/.test(functionBody("navigateToCluster"))) {
   throw new Error("route navigation still depends on hashchange before rendering");

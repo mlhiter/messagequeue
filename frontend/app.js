@@ -949,6 +949,8 @@
     if (backButton) {
       backButton.classList.toggle("is-hidden", !isDetail);
       backButton.setAttribute("aria-hidden", isDetail ? "false" : "true");
+      backButton.setAttribute("aria-label", message("backToList"));
+      backButton.setAttribute("title", message("backToList"));
     }
     statGrid?.classList.add("is-hidden");
     listPanel?.classList.toggle("is-hidden", isDetail);
@@ -1069,7 +1071,7 @@
       ["metrics", message("metrics")]
     ];
 
-    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div><div class="detail-actions"><button class="button button-secondary" type="button" data-action="back-to-list">${escapeHtml(message("backToList"))}</button><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button></div></div><div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${state.tab === "overview" ? overviewHtml(cluster) : state.tab === "connections" ? connectionsHtml(cluster) : state.tab === "logs" ? logsHtml(cluster) : metricsHtml(cluster)}</div>`;
+    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div><div class="detail-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button></div></div><div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${state.tab === "overview" ? overviewHtml(cluster) : state.tab === "connections" ? connectionsHtml(cluster) : state.tab === "logs" ? logsHtml(cluster) : metricsHtml(cluster)}</div>`;
 
     if (state.tab === "logs" && state.observability.logs?.name === cluster.name && state.observability.logs.data) {
       const viewer = $("#log-viewer");

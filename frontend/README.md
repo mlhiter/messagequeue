@@ -25,6 +25,18 @@ the nginx same-origin proxy. Build the image for production with:
 docker build --platform linux/amd64 -t messagequeue-frontend:dev .
 ```
 
+## Routes
+
+The static UI uses hash routes so it can run behind the existing nginx static
+entrypoint:
+
+- `#/clusters`: the entry cluster list page with search and a header-level
+  new-cluster action.
+- `#/clusters/{name}`: a dedicated cluster detail page with Overview,
+  Connections, Logs, and Metrics tabs.
+
+Do not reintroduce a split view that renders the list and detail side by side.
+
 ## API contract used by the UI
 
 - `GET /api/v1/messagequeues`: list resources. The response is an
@@ -46,9 +58,9 @@ control surface remains inspectable; create and observability actions still
 require a working backend. Public desktop installs keep create disabled until
 the Sealos session/workspace adapter is connected. The browser reads
 `window.MESSAGEQUEUE_CREATE_ENABLED` from `config.js`; when it is false, the
-create button is hidden and the form refuses to open. A metrics provider
-response with `degraded: true` is rendered as “Metrics unavailable” rather than
-as zero-valued data.
+new-cluster button remains visible but disabled and the form refuses to open. A
+metrics provider response with `degraded: true` is rendered as “Metrics
+unavailable” rather than as zero-valued data.
 
 The shell defaults to Chinese and exposes an in-app language toggle so every
 headline, helper, and empty state stays localizable without hardcoded strings.

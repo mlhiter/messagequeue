@@ -47,7 +47,7 @@ body {
 
 body {
   min-height: 100vh;
-  overflow: hidden;
+  overflow: auto;
 }
 
 button,
@@ -67,6 +67,24 @@ pre {
 
 a {
   color: inherit;
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -40px;
+  z-index: 20;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--indigo);
+  color: #fff;
+  font-size: 13px;
+  text-decoration: none;
+  transition: top 160ms ease, transform 160ms ease;
+}
+
+.skip-link:focus {
+  top: 16px;
 }
 
 .app-shell {
@@ -338,10 +356,10 @@ a {
   font-weight: 600;
 }
 
-.icon-button:hover,
-.lang-button:hover,
-.help-button:hover,
-.button:hover {
+.icon-button:not(:disabled):hover,
+.lang-button:not(:disabled):hover,
+.help-button:not(:disabled):hover,
+.button:not(:disabled):hover {
   border-color: #cad5e5;
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
   transform: translateY(-1px);
@@ -358,6 +376,13 @@ a {
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+}
+
+.page-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .eyebrow {
@@ -382,6 +407,7 @@ a {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.7;
+  text-wrap: pretty;
 }
 
 .button {
@@ -399,6 +425,16 @@ a {
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, transform 160ms ease;
 }
 
+.button:disabled,
+.icon-button:disabled,
+.lang-button:disabled,
+.help-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  box-shadow: none;
+  transform: none;
+}
+
 .button-primary {
   border-color: transparent;
   background: var(--indigo);
@@ -406,7 +442,14 @@ a {
   box-shadow: 0 10px 22px rgba(47, 102, 242, 0.18);
 }
 
-.button-primary:hover {
+.button-primary:disabled {
+  opacity: 1;
+  border-color: #c8d7ff;
+  background: #dbe6ff;
+  color: #5e77bd;
+}
+
+.button-primary:not(:disabled):hover {
   background: #245be0;
   border-color: transparent;
 }
@@ -422,7 +465,7 @@ a {
 .nav-item:active,
 .cluster-row:active,
 .tab-button:active {
-  transform: translateY(1px) scale(0.99);
+  transform: translateY(1px) scale(0.96);
 }
 
 .button:focus-visible,
@@ -561,16 +604,17 @@ a {
   color: var(--amber);
 }
 
-.content-grid {
+.route-surface {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   gap: 16px;
   align-items: start;
 }
 
+.route-panel,
 .cluster-panel,
 .detail-panel {
   min-width: 0;
+  width: 100%;
   border: 1px solid var(--line);
   border-radius: 24px;
   background: var(--surface);
@@ -602,6 +646,7 @@ a {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.6;
+  text-wrap: pretty;
 }
 
 .search-field {
@@ -639,38 +684,71 @@ a {
 
 .cluster-list {
   min-height: 280px;
+  overflow-x: auto;
+}
+
+.cluster-table {
+  min-width: 860px;
+}
+
+.cluster-table-head,
+.cluster-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.45fr) 110px 84px 104px 112px 124px 106px 28px;
+  align-items: center;
+  column-gap: 12px;
+  width: 100%;
+}
+
+.cluster-table-head {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: #f8fbff;
+  color: #7b8498;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cluster-head-cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cluster-table-body {
+  display: grid;
 }
 
 .cluster-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
-  gap: 14px;
-  width: 100%;
   min-height: 88px;
-  padding: 16px 18px;
+  min-width: 920px;
+  padding: 14px 18px;
   border: 0;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
   text-align: left;
+  text-decoration: none;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
 .cluster-row:hover {
   background: #f8fbff;
 }
 
-.cluster-row.is-selected {
-  background: var(--indigo-soft);
-  box-shadow: inset 0 0 0 1px rgba(47, 102, 242, 0.14), 0 8px 20px rgba(47, 102, 242, 0.06);
-}
-
 .cluster-row:last-child {
   border-bottom: 0;
 }
 
+.cluster-name-cell {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
 .cluster-name {
   display: block;
-  margin-bottom: 4px;
   overflow: hidden;
   font-size: 14px;
   font-weight: 700;
@@ -683,9 +761,11 @@ a {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.5;
+  text-wrap: pretty;
 }
 
 .cluster-meta code,
+.cluster-namespace code,
 .info-item dd code,
 .copy-row code {
   font-family: var(--mono);
@@ -693,15 +773,25 @@ a {
 }
 
 .cluster-status,
-.cluster-topology {
-  display: grid;
-  align-content: center;
-  gap: 4px;
+.cluster-topology,
+.cluster-version,
+.cluster-storage,
+.cluster-namespace,
+.cluster-updated {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .cluster-topology strong {
+  overflow: hidden;
   font-size: 12px;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cluster-topology span {
@@ -712,6 +802,7 @@ a {
 .cluster-action {
   display: grid;
   place-items: center;
+  justify-self: end;
   color: var(--faint);
   font-size: 18px;
 }
@@ -843,6 +934,7 @@ a {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.6;
+  text-wrap: pretty;
 }
 
 .detail-actions {
@@ -1300,10 +1392,6 @@ a {
 }
 
 @media (max-width: 1180px) {
-  .content-grid {
-    grid-template-columns: 1fr;
-  }
-
   .detail-panel {
     min-height: 0;
   }
@@ -1356,6 +1444,10 @@ a {
     align-items: flex-start;
   }
 
+  .page-heading-actions {
+    width: 100%;
+  }
+
   .stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1372,25 +1464,72 @@ a {
     border-bottom: 1px solid var(--line);
   }
 
+  .cluster-list {
+    overflow-x: visible;
+  }
+
+  .cluster-table {
+    min-width: 0;
+  }
+
+  .cluster-table-head {
+    display: none;
+  }
+
   .cluster-row {
+    min-width: 0;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px 10px;
+    grid-auto-rows: min-content;
+    gap: 6px 12px;
     padding: 14px 14px;
+    align-items: start;
+  }
+
+  .cluster-name-cell {
+    grid-column: 1;
+    grid-row: 1;
   }
 
   .cluster-status {
     grid-column: 2;
     grid-row: 1;
+    justify-self: end;
   }
 
-  .cluster-topology {
+  .cluster-version {
     grid-column: 1;
     grid-row: 2;
   }
 
-  .cluster-action {
+  .cluster-topology {
     grid-column: 2;
     grid-row: 2;
+    justify-self: end;
+  }
+
+  .cluster-storage {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .cluster-namespace {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: end;
+  }
+
+  .cluster-updated {
+    grid-column: 1;
+    grid-row: 4;
+  }
+
+  .cluster-action {
+    grid-column: 2;
+    grid-row: 4;
+  }
+
+  .cluster-meta {
+    display: none;
   }
 
   .panel-toolbar,

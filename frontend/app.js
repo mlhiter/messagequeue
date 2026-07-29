@@ -22,9 +22,13 @@
       breadcrumbWorkspace: "工作空间",
       breadcrumbClusters: "集群",
       sectionTag: "消息代理 / Kafka",
-      pageTitle: "集群",
-      pageDescription: "在你的工作空间中部署和运维 Kafka。",
+      pageTitle: "消息队列集群",
+      pageDescription: "先看列表，再进入详情页查看连接、日志和指标。",
+      detailPageTitle: "集群详情",
+      detailPageDescription: "这里单独展示一个集群的状态、连接和可观测信息。",
+      backToList: "集群列表",
       createCluster: "创建集群",
+      newCluster: "新建集群",
       apiConnecting: "连接中",
       apiConnected: "API 已连接",
       apiDegraded: "API 降级",
@@ -41,6 +45,14 @@
       yourClusters: "你的集群",
       clusterResourcesReadOnly: (count) => `${count} 个资源 · 只读`,
       clusterResourcesInWorkspace: (count) => `${count} 个资源 · 当前工作空间`,
+      clusterNameColumn: "名称",
+      statusColumn: "状态",
+      versionColumn: "版本",
+      brokerColumn: "Broker",
+      storageColumn: "存储",
+      namespaceColumn: "命名空间",
+      updatedColumn: "最后变更",
+      openDetail: "查看详情",
       loadingClusters: "正在加载集群…",
       searchPlaceholder: "搜索",
       noKafkaClustersYet: "还没有 Kafka 集群",
@@ -149,7 +161,7 @@
       formPermissionDenied: "权限不足：当前工作空间不能创建集群。",
       formCreateFailed: (message) => `集群创建失败：${message}`,
       createButton: "创建集群",
-      createButtonShort: "+ 创建",
+      createButtonShort: "+ 新建",
       statusUnknown: "未知",
       statusReady: "就绪",
       statusProvisioning: "准备中",
@@ -202,9 +214,13 @@
       breadcrumbWorkspace: "Workspace",
       breadcrumbClusters: "Clusters",
       sectionTag: "Message brokers / Kafka",
-      pageTitle: "Clusters",
-      pageDescription: "Provision and operate Kafka in your workspace.",
+      pageTitle: "Message queue clusters",
+      pageDescription: "Start with the list, then open a dedicated detail page for each cluster.",
+      detailPageTitle: "Cluster details",
+      detailPageDescription: "Inspect the selected cluster's status, connections, logs, and metrics here.",
+      backToList: "Cluster list",
       createCluster: "Create cluster",
+      newCluster: "New cluster",
       apiConnecting: "Connecting",
       apiConnected: "API connected",
       apiDegraded: "API degraded",
@@ -221,6 +237,14 @@
       yourClusters: "Your clusters",
       clusterResourcesReadOnly: (count) => `${count} resource${count === 1 ? "" : "s"} · read only`,
       clusterResourcesInWorkspace: (count) => `${count} resource${count === 1 ? "" : "s"} in your workspace`,
+      clusterNameColumn: "Name",
+      statusColumn: "Status",
+      versionColumn: "Version",
+      brokerColumn: "Broker",
+      storageColumn: "Storage",
+      namespaceColumn: "Namespace",
+      updatedColumn: "Last change",
+      openDetail: "Open detail",
       loadingClusters: "Loading clusters…",
       searchPlaceholder: "Search",
       noKafkaClustersYet: "No Kafka clusters yet",
@@ -324,7 +348,7 @@
       formPermissionDenied: "Permission denied: your workspace cannot create clusters.",
       formCreateFailed: (message) => `Cluster creation failed: ${message}`,
       createButton: "Create cluster",
-      createButtonShort: "+ Create",
+      createButtonShort: "+ New",
       statusUnknown: "Unknown",
       statusReady: "Ready",
       statusProvisioning: "Provisioning",
@@ -417,7 +441,6 @@
 
   const state = {
     clusters: [],
-    selected: null,
     tab: "overview",
     loading: true,
     apiState: "loading",
@@ -425,10 +448,63 @@
     search: "",
     observability: {},
     createSubmitting: false,
-    language: detectLanguage()
+    language: detectLanguage(),
+    route: { view: "list", clusterName: "" }
   };
 
   const $ = (selector) => document.querySelector(selector);
+
+  function parseRoute() {
+    const parts = (location.hash || "").replace(/^#\/?/, "").split("/").filter(Boolean);
+    if (parts[0] !== "clusters") {
+      return { view: "list", clusterName: "" };
+    }
+    if (parts.length < 2) {
+      return { view: "list", clusterName: "" };
+    }
+    const encodedName = parts.slice(1).join("/");
+    let clusterName = encodedName;
+    try {
+      clusterName = decodeURIComponent(encodedName);
+    } catch {
+      clusterName = encodedName;
+    }
+    return {
+      view: "detail",
+      clusterName
+    };
+  }
+
+  function syncRouteFromLocation() {
+    state.route = parseRoute();
+  }
+
+  function navigateToList() {
+    const target = "#/clusters";
+    if (location.hash !== target) {
+      location.hash = target;
+      return;
+    }
+    syncRouteFromLocation();
+    window.scrollTo({ top: 0, behavior: "auto" });
+    render();
+  }
+
+  function navigateToCluster(name) {
+    if (!name) return;
+    const target = `#/clusters/${encodeURIComponent(name)}`;
+    if (location.hash !== target) {
+      state.tab = "overview";
+      state.observability = {};
+      location.hash = target;
+      return;
+    }
+    state.tab = "overview";
+    state.observability = {};
+    syncRouteFromLocation();
+    window.scrollTo({ top: 0, behavior: "auto" });
+    render();
+  }
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character]));
@@ -470,7 +546,8 @@
       ["section-tag", "sectionTag"],
       ["page-title", "pageTitle"],
       ["page-description", "pageDescription"],
-      ["create-button", "createButton"],
+      ["back-button", "backToList"],
+      ["create-button", "newCluster"],
       ["stat-label-total", "totalClusters"],
       ["stat-total-meta", "observedInWorkspace"],
       ["stat-label-ready", "ready"],
@@ -521,9 +598,11 @@
     $("#language-button")?.setAttribute("aria-label", message("switchLanguageLabel"));
     $("#language-button")?.setAttribute("title", message("switchLanguageLabel"));
     $("#search-input")?.setAttribute("placeholder", message("searchPlaceholder"));
-    $("#create-button")?.classList.toggle("is-hidden", !CREATE_ENABLED);
+    if ($("#create-button")) {
+      $("#create-button").disabled = !CREATE_ENABLED;
+      $("#create-button").setAttribute("title", CREATE_ENABLED ? message("newCluster") : message("clusterCreationDisabled"));
+    }
     $("#submit-create")?.setAttribute("value", "default");
-    $("#page-description")?.classList.toggle("is-hidden", false);
 
     const kafkaVersion = $("#kafka-version");
     if (kafkaVersion?.options?.[0]) kafkaVersion.options[0].textContent = `3.9.0 (${message("recommended")})`;
@@ -538,7 +617,7 @@
     $("#form-error") && ($("#form-error").textContent = message("formError"));
 
     const createButton = $("#create-button");
-    if (createButton) createButton.textContent = CREATE_ENABLED ? message("createButton") : "";
+    if (createButton) createButton.textContent = message("newCluster");
   }
 
   function statusLabel(phase) {
@@ -748,7 +827,9 @@
   }
 
   function selectedCluster() {
-    return normalizedClusters().find((cluster) => cluster.name === state.selected) || normalizedClusters()[0] || null;
+    if (state.route.view !== "detail") return null;
+    const clusters = normalizedClusters();
+    return clusters.find((cluster) => cluster.name === state.route.clusterName) || null;
   }
 
   async function request(path, options = {}) {
@@ -826,6 +907,59 @@
     return normalizedClusters().filter((cluster) => !query || `${cluster.name} ${cluster.namespace} ${cluster.version}`.toLowerCase().includes(query));
   }
 
+  function renderRouteChrome() {
+    const app = $("#app");
+    const isDetail = state.route.view === "detail";
+    const cluster = selectedCluster();
+    const pageTitle = $("#page-title");
+    const pageDescription = $("#page-description");
+    const breadcrumbClusters = $("#breadcrumb-clusters");
+    const createButton = $("#create-button");
+    const backButton = $("#back-button");
+    const statGrid = $("#stat-grid");
+    const listPanel = $("#list-panel");
+    const detailPanel = $("#detail-panel");
+    const operationsHint = $("#operations-hint");
+
+    if (app) app.dataset.view = isDetail ? "detail" : "list";
+    if (pageTitle) {
+      pageTitle.textContent = isDetail ? cluster?.name || message("detailPageTitle") : message("pageTitle");
+    }
+    if (pageDescription) {
+      pageDescription.textContent = isDetail
+        ? cluster
+          ? `${cluster.namespace} · ${message("lastTransition")} ${formatTime(cluster.lastTransitionTime)}`
+          : message("detailPageDescription")
+        : message("pageDescription");
+    }
+    if (breadcrumbClusters) {
+      breadcrumbClusters.textContent = isDetail
+        ? `${message("breadcrumbClusters")} / ${cluster?.name || message("detailPageTitle")}`
+        : message("breadcrumbClusters");
+    }
+    if (createButton) {
+      createButton.classList.toggle("is-hidden", isDetail);
+      createButton.disabled = !CREATE_ENABLED || isDetail;
+      createButton.textContent = message("newCluster");
+      createButton.setAttribute(
+        "title",
+        !CREATE_ENABLED
+          ? message("clusterCreationDisabled")
+          : isDetail
+            ? message("detailPageTitle")
+            : message("newCluster")
+      );
+    }
+    if (backButton) {
+      backButton.classList.toggle("is-hidden", !isDetail);
+      backButton.setAttribute("aria-hidden", isDetail ? "false" : "true");
+    }
+    statGrid?.classList.add("is-hidden");
+    listPanel?.classList.toggle("is-hidden", isDetail);
+    detailPanel?.classList.toggle("is-hidden", !isDetail);
+    operationsHint?.classList.toggle("is-hidden", isDetail);
+  }
+
   function renderClusterList() {
     const list = $("#cluster-list");
     if (!list) return;
@@ -846,12 +980,24 @@
       return;
     }
 
-    list.innerHTML = clusters
+    const columns = [
+      message("clusterNameColumn"),
+      message("statusColumn"),
+      message("versionColumn"),
+      message("brokerColumn"),
+      message("storageColumn"),
+      message("namespaceColumn"),
+      message("updatedColumn"),
+      ""
+    ];
+
+    list.innerHTML = `<div class="cluster-table"><div class="cluster-table-head" aria-hidden="true">${columns.map((label, index) => `<span class="cluster-head-cell ${index === 0 ? "is-name" : ""}">${escapeHtml(label)}</span>`).join("")}</div><div class="cluster-table-body">${clusters
       .map((cluster) => {
         const [label, statusClass] = statusLabel(cluster.phase);
-        return `<button type="button" class="cluster-row ${cluster.name === state.selected ? "is-selected" : ""}" data-cluster="${escapeHtml(cluster.name)}" aria-pressed="${cluster.name === state.selected}"><span><span class="cluster-name">${escapeHtml(cluster.name)}</span><span class="cluster-meta"><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("kafka"))} ${escapeHtml(cluster.version)}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-topology"><strong>${escapeHtml(formatBrokerCount(cluster.brokers))}</strong><span>${escapeHtml(formatBrokerStorage(cluster.storageGi))}</span></span><span class="cluster-action" aria-hidden="true">›</span></button>`;
+        const href = `#/clusters/${encodeURIComponent(cluster.name)}`;
+        return `<a class="cluster-row" href="${href}" aria-label="${escapeHtml(message("openDetail"))} ${escapeHtml(cluster.name)}"><span class="cluster-name-cell"><span class="cluster-name">${escapeHtml(cluster.name)}</span><span class="cluster-meta"><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("generation"))} ${escapeHtml(cluster.status.observedGeneration || "—")}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-version">${escapeHtml(cluster.version)}</span><span class="cluster-topology"><strong>${escapeHtml(formatBrokerCount(cluster.brokers))}</strong></span><span class="cluster-storage">${escapeHtml(formatBrokerStorage(cluster.storageGi))}</span><span class="cluster-namespace"><code>${escapeHtml(cluster.namespace)}</code></span><span class="cluster-updated">${escapeHtml(formatTime(cluster.lastTransitionTime))}</span><span class="cluster-action" aria-hidden="true">›</span></a>`;
       })
-      .join("");
+      .join("")}</div></div>`;
   }
 
   function overviewHtml(cluster) {
@@ -915,7 +1061,7 @@
     if (!panel) return;
     const cluster = selectedCluster();
     if (!cluster) {
-      panel.innerHTML = `<div class="empty-state"><strong>${escapeHtml(message("selectACluster"))}</strong><p>${escapeHtml(message("selectAClusterHint"))}</p></div>`;
+      panel.innerHTML = `<div class="empty-state empty-state-detail"><strong>${escapeHtml(message("detailPageTitle"))}</strong><p>${escapeHtml(message("detailPageDescription"))}</p><button class="button button-secondary" type="button" data-action="back-to-list">${escapeHtml(message("backToList"))}</button></div>`;
       return;
     }
 
@@ -937,11 +1083,12 @@
 
   function render() {
     localizeStaticShell();
+    renderRouteChrome();
     const clusters = filteredClusters();
     renderNotice();
-    renderStats(clusters);
+    if (state.route.view === "list") renderStats(clusters);
     renderClusterList();
-    renderDetail();
+    if (state.route.view === "detail") renderDetail();
     const operationsHint = $("#operations-hint");
     if (operationsHint) operationsHint.textContent = message("operationsComingSoon");
   }
@@ -954,16 +1101,13 @@
       const payload = await request(API_PREFIX);
       const items = Array.isArray(payload) ? payload : payload?.items || payload?.data || payload?.clusters || [];
       state.clusters = items;
-      state.selected = state.selected || items[0]?.metadata?.name || items[0]?.name || null;
       setApiState("ready");
     } catch (error) {
       if (error.code === 403) {
         state.clusters = [];
-        state.selected = null;
         setApiState("forbidden", message("permissionDeniedCopy"));
       } else {
         state.clusters = demoClustersFor(state.language);
-        state.selected = state.clusters[0]?.metadata?.name || state.clusters[0]?.name || null;
         setApiState("degraded", message("managementApiUnavailable"));
       }
     } finally {
@@ -1043,8 +1187,7 @@
       $("#create-modal").close();
       state.tab = "overview";
       await loadClusters();
-      state.selected = name;
-      render();
+      navigateToCluster(name);
     } catch (error) {
       errorBox.hidden = false;
       errorBox.textContent = error.code === 403 ? message("formPermissionDenied") : message("formCreateFailed", { message: error.message });
@@ -1071,20 +1214,20 @@
       $("#create-modal")?.showModal();
     });
     $("#cluster-list")?.addEventListener("click", (event) => {
-      const row = event.target.closest("[data-cluster]");
       const action = event.target.closest("[data-action]");
       if (action?.dataset.action === "open-create") {
+        event.preventDefault();
         $("#create-modal")?.showModal();
         return;
       }
-      if (!row) return;
-      state.selected = row.dataset.cluster;
-      renderDetail();
-      renderClusterList();
     });
     $("#detail-content")?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-action]");
       if (!button) return;
+      if (button.dataset.action === "back-to-list") {
+        navigateToList();
+        return;
+      }
       if (button.dataset.action === "refresh-detail") {
         loadClusters();
         return;
@@ -1123,6 +1266,17 @@
         $("#create-modal").close();
       }
     });
+    window.addEventListener("hashchange", () => {
+      const previous = { ...state.route };
+      syncRouteFromLocation();
+      if (state.route.view === "detail" && state.route.clusterName !== previous.clusterName) {
+        state.tab = "overview";
+        state.observability = {};
+      }
+      window.scrollTo({ top: 0, behavior: "auto" });
+      render();
+    });
+    $("#back-button")?.addEventListener("click", navigateToList);
   }
 
   function initFormDefaults() {
@@ -1148,6 +1302,10 @@
     applyLanguage(state.language);
     initFormDefaults();
     bindEvents();
+    if (!location.hash || !location.hash.startsWith("#/clusters")) {
+      history.replaceState(null, "", "#/clusters");
+    }
+    syncRouteFromLocation();
     render();
     loadClusters();
   }

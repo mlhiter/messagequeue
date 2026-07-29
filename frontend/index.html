@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
     <div id="app" class="app-shell">
       <aside class="sidebar" aria-label="主导航">
         <div class="brand">
@@ -51,7 +52,7 @@
         </div>
       </aside>
 
-      <main class="main-content">
+      <main class="main-content" id="main-content" tabindex="-1">
         <header class="topbar">
           <div class="breadcrumbs">
             <span id="breadcrumb-workspace">工作空间</span>
@@ -76,12 +77,13 @@
               <h1 id="page-title">集群</h1>
               <p class="page-description" id="page-description">在你的工作空间中部署和运维 Kafka。</p>
             </div>
-            <button class="button button-primary" type="button" id="create-button">创建集群</button>
+            <div class="page-heading-actions">
+              <button class="button button-secondary is-hidden" type="button" id="back-button">集群列表</button>
+              <button class="button button-primary" type="button" id="create-button">新建集群</button>
+            </div>
           </section>
 
-          <div id="notice-region" aria-live="polite"></div>
-
-          <section class="stat-grid" aria-label="集群概览">
+          <section class="stat-grid" id="stat-grid" aria-label="集群概览">
             <div class="stat-item">
               <span class="stat-label" id="stat-label-total">集群总数</span>
               <strong id="stat-total">—</strong>
@@ -104,8 +106,8 @@
             </div>
           </section>
 
-          <div class="content-grid">
-            <section class="cluster-panel" aria-labelledby="cluster-list-title">
+          <div class="route-surface" id="route-surface">
+            <section class="cluster-panel route-panel" id="list-panel" aria-labelledby="cluster-list-title">
               <div class="panel-toolbar">
                 <div>
                   <h2 id="cluster-list-title">你的集群</h2>
@@ -120,10 +122,12 @@
               <div id="cluster-list" class="cluster-list" aria-live="polite" aria-busy="true"></div>
             </section>
 
-            <section class="detail-panel" id="detail-panel" aria-labelledby="detail-title">
+            <section class="detail-panel route-panel is-hidden" id="detail-panel" aria-labelledby="detail-title">
               <div id="detail-content"></div>
             </section>
           </div>
+
+          <div id="notice-region" aria-live="polite"></div>
 
           <p id="operations-hint" class="operations-hint" aria-live="polite">运维功能正在完善中</p>
         </div>

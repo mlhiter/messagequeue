@@ -60,8 +60,9 @@ docs/          Architecture, information architecture, references, and runbook
 
 Release `0.1.6` provides a deployable Kafka control plane: Strimzi `0.46.0`
 reconciles Kafka `3.9.0`/`4.0.0` KRaft resources, the backend exposes namespaced
-status/log/metrics contracts, and the first-party UI supports create, detail,
-logs, and explicit degraded metrics. The cluster-62 smoke path creates
+status/log/metrics contracts, and the first-party UI uses a dedicated cluster
+list page plus per-cluster detail pages for connections, logs, and metrics. The
+cluster-62 smoke path creates
 `ns-admin/kafka-dev`, verifies SCRAM produce/consume, and registers an HTTPS
 `MessageQueue` iframe entry on Sealos Desktop.
 
@@ -70,9 +71,9 @@ and defaults to Chinese, with an English toggle for the same shell and forms.
 
 Known limits are deliberate: metrics currently return a bounded degraded state
 until the platform VictoriaMetrics adapter is connected, historical logs are
-not implemented, public Desktop installs keep cluster creation disabled until
-Sealos session/workspace identity is connected, and Kafbat is not deployed by
-this chart.
+not implemented, public Desktop installs show a disabled new-cluster entry
+until Sealos session/workspace identity is connected, and Kafbat is not deployed
+by this chart.
 
 ## Checks
 

@@ -11,10 +11,12 @@ Its first screen is the user's cluster list and current system state.
 
 ## Cluster List
 
-The list presents name, engine, topology, effective version, readiness, broker
-count, storage, workspace, and last transition. Primary actions are create,
-open, and a compact action menu. Filters cover status, engine, and workspace
-when the user can access more than one workspace.
+The entry route is the cluster list. It presents name, readiness, effective
+version, broker count, storage, workspace, generation, and last transition in a
+dense table. The primary action is the header-level new-cluster entry; public
+Desktop installs show it disabled until workspace identity is connected. Each
+row is a navigation link to the dedicated detail page. Filters cover status,
+engine, and workspace when the user can access more than one workspace.
 
 ## Create Cluster
 
@@ -25,12 +27,13 @@ Raw Strimzi YAML is not part of the primary flow.
 
 ## Cluster Detail
 
-Tabs are ordered by operational frequency:
+The detail page is a separate route, not a right-hand panel attached to the
+list. Tabs are ordered by the current vertical-slice workflow:
 
 1. Overview: desired and observed state, endpoints, topology, and recent events
 2. Connections: client configuration, credential rotation, and copyable examples
-3. Metrics: resources, broker health, partition health, throughput, and lag
-4. Logs: pod, container, time range, live follow, previous container, and search
+3. Logs: pod, container, time range, live follow, previous container, and search
+4. Metrics: resources, broker health, partition health, throughput, and lag
 5. Operations: scaling, restart, upgrade, suspension, and operation history
 6. Settings: deletion policy and advanced engine settings
 
@@ -47,6 +50,7 @@ semantically distinct.
 
 ## Responsive Behavior
 
-Desktop favors dense tables and split details. Narrow viewports collapse
-secondary columns into row details and keep destructive actions in an explicit
-menu. Logs and metric charts retain stable controls and never overlap content.
+Desktop favors dense tables and dedicated detail pages. Narrow viewports
+collapse secondary columns into row details and keep destructive actions in an
+explicit menu. Logs and metric charts retain stable controls and never overlap
+content.

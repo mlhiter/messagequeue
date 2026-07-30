@@ -72,7 +72,6 @@ backend:
       memory: 512Mi
   health:
     path: /healthz
-    readyPath: /readyz
 
 frontend:
   replicas: 2

@@ -38,9 +38,15 @@ spec:
             - name: http
               containerPort: {{ .Values.backend.port }}
               protocol: TCP
+          startupProbe:
+            httpGet:
+              path: {{ .Values.backend.health.path }}
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
           readinessProbe:
             httpGet:
-              path: {{ .Values.backend.health.readyPath }}
+              path: {{ .Values.backend.health.path }}
               port: http
             periodSeconds: 10
           livenessProbe:

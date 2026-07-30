@@ -43,7 +43,7 @@ resolve credentials without exposing their values to the browser.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/healthz` | Process health; does not require workspace identity. |
+| `GET` | `/healthz` | Process health; does not require workspace identity. Returns `{"service":"messagequeue","status":"ok"}` with `Cache-Control: no-store`. |
 | `GET` | `/api/v1/messagequeues` | List resources in the authenticated namespace. |
 | `POST` | `/api/v1/messagequeues` | Create a Kafka resource in the authenticated namespace when create is enabled. Public desktop installs keep this disabled until the Sealos session/workspace adapter is connected. |
 | `GET` | `/api/v1/messagequeues/{name}` | Return spec and observed status. |

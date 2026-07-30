@@ -131,7 +131,8 @@ type IdentityProvider interface {
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		w.Header().Set("Cache-Control", "no-store")
+		writeJSON(w, http.StatusOK, map[string]string{"service": "messagequeue", "status": "ok"})
 		return
 	}
 	if s.Store == nil || s.Identity == nil {

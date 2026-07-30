@@ -19,6 +19,12 @@ uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.6`.
 
 ## Health Checks
 
+The stable HTTP health endpoint is `/healthz`. The backend and frontend return
+`200` with `{"service":"messagequeue","status":"ok"}` and
+`Cache-Control: no-store`; backend `/readyz` remains only as a compatibility
+alias. The Helm chart uses `/healthz` for startup, liveness, and readiness
+probes on the controller, backend, and frontend pods.
+
 Use these resource-level checks after deployment:
 
 ```bash

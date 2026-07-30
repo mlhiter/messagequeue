@@ -42,6 +42,12 @@ spec:
             - name: health
               containerPort: {{ .Values.controller.health.port }}
               protocol: TCP
+          startupProbe:
+            httpGet:
+              path: {{ .Values.controller.health.path }}
+              port: health
+            periodSeconds: 5
+            failureThreshold: 24
           readinessProbe:
             httpGet:
               path: {{ .Values.controller.health.path }}

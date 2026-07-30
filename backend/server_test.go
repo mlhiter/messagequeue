@@ -53,6 +53,16 @@ func TestHealthAndReadinessDoNotRequireWorkspaceIdentity(t *testing.T) {
 		if recording.Code != http.StatusOK {
 			t.Fatalf("%s status = %d, want 200", path, recording.Code)
 		}
+		if got := recording.Header().Get("Cache-Control"); got != "no-store" {
+			t.Fatalf("%s Cache-Control = %q, want no-store", path, got)
+		}
+		if got := recording.Header().Get("Content-Type"); got != "application/json" {
+			t.Fatalf("%s Content-Type = %q, want application/json", path, got)
+		}
+		body := strings.TrimSpace(recording.Body.String())
+		if body != `{"service":"messagequeue","status":"ok"}` {
+			t.Fatalf("%s body = %s", path, body)
+		}
 	}
 }
 

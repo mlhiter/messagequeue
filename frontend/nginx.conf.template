@@ -7,8 +7,9 @@ server {
 
   location = /healthz {
     access_log off;
-    add_header Content-Type text/plain;
-    return 200 "ok\n";
+    default_type application/json;
+    add_header Cache-Control "no-store" always;
+    return 200 '{"service":"messagequeue","status":"ok"}\n';
   }
 
   location /api/ {

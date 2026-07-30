@@ -48,6 +48,12 @@ spec:
             - name: http
               containerPort: {{ .Values.frontend.port }}
               protocol: TCP
+          startupProbe:
+            httpGet:
+              path: {{ .Values.frontend.health.path }}
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
           readinessProbe:
             httpGet:
               path: {{ .Values.frontend.health.path }}

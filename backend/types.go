@@ -169,6 +169,9 @@ func (r CreateRequest) Validate() error {
 	if !validDNSLabel(r.Name) {
 		return errors.New("name must be a lowercase DNS label no longer than 63 characters")
 	}
+	if r.Spec.Storage.DeleteClaim != nil {
+		return errors.New("storage.deleteClaim is managed by deletionPolicy")
+	}
 	spec := r.ProductSpec()
 	if spec.Engine != "kafka" && spec.Engine != "" {
 		return errors.New("only kafka is supported")
@@ -204,7 +207,7 @@ type MessageQueueView struct {
 func viewOf(resource MessageQueue, namespace string) MessageQueueView {
 	// Namespace comes from identity, never from the object returned to the
 	// browser. This also makes accidental cross-namespace store bugs visible.
-	status := resource.Status
+	status := safeStatusOf(resource.Status)
 	if status.Endpoint == "" && len(status.Endpoints) > 0 {
 		status.Endpoint = status.Endpoints[0]
 	}
@@ -224,6 +227,23 @@ func viewOf(resource MessageQueue, namespace string) MessageQueueView {
 	}
 }
 
+func safeStatusOf(status MessageQueueStatus) MessageQueueStatus {
+	return MessageQueueStatus{
+		Phase:              status.Phase,
+		ObservedGeneration: status.ObservedGeneration,
+		KafkaRef:           status.KafkaRef,
+		NodePoolRef:        status.NodePoolRef,
+		ClientSecretRef:    status.ClientSecretRef,
+		Endpoints:          append([]string(nil), status.Endpoints...),
+		ReadyReplicas:      status.ReadyReplicas,
+		Message:            status.Message,
+		Endpoint:           status.Endpoint,
+		Conditions:         append([]Condition(nil), status.Conditions...),
+		Topology:           status.Topology,
+		LastTransitionTime: status.LastTransitionTime,
+	}
+}
+
 type ListResponse struct {
 	Items []MessageQueueView `json:"items"`
 }
@@ -240,6 +260,18 @@ type APIError struct {
 type LogRequest struct {
 	Component string `json:"component"`
 	TailLines int    `json:"tailLines"`
+}
+
+type ClientConfigResponse struct {
+	Name             string   `json:"name"`
+	Namespace        string   `json:"namespace"`
+	BootstrapServers []string `json:"bootstrapServers"`
+	Username         string   `json:"username"`
+	SecretRef        string   `json:"secretRef,omitempty"`
+	Transport        string   `json:"transport"`
+	Mechanism        string   `json:"mechanism"`
+	Degraded         bool     `json:"degraded,omitempty"`
+	Message          string   `json:"message,omitempty"`
 }
 
 type LogResponse struct {

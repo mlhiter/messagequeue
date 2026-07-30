@@ -45,9 +45,11 @@ resolve credentials without exposing their values to the browser.
 | --- | --- | --- |
 | `GET` | `/healthz` | Process health; does not require workspace identity. Returns `{"service":"messagequeue","status":"ok"}` with `Cache-Control: no-store`. |
 | `GET` | `/api/v1/messagequeues` | List resources in the authenticated namespace. |
-| `POST` | `/api/v1/messagequeues` | Create a Kafka resource in the authenticated namespace when create is enabled. Public desktop installs keep this disabled until the Sealos session/workspace adapter is connected. |
+| `POST` | `/api/v1/messagequeues` | Create a Kafka resource in the authenticated namespace when writes are enabled. Public desktop installs keep this disabled until the Sealos session/workspace adapter is connected. |
 | `GET` | `/api/v1/messagequeues/{name}` | Return spec and observed status. |
+| `DELETE` | `/api/v1/messagequeues/{name}` | Delete the authenticated namespace's `MessageQueue` resource when writes are enabled. Kubernetes owner references and the selected deletion policy decide follow-on Strimzi/PVC cleanup. |
 | `GET` | `/api/v1/messagequeues/{name}/status` | Return observed status only. |
+| `GET` | `/api/v1/messagequeues/{name}/client-config` | Return secret-free client connection metadata: bootstrap servers, username, auth mechanism, transport, and Secret name reference. |
 | `GET` | `/api/v1/messagequeues/{name}/logs` | Return bounded pod logs. |
 | `GET` | `/api/v1/messagequeues/{name}/metrics` | Return one fixed metric series. |
 
@@ -57,12 +59,14 @@ to the controller's `MessageQueueSpec`. The request decoder rejects unknown
 fields. The first-party UI may send the equivalent flat form with top-level
 `engine`, `kafka.version`, `kafka.brokers`, `kafka.storageGi`,
 `kafka.storageClass`, `deletionPolicy`, `monitoring`, and `console`; integration
-flags are intentionally not written into the Kubernetes CR.
+flags are intentionally not written into the Kubernetes CR. Browser requests may
+not set `spec.storage.deleteClaim` directly; deletion safety is derived from
+the product-level `deletionPolicy`.
 
 The accepted Kafka versions match the controller contract: `3.9.0` and
 `4.0.0`. An omitted version/replica/storage value is defaulted by the
-controller. When `MESSAGEQUEUE_ALLOW_CREATE=false`, `POST /api/v1/messagequeues`
-returns `403` and the public Desktop entry remains read-only.
+controller. When `MESSAGEQUEUE_ALLOW_CREATE=false`, create and delete requests
+return `403` and the public Desktop entry remains read-only.
 
 ```json
 {
@@ -78,8 +82,10 @@ returns `403` and the public Desktop entry remains read-only.
 ```
 
 Log requests accept only `component=broker|controller|operator` and a bounded
-`tailLines` value from 1 through 5000 (default 200). Metric requests accept
-exactly one `key` from this server-owned set:
+`tailLines` value from 1 through 5000 (default 200). The Kubernetes log adapter
+first proves the `MessageQueue` exists in the authenticated namespace; operator
+logs degrade until a system log adapter exists. Metric requests accept exactly
+one `key` from this server-owned set:
 
 `broker_count`, `partition_health`, `throughput`, `consumer_lag`, `cpu`,
 `memory`, `storage`.

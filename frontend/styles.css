@@ -266,6 +266,12 @@ pre {
   background: var(--surface);
 }
 
+.button-danger {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+}
+
 .header-back-button {
   flex: 0 0 auto;
   min-width: 0;
@@ -294,6 +300,11 @@ pre {
   .api-indicator:hover {
     background: #fafafa;
   }
+
+  .button-danger:hover {
+    border-color: #b91c1c;
+    background: #b91c1c;
+  }
 }
 
 .button:disabled,
@@ -310,7 +321,8 @@ pre {
 }
 
 .button-secondary:disabled,
-.icon-button:disabled {
+.icon-button:disabled,
+.button-danger:disabled {
   border-color: var(--line);
   background: #ffffff;
   color: var(--faint);
@@ -984,6 +996,36 @@ pre {
   font-size: 10px;
 }
 
+.danger-panel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 0.5px solid #f2b7b2;
+  border-radius: 12px;
+  background: #fff7f7;
+}
+
+.danger-panel strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--red);
+  font-size: 13px;
+}
+
+.danger-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.danger-panel .button {
+  flex: 0 0 auto;
+}
+
 .connection-block {
   display: grid;
   gap: 10px;
@@ -1260,6 +1302,10 @@ pre {
 
   .detail-actions {
     justify-content: flex-start;
+  }
+
+  .danger-panel {
+    flex-direction: column;
   }
 
   .info-grid,

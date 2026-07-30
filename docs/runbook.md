@@ -13,9 +13,9 @@ uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.6`.
 5. Install shared scrape and alert definitions when the target monitoring CRDs
    are available.
 6. Create a development `MessageQueue` and validate produce, consume, live
-   logs, and the explicit metrics-degraded state. Suspension, recovery,
-   scaling, deletion, and storage-policy workflows remain follow-up checks
-   until their v0.2 operations are implemented.
+   logs, safe client configuration metadata, delete behavior, and the explicit
+   metrics-degraded state. Suspension, recovery, scaling, storage expansion,
+   and upgrade workflows remain v0.2 follow-up checks.
 
 ## Health Checks
 
@@ -64,7 +64,8 @@ or embedded management workflow works.
 Until the Sealos session/workspace adapter replaces the fixed workspace
 fallback identity, the public Desktop entry must keep
 `MESSAGEQUEUE_ALLOW_CREATE=false` and `CREATE_ENABLED=false`. List, detail,
-logs, and metrics checks remain valid; creation is deliberately disabled.
+logs, metrics, and safe client-configuration checks remain valid; create and
+delete writes are deliberately disabled.
 
 ## Degraded Dependencies
 

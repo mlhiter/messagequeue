@@ -107,5 +107,5 @@ data.
 
 The public Desktop entry is read-only while the backend is using the fixed
 cluster-62 workspace fallback. The chart renders `MESSAGEQUEUE_ALLOW_CREATE`
-and `CREATE_ENABLED` as `false` by default; enable writes only after the Sealos
-session/workspace adapter is connected.
+and `CREATE_ENABLED` as `false` by default; enable create/delete writes only
+after the Sealos session/workspace adapter is connected.

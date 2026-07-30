@@ -26,6 +26,27 @@ func newTestServer() (*Server, *MemoryStore) {
 	}, store
 }
 
+func seedReadyMessageQueue(t *testing.T, store *MemoryStore, namespace, name string) {
+	t.Helper()
+	_, err := store.Create(context.Background(), namespace, MessageQueue{
+		Metadata: Metadata{Name: name},
+		Spec:     MessageQueueSpec{Engine: "kafka", Kafka: KafkaSpec{Version: "3.9.0", Replicas: 1}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.mu.Lock()
+	resource := store.items[namespace][name]
+	resource.Status = MessageQueueStatus{
+		Phase:           "Ready",
+		ClientSecretRef: name + "-client",
+		Endpoints:       []string{name + "-kafka-bootstrap." + namespace + ".svc:9093"},
+		ReadyReplicas:   1,
+	}
+	store.items[namespace][name] = resource
+	store.mu.Unlock()
+}
+
 func TestServerRequiresServerSideIdentity(t *testing.T) {
 	store := NewMemoryStore()
 	server := &Server{Store: store, Metrics: UnavailableMetricsProvider{}}
@@ -103,7 +124,8 @@ func TestCreateListDetailAndStatusUseIdentityNamespace(t *testing.T) {
 }
 
 func TestCreateDisabledRequiresAuthenticatedWorkspaceSession(t *testing.T) {
-	server, _ := newTestServer()
+	server, store := newTestServer()
+	seedReadyMessageQueue(t, store, "ns-test", "orders")
 	server.AllowCreate = false
 	body := `{"name":"orders","spec":{"engine":"kafka","kafka":{"replicas":1},"resources":{"cpu":"1","memory":"2Gi"},"storage":{"size":"10Gi"}}}`
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(body))
@@ -111,6 +133,16 @@ func TestCreateDisabledRequiresAuthenticatedWorkspaceSession(t *testing.T) {
 	server.ServeHTTP(recording, request)
 	if recording.Code != http.StatusForbidden {
 		t.Fatalf("create disabled status = %d, body=%s", recording.Code, recording.Body.String())
+	}
+
+	request = httptest.NewRequest(http.MethodDelete, "/api/v1/messagequeues/orders", nil)
+	recording = httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusForbidden {
+		t.Fatalf("delete disabled status = %d, body=%s", recording.Code, recording.Body.String())
+	}
+	if _, err := store.Get(context.Background(), "ns-test", "orders"); err != nil {
+		t.Fatalf("delete disabled removed resource: %v", err)
 	}
 }
 
@@ -143,6 +175,17 @@ func TestCreateAcceptsFirstPartyFlatContract(t *testing.T) {
 	}
 }
 
+func TestCreateRejectsStorageDeleteClaimFromBrowser(t *testing.T) {
+	server, _ := newTestServer()
+	body := `{"name":"orders","spec":{"engine":"kafka","storage":{"deleteClaim":false}}}`
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(body))
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusBadRequest || !strings.Contains(recording.Body.String(), "deletionPolicy") {
+		t.Fatalf("deleteClaim status = %d, body=%s", recording.Code, recording.Body.String())
+	}
+}
+
 func TestCreateRejectsUnsupportedKafkaVersion(t *testing.T) {
 	for _, version := range []string{"3.7.2", "3.8.0", "4.0.1"} {
 		t.Run(version, func(t *testing.T) {
@@ -155,6 +198,50 @@ func TestCreateRejectsUnsupportedKafkaVersion(t *testing.T) {
 				t.Fatalf("unsupported version status = %d, body=%s", recording.Code, recording.Body.String())
 			}
 		})
+	}
+}
+
+func TestClientConfigIsSecretFree(t *testing.T) {
+	server, store := newTestServer()
+	seedReadyMessageQueue(t, store, "ns-test", "orders")
+
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/messagequeues/orders/client-config", nil)
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusOK {
+		t.Fatalf("client-config status = %d, body=%s", recording.Code, recording.Body.String())
+	}
+	config := ClientConfigResponse{}
+	if err := json.Unmarshal(recording.Body.Bytes(), &config); err != nil {
+		t.Fatal(err)
+	}
+	if config.Namespace != "ns-test" || config.Username != "orders-client" || config.SecretRef != "orders-client" || len(config.BootstrapServers) != 1 {
+		t.Fatalf("unexpected client config: %#v", config)
+	}
+	body := strings.ToLower(recording.Body.String())
+	for _, forbidden := range []string{"password", "privatekey", "kubeconfig", "secretdata", "\"data\""} {
+		if strings.Contains(body, forbidden) {
+			t.Fatalf("client config contains sensitive field %q: %s", forbidden, recording.Body.String())
+		}
+	}
+}
+
+func TestDeleteUsesIdentityNamespace(t *testing.T) {
+	server, store := newTestServer()
+	seedReadyMessageQueue(t, store, "ns-test", "orders")
+	seedReadyMessageQueue(t, store, "other-ns", "orders")
+
+	request := httptest.NewRequest(http.MethodDelete, "/api/v1/messagequeues/orders", nil)
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusNoContent {
+		t.Fatalf("delete status = %d, body=%s", recording.Code, recording.Body.String())
+	}
+	if _, err := store.Get(context.Background(), "ns-test", "orders"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("deleted resource still exists or wrong error: %v", err)
+	}
+	if _, err := store.Get(context.Background(), "other-ns", "orders"); err != nil {
+		t.Fatalf("delete crossed identity namespace: %v", err)
 	}
 }
 
@@ -223,5 +310,68 @@ func TestKubernetesStoreUsesNamespacePathAndNeverSecretPayload(t *testing.T) {
 	encoded, _ := json.Marshal(viewOf(items[0], "ns-test"))
 	if strings.Contains(string(encoded), "password") || strings.Contains(string(encoded), "secretData") {
 		t.Fatalf("view contains secret payload: %s", encoded)
+	}
+}
+
+func TestKubernetesStoreDeleteUsesNamespacePath(t *testing.T) {
+	var gotMethod, gotPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	store := &KubernetesStore{BaseURL: server.URL, Client: server.Client()}
+	if err := store.Delete(context.Background(), "ns-test", "orders"); err != nil {
+		t.Fatal(err)
+	}
+	if gotMethod != http.MethodDelete || gotPath != "/apis/messagequeue.sealos.io/v1alpha1/namespaces/ns-test/messagequeues/orders" {
+		t.Fatalf("Kubernetes delete = %s %s", gotMethod, gotPath)
+	}
+}
+
+func TestKubernetesStoreLogsRequireMessageQueueExistence(t *testing.T) {
+	var requested []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requested = append(requested, r.URL.Path)
+		if strings.Contains(r.URL.Path, "/pods") {
+			t.Fatalf("logs queried pods before proving MessageQueue exists: %s", r.URL.String())
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	store := &KubernetesStore{BaseURL: server.URL, Client: server.Client()}
+	_, err := store.Logs(context.Background(), "ns-test", "orders", LogRequest{Component: "broker", TailLines: 10})
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("logs missing resource error = %v", err)
+	}
+	if len(requested) != 1 || requested[0] != "/apis/messagequeue.sealos.io/v1alpha1/namespaces/ns-test/messagequeues/orders" {
+		t.Fatalf("unexpected requests: %v", requested)
+	}
+}
+
+func TestKubernetesStoreOperatorLogsDegradeWithoutPodLookup(t *testing.T) {
+	var requested []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requested = append(requested, r.URL.Path)
+		if strings.Contains(r.URL.Path, "/pods") {
+			t.Fatalf("operator logs should not query workspace pods: %s", r.URL.String())
+		}
+		_, _ = w.Write([]byte(`{"metadata":{"name":"orders"},"spec":{"engine":"kafka"},"status":{"phase":"Ready"}}`))
+	}))
+	defer server.Close()
+
+	store := &KubernetesStore{BaseURL: server.URL, Client: server.Client()}
+	response, err := store.Logs(context.Background(), "ns-test", "orders", LogRequest{Component: "operator", TailLines: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !response.Degraded || response.Message == "" {
+		t.Fatalf("operator logs should degrade explicitly: %#v", response)
+	}
+	if len(requested) != 1 {
+		t.Fatalf("unexpected requests: %v", requested)
 	}
 }

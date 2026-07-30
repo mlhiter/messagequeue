@@ -106,6 +106,7 @@ type MessageQueueStore interface {
 	List(context.Context, string) ([]MessageQueue, error)
 	Create(context.Context, string, MessageQueue) (MessageQueue, error)
 	Get(context.Context, string, string) (MessageQueue, error)
+	Delete(context.Context, string, string) error
 	Logs(context.Context, string, string, LogRequest) (LogResponse, error)
 }
 
@@ -159,7 +160,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if r.Method == http.MethodPost {
 			if !s.AllowCreate {
-				writeError(w, http.StatusForbidden, "forbidden", "cluster creation requires an authenticated workspace session")
+				writeError(w, http.StatusForbidden, "forbidden", "cluster writes require an authenticated workspace session")
 				return
 			}
 			s.create(w, r)
@@ -179,11 +180,19 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	name := parts[0]
 	if len(parts) == 1 {
-		if r.Method != http.MethodGet {
-			methodNotAllowed(w, http.MethodGet)
+		if r.Method == http.MethodGet {
+			s.detail(w, r, name)
 			return
 		}
-		s.detail(w, r, name)
+		if r.Method == http.MethodDelete {
+			if !s.AllowCreate {
+				writeError(w, http.StatusForbidden, "forbidden", "cluster writes require an authenticated workspace session")
+				return
+			}
+			s.delete(w, r, name)
+			return
+		}
+		methodNotAllowed(w, http.MethodGet, http.MethodDelete)
 		return
 	}
 	if len(parts) != 2 || r.Method != http.MethodGet {
@@ -193,6 +202,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch parts[1] {
 	case "status":
 		s.status(w, r, name)
+	case "client-config":
+		s.clientConfig(w, r, name)
 	case "logs":
 		s.logs(w, r, name)
 	case "metrics":
@@ -259,6 +270,15 @@ func (s *Server) detail(w http.ResponseWriter, r *http.Request, name string) {
 	writeJSON(w, http.StatusOK, viewOf(item, identityFromContext(r.Context()).Namespace))
 }
 
+func (s *Server) delete(w http.ResponseWriter, r *http.Request, name string) {
+	identity := identityFromContext(r.Context())
+	if err := s.Store.Delete(r.Context(), identity.Namespace, name); err != nil {
+		s.writeStoreError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) status(w http.ResponseWriter, r *http.Request, name string) {
 	item, err := s.Store.Get(r.Context(), identityFromContext(r.Context()).Namespace, name)
 	if err != nil {
@@ -266,6 +286,33 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request, name string) {
 		return
 	}
 	writeJSON(w, http.StatusOK, viewOf(item, identityFromContext(r.Context()).Namespace).Status)
+}
+
+func (s *Server) clientConfig(w http.ResponseWriter, r *http.Request, name string) {
+	identity := identityFromContext(r.Context())
+	item, err := s.Store.Get(r.Context(), identity.Namespace, name)
+	if err != nil {
+		s.writeStoreError(w, err)
+		return
+	}
+	view := viewOf(item, identity.Namespace)
+	response := ClientConfigResponse{
+		Name:             view.Name,
+		Namespace:        identity.Namespace,
+		BootstrapServers: append([]string(nil), view.Status.Endpoints...),
+		Username:         view.Name + "-client",
+		SecretRef:        view.Status.ClientSecretRef,
+		Transport:        "TLS",
+		Mechanism:        "SCRAM-SHA-512",
+	}
+	if len(response.BootstrapServers) == 0 && view.Status.Endpoint != "" {
+		response.BootstrapServers = []string{view.Status.Endpoint}
+	}
+	if len(response.BootstrapServers) == 0 || response.SecretRef == "" {
+		response.Degraded = true
+		response.Message = "client configuration is not available yet"
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 func (s *Server) logs(w http.ResponseWriter, r *http.Request, name string) {

@@ -94,6 +94,16 @@
       credentialsStayServerSide: "凭据保留在服务端",
       credentialsProtected:
         "通过授权的服务端操作获取短期客户端配置。密码和私钥不会出现在浏览器日志或状态中。",
+      loadClientConfig: "加载客户端配置",
+      retryClientConfig: "重试配置",
+      loadingClientConfig: "正在加载客户端配置…",
+      clientConfigUnavailable: "客户端配置不可用",
+      clientConfigFetchNote: (name) => `配置通过服务端获取，范围限定为 ${name}。`,
+      clientConfigDegraded: "客户端配置尚未就绪，不会暴露 Secret 数据。",
+      bootstrapServers: "Bootstrap 服务",
+      username: "用户名",
+      secretReference: "Secret 引用",
+      noSecretMaterial: "这里仅显示连接元数据。密码、私钥和 kubeconfig 不会返回到浏览器。",
       authentication: "认证",
       transport: "传输",
       mechanism: "机制",
@@ -196,6 +206,16 @@
       loadingState: "正在加载…",
       noHelp: "暂无帮助内容",
       operationsComingSoon: "运维功能正在完善中",
+      settings: "设置",
+      deleteCluster: "删除集群",
+      deletingCluster: "正在删除…",
+      dangerZone: "危险操作",
+      deleteClusterDescription: "删除 MessageQueue 资源。实际 PVC 处理遵循创建时选择的删除策略。",
+      deleteDisabledReadOnly: "当前会话是只读模式，不能删除集群。",
+      deleteConfirmPrompt: (name) => `确认删除 ${name}？这个操作会提交到当前工作空间。`,
+      deleteFailed: (message) => `删除失败：${message}`,
+      deleteRetainImpact: "当前策略会保留数据卷。",
+      deleteDeleteImpact: "当前策略会随集群删除数据卷。",
       readOnlySuffix: "只读",
       workspaceReady: "工作空间已就绪",
       workspacePending: "工作空间加载中"
@@ -283,6 +303,16 @@
       credentialsStayServerSide: "Credentials stay server-side",
       credentialsProtected:
         "Retrieve a short-lived client configuration through an authorized server operation. Passwords and private keys are never rendered in browser logs or status.",
+      loadClientConfig: "Load client config",
+      retryClientConfig: "Retry config",
+      loadingClientConfig: "Loading client configuration…",
+      clientConfigUnavailable: "Client configuration unavailable",
+      clientConfigFetchNote: (name) => `Configuration is fetched through the server and scoped to ${name}.`,
+      clientConfigDegraded: "Client configuration is not ready yet; Secret data is not exposed.",
+      bootstrapServers: "Bootstrap servers",
+      username: "Username",
+      secretReference: "Secret reference",
+      noSecretMaterial: "Only connection metadata is shown here. Passwords, private keys, and kubeconfigs are never returned to the browser.",
       authentication: "Authentication",
       transport: "Transport",
       mechanism: "Mechanism",
@@ -379,6 +409,16 @@
       loadingState: "Loading…",
       noHelp: "No help content yet",
       operationsComingSoon: "Operations are still being polished",
+      settings: "Settings",
+      deleteCluster: "Delete cluster",
+      deletingCluster: "Deleting…",
+      dangerZone: "Danger zone",
+      deleteClusterDescription: "Delete the MessageQueue resource. PVC handling follows the deletion policy selected during creation.",
+      deleteDisabledReadOnly: "This session is read-only and cannot delete clusters.",
+      deleteConfirmPrompt: (name) => `Delete ${name}? This submits a write to the current workspace.`,
+      deleteFailed: (message) => `Delete failed: ${message}`,
+      deleteRetainImpact: "The current policy retains data volumes.",
+      deleteDeleteImpact: "The current policy deletes data volumes with the cluster.",
       readOnlySuffix: "read only",
       workspaceReady: "Workspace ready",
       workspacePending: "Workspace loading"
@@ -440,9 +480,13 @@
     loading: true,
     apiState: "loading",
     apiMessage: "",
+    noticeDismissed: false,
     search: "",
     observability: {},
+    clientConfig: {},
     createSubmitting: false,
+    deleteSubmitting: false,
+    deleteError: null,
     language: detectLanguage(),
     route: { view: "list", clusterName: "" }
   };
@@ -682,8 +726,8 @@
     $("#help-button")?.setAttribute("title", message("openHelp"));
     $("#search-input")?.setAttribute("placeholder", message("searchPlaceholder"));
     if ($("#create-button")) {
-      $("#create-button").disabled = !CREATE_ENABLED;
-      $("#create-button").setAttribute("title", CREATE_ENABLED ? message("newCluster") : message("clusterCreationDisabled"));
+      $("#create-button").disabled = !writesEnabled();
+      $("#create-button").setAttribute("title", writesEnabled() ? message("newCluster") : message("clusterCreationDisabled"));
     }
     $("#submit-create")?.setAttribute("value", "default");
 
@@ -915,6 +959,10 @@
     return clusters.find((cluster) => cluster.name === state.route.clusterName) || null;
   }
 
+  function writesEnabled() {
+    return CREATE_ENABLED && state.apiState === "ready";
+  }
+
   async function request(path, options = {}) {
     const response = await fetch(`${API_BASE}${path}`, {
       headers: {
@@ -940,6 +988,9 @@
   }
 
   function setApiState(apiState, messageText = "") {
+    if (state.apiState !== apiState || state.apiMessage !== messageText) {
+      state.noticeDismissed = false;
+    }
     state.apiState = apiState;
     state.apiMessage = messageText;
     renderApiIndicator();
@@ -961,6 +1012,10 @@
   function renderNotice() {
     const region = $("#notice-region");
     if (!region) return;
+    if (state.noticeDismissed) {
+      region.innerHTML = "";
+      return;
+    }
     if (state.apiState === "degraded") {
       region.innerHTML = `<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">!</span><div class="notice-copy"><strong>${escapeHtml(message("apiUnavailableTitle"))}</strong><p>${escapeHtml(message("apiUnavailableCopy", { message: state.apiMessage }))}</p></div><button class="icon-button notice-close" type="button" aria-label="${escapeHtml(message("close"))}" data-action="dismiss-notice">×</button></div>`;
     } else if (state.apiState === "forbidden") {
@@ -1025,12 +1080,13 @@
         : message("breadcrumbClusters");
     }
     if (createButton) {
+      const canWrite = writesEnabled();
       createButton.classList.toggle("is-hidden", isDetail);
-      createButton.disabled = !CREATE_ENABLED || isDetail;
+      createButton.disabled = !canWrite || isDetail;
       createButton.textContent = message("newCluster");
       createButton.setAttribute(
         "title",
-        !CREATE_ENABLED
+        !canWrite
           ? message("clusterCreationDisabled")
           : isDetail
             ? message("detailPageTitle")
@@ -1059,13 +1115,14 @@
     }
 
     const clusters = filteredClusters();
-    const subtitle = state.apiState === "degraded" || !CREATE_ENABLED ? message("clusterResourcesReadOnly", { count: clusters.length }) : message("clusterResourcesInWorkspace", { count: clusters.length });
+    const canWrite = writesEnabled();
+    const subtitle = !canWrite ? message("clusterResourcesReadOnly", { count: clusters.length }) : message("clusterResourcesInWorkspace", { count: clusters.length });
     const subtitleNode = $("#list-subtitle");
     if (subtitleNode) subtitleNode.textContent = subtitle;
 
     if (!clusters.length) {
-      const emptyCopy = CREATE_ENABLED ? message("createDevClusterHint") : message("createDisabledHint");
-      list.innerHTML = `<div class="empty-state"><strong>${escapeHtml(state.search ? message("noMatchingClusters") : message("noKafkaClustersYet"))}</strong><p>${escapeHtml(state.search ? message("tryDifferentName") : emptyCopy)}</p>${state.search || !CREATE_ENABLED ? "" : `<button class="button button-primary" type="button" data-action="open-create">${escapeHtml(message("createButtonShort"))}</button>`}</div>`;
+      const emptyCopy = canWrite ? message("createDevClusterHint") : message("createDisabledHint");
+      list.innerHTML = `<div class="empty-state"><strong>${escapeHtml(state.search ? message("noMatchingClusters") : message("noKafkaClustersYet"))}</strong><p>${escapeHtml(state.search ? message("tryDifferentName") : emptyCopy)}</p>${state.search || !canWrite ? "" : `<button class="button button-primary" type="button" data-action="open-create">${escapeHtml(message("createButtonShort"))}</button>`}</div>`;
       return;
     }
 
@@ -1103,7 +1160,32 @@
   }
 
   function connectionsHtml(cluster) {
-    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("clientConnection"))}</h3><span>${escapeHtml(message("credentialsStayServerSide"))}</span></div><div class="connection-block"><div class="copy-row"><code>${escapeHtml(cluster.endpoint)}</code><button type="button" data-copy="${escapeHtml(cluster.endpoint)}">${escapeHtml(message("copy"))}</button></div><div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("credentialsProtected"))}</strong><p>${escapeHtml(message("credentialSafety"))}</p></div></div></div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("authentication"))}</h3></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("transport"))}</dt><dd>${escapeHtml(message("tls"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("mechanism"))}</dt><dd>${escapeHtml(message("scramSha512"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaUser"))}</dt><dd><code>${escapeHtml(cluster.name)}-client</code></dd></div><div class="info-item"><dt>${escapeHtml(message("access"))}</dt><dd>${escapeHtml(message("workspaceScoped"))}</dd></div></dl></section>`;
+    const result = state.clientConfig;
+    let configBody = `<div class="observability-box"><h3>${escapeHtml(message("clientConnection"))}</h3><p>${escapeHtml(message("clientConfigFetchNote", { name: cluster.name }))}</p><button class="button button-primary" type="button" data-action="load-client-config">${escapeHtml(message("loadClientConfig"))}</button></div>`;
+    if (result?.name === cluster.name && result.loading) {
+      configBody = `<div class="loading-state"><span>${escapeHtml(message("loadingClientConfig"))}</span><span class="loading-bar" aria-hidden="true"></span></div>`;
+    } else if (result?.name === cluster.name && result.error) {
+      configBody = `<div class="observability-box"><h3>${escapeHtml(message("clientConfigUnavailable"))}</h3><p>${escapeHtml(result.error)}</p><button class="button button-secondary" type="button" data-action="load-client-config">${escapeHtml(message("retryClientConfig"))}</button></div>`;
+    } else if (result?.name === cluster.name && result.data) {
+      const config = result.data;
+      const servers = Array.isArray(config.bootstrapServers) ? config.bootstrapServers : [];
+      const serverRows = servers.length ? servers : [cluster.endpoint];
+      const degradedNotice = config.degraded ? `<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("clientConfigDegraded"))}</strong><p>${escapeHtml(config.message || "")}</p></div></div>` : "";
+      configBody = `<div class="connection-block">${serverRows
+        .map((server) => `<div class="copy-row"><code>${escapeHtml(server)}</code><button type="button" data-copy="${escapeHtml(server)}">${escapeHtml(message("copy"))}</button></div>`)
+        .join("")}<dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("username"))}</dt><dd><code>${escapeHtml(config.username || `${cluster.name}-client`)}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("secretReference"))}</dt><dd><code>${escapeHtml(config.secretRef || "Pending")}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("transport"))}</dt><dd>${escapeHtml(config.transport || message("tls"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("mechanism"))}</dt><dd>${escapeHtml(config.mechanism || message("scramSha512"))}</dd></div></dl>${degradedNotice}</div>`;
+    }
+    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("clientConnection"))}</h3><span>${escapeHtml(message("credentialsStayServerSide"))}</span></div>${configBody}<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("credentialsProtected"))}</strong><p>${escapeHtml(message("noSecretMaterial"))}</p></div></div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("authentication"))}</h3></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("transport"))}</dt><dd>${escapeHtml(message("tls"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("mechanism"))}</dt><dd>${escapeHtml(message("scramSha512"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaUser"))}</dt><dd><code>${escapeHtml(cluster.name)}-client</code></dd></div><div class="info-item"><dt>${escapeHtml(message("access"))}</dt><dd>${escapeHtml(message("workspaceScoped"))}</dd></div></dl></section>`;
+  }
+
+  function settingsHtml(cluster) {
+    const canWrite = writesEnabled();
+    const deleteCopy =
+      cluster.deletionPolicy === "delete" || cluster.deletionPolicy === "Delete"
+        ? message("deleteDeleteImpact")
+        : message("deleteRetainImpact");
+    const error = state.deleteError?.name === cluster.name ? `<div class="form-error" role="alert">${escapeHtml(state.deleteError.message)}</div>` : "";
+    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("dangerZone"))}</h3><span>${escapeHtml(message("deletionPolicy"))}</span></div><div class="danger-panel"><div><strong>${escapeHtml(message("deleteCluster"))}</strong><p>${escapeHtml(message("deleteClusterDescription"))} ${escapeHtml(deleteCopy)}</p>${canWrite ? "" : `<p>${escapeHtml(message("deleteDisabledReadOnly"))}</p>`}</div><button class="button button-danger" type="button" data-action="delete-cluster" ${canWrite && !state.deleteSubmitting ? "" : "disabled"}>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</button></div>${error}</section>`;
   }
 
   function logsHtml(cluster) {
@@ -1159,10 +1241,22 @@
       ["overview", message("overview")],
       ["connections", message("connections")],
       ["logs", message("logs")],
-      ["metrics", message("metrics")]
+      ["metrics", message("metrics")],
+      ["settings", message("settings")]
     ];
 
-    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div><div class="detail-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button></div></div><div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${state.tab === "overview" ? overviewHtml(cluster) : state.tab === "connections" ? connectionsHtml(cluster) : state.tab === "logs" ? logsHtml(cluster) : metricsHtml(cluster)}</div>`;
+    const body =
+      state.tab === "overview"
+        ? overviewHtml(cluster)
+        : state.tab === "connections"
+          ? connectionsHtml(cluster)
+          : state.tab === "logs"
+            ? logsHtml(cluster)
+            : state.tab === "settings"
+              ? settingsHtml(cluster)
+              : metricsHtml(cluster);
+
+    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div><div class="detail-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button></div></div><div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${body}</div>`;
 
     if (state.tab === "logs" && state.observability.logs?.name === cluster.name && state.observability.logs.data) {
       const viewer = $("#log-viewer");
@@ -1238,12 +1332,60 @@
     render();
   }
 
+  async function loadClientConfig() {
+    const cluster = selectedCluster();
+    if (!cluster) return;
+    state.clientConfig = { name: cluster.name, loading: true };
+    render();
+    try {
+      const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/client-config`);
+      state.clientConfig = { name: cluster.name, data: payload };
+    } catch (error) {
+      state.clientConfig = {
+        name: cluster.name,
+        error: error.code === 403 ? message("permissionDeniedCopy") : message("managementApiUnavailable")
+      };
+    }
+    render();
+  }
+
+  async function deleteCluster() {
+    const cluster = selectedCluster();
+    if (!cluster || !writesEnabled() || state.deleteSubmitting) return;
+    if (!window.confirm(message("deleteConfirmPrompt", { name: cluster.name }))) return;
+    state.deleteSubmitting = true;
+    state.deleteError = null;
+    renderDetail();
+    try {
+      await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}`, { method: "DELETE" });
+      state.tab = "overview";
+      state.clientConfig = {};
+      state.observability = {};
+      navigateToList();
+      await loadClusters();
+    } catch (error) {
+      state.deleteError = {
+        name: cluster.name,
+        message: error.code === 403 ? message("permissionDeniedCopy") : message("deleteFailed", { message: error.message })
+      };
+      renderDetail();
+    } finally {
+      state.deleteSubmitting = false;
+      renderDetail();
+    }
+  }
+
   async function createCluster(event) {
     if (event.submitter?.value === "cancel") return;
     event.preventDefault();
     const form = event.currentTarget;
     const name = $("#cluster-name").value.trim();
     const errorBox = $("#form-error");
+    if (!writesEnabled()) {
+      errorBox.hidden = false;
+      errorBox.textContent = message("formPermissionDenied");
+      return;
+    }
     if (!form.checkValidity()) {
       errorBox.hidden = false;
       errorBox.textContent = message("formError");
@@ -1295,14 +1437,21 @@
       renderClusterList();
       renderDetail();
     });
+    $("#notice-region")?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-action='dismiss-notice']");
+      if (!button) return;
+      state.noticeDismissed = true;
+      renderNotice();
+    });
     $("#create-button")?.addEventListener("click", () => {
-      if (!CREATE_ENABLED) return;
+      if (!writesEnabled()) return;
       $("#create-modal")?.showModal();
     });
     $("#cluster-list")?.addEventListener("click", (event) => {
       const action = event.target.closest("[data-action]");
       if (action?.dataset.action === "open-create") {
         event.preventDefault();
+        if (!writesEnabled()) return;
         $("#create-modal")?.showModal();
         return;
       }
@@ -1330,12 +1479,25 @@
         loadClusters();
         return;
       }
+      if (button.dataset.action === "dismiss-notice") {
+        state.noticeDismissed = true;
+        renderNotice();
+        return;
+      }
+      if (button.dataset.action === "load-client-config") {
+        loadClientConfig();
+        return;
+      }
       if (button.dataset.action === "load-logs") {
         loadObservability("logs");
         return;
       }
       if (button.dataset.action === "load-metrics") {
         loadObservability("metrics");
+        return;
+      }
+      if (button.dataset.action === "delete-cluster") {
+        deleteCluster();
         return;
       }
       const copyValue = button.getAttribute("data-copy");
@@ -1357,7 +1519,7 @@
       if (event.target === $("#create-modal")) $("#create-modal").close();
     });
     $("#submit-create")?.addEventListener("click", () => {
-      if (!CREATE_ENABLED) return;
+      if (!writesEnabled()) return;
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && $("#create-modal")?.open) {
@@ -1370,6 +1532,8 @@
       if (state.route.view === "detail" && state.route.clusterName !== previous.clusterName) {
         state.tab = "overview";
         state.observability = {};
+        state.clientConfig = {};
+        state.deleteError = null;
       }
       window.scrollTo({ top: 0, behavior: "auto" });
       render();

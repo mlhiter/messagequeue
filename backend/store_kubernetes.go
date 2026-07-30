@@ -47,18 +47,25 @@ func (s *KubernetesStore) Get(ctx context.Context, namespace, name string) (Mess
 	return resource, nil
 }
 
+func (s *KubernetesStore) Delete(ctx context.Context, namespace, name string) error {
+	return s.requestJSON(ctx, http.MethodDelete, resourcePath(namespace, name), nil, nil)
+}
+
 func (s *KubernetesStore) Logs(ctx context.Context, namespace, name string, request LogRequest) (LogResponse, error) {
 	if !logComponents[request.Component] {
 		return LogResponse{}, ErrInvalid
+	}
+	if _, err := s.Get(ctx, namespace, name); err != nil {
+		return LogResponse{}, err
+	}
+	if request.Component == "operator" {
+		return LogResponse{Name: name, Component: request.Component, Lines: []LogLine{}, Degraded: true, Message: "operator logs require a system log adapter"}, nil
 	}
 	// The selector is generated from the authenticated namespace and route
 	// resource name. Clients cannot select another pod or namespace.
 	selector := "strimzi.io/cluster=" + name
 	if request.Component == "controller" {
 		selector = "app.kubernetes.io/part-of=messagequeue,app.kubernetes.io/instance=" + name
-	}
-	if request.Component == "operator" {
-		selector = "app.kubernetes.io/part-of=strimzi"
 	}
 	var pods struct {
 		Items []struct {

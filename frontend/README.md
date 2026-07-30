@@ -35,7 +35,7 @@ entrypoint:
 - `#/clusters`: the entry cluster list page with search and a header-level
   create action.
 - `#/clusters/{name}`: a dedicated cluster detail page with Overview,
-  Connections, Logs, and Metrics tabs.
+  Connections, Logs, Metrics, and Settings tabs.
 
 Do not reintroduce a split view that renders the list and detail side by side.
 Do not reintroduce a sidebar-first shell for this UI.
@@ -50,6 +50,12 @@ Do not reintroduce a sidebar-first shell for this UI.
   "memory": "2Gi" }, "storage": { "size": "20Gi", "className": "..." },
   "deletionPolicy": "Retain" } }`; workspace identity is server-derived.
 - `GET /api/v1/messagequeues/{name}` is reserved for detail refreshes.
+- `GET /api/v1/messagequeues/{name}/client-config` loads safe connection
+  metadata for the Connections tab. It may include a Secret name reference but
+  never Secret `data`, passwords, private keys, or kubeconfigs.
+- `DELETE /api/v1/messagequeues/{name}` is called from the Settings tab after
+  explicit confirmation. The action is disabled unless write actions are
+  enabled and the API is ready.
 - `GET /api/v1/messagequeues/{name}/logs?component=broker&tailLines=200` and
   `GET /api/v1/messagequeues/{name}/metrics?key=throughput` are fixed, bounded
   observability queries. The UI never sends raw PromQL or LogsQL.
@@ -57,11 +63,11 @@ Do not reintroduce a sidebar-first shell for this UI.
 The list and detail views distinguish loading, empty, ready, provisioning,
 degraded, failed, deleting, suspended, and permission-denied states. If the API
 is unreachable, the UI renders clearly labelled read-only demo data so the
-control surface remains inspectable; create and observability actions still
-require a working backend. Public desktop installs keep create disabled until
-the Sealos session/workspace adapter is connected. The browser reads
-`window.MESSAGEQUEUE_CREATE_ENABLED` from `config.js`; when it is false, the
-create button remains visible but disabled and the form refuses to open. A
+control surface remains inspectable; create, delete, and observability actions
+still require a working backend. Public desktop installs keep write actions
+disabled until the Sealos session/workspace adapter is connected. The browser
+reads `window.MESSAGEQUEUE_CREATE_ENABLED` from `config.js`; when it is false or
+the API is degraded/forbidden, create and delete controls remain disabled. A
 metrics provider response with `degraded: true` is rendered as “Metrics
 unavailable” rather than as zero-valued data.
 

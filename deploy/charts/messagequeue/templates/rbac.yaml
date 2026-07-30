@@ -74,7 +74,7 @@ metadata:
 rules:
   - apiGroups: ["messagequeue.sealos.io"]
     resources: ["messagequeues"]
-    verbs: ["get", "list", "watch", "create"]
+    verbs: ["get", "list", "watch", "create", "delete"]
   - apiGroups: ["messagequeue.sealos.io"]
     resources: ["messagequeues/status"]
     verbs: ["get", "list", "watch"]

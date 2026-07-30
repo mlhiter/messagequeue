@@ -6,8 +6,8 @@ Its first screen is the user's cluster list and current system state.
 ## Primary Navigation
 
 - Clusters
-- Operations
-- Platform status, visible only to platform operators
+- Operations, future v0.2 lifecycle surface
+- Platform status, future operator-only surface
 
 ## Cluster List
 
@@ -31,15 +31,20 @@ The detail page is a separate route, not a right-hand panel attached to the
 list. Tabs are ordered by the current vertical-slice workflow:
 
 1. Overview: desired and observed state, endpoints, topology, and recent events
-2. Connections: client configuration, credential rotation, and copyable examples
+2. Connections: secret-free client configuration metadata and copyable endpoints
 3. Logs: pod, container, time range, live follow, previous container, and search
 4. Metrics: resources, broker health, partition health, throughput, and lag
-5. Operations: scaling, restart, upgrade, suspension, and operation history
-6. Settings: deletion policy and advanced engine settings
+5. Settings: deletion policy and the delete action
 
-The optional Kafka console is opened as a separate user-facing workspace. The
-management UI shows its readiness and an explicit open action but does not
-embed or imitate it.
+The following detail tabs are v0.2 surfaces, not part of the current v0.1
+closed loop:
+
+- Operations: scaling, restart, upgrade, suspension, and operation history
+- Advanced settings: advanced engine settings and future lifecycle controls
+
+The optional Kafka console is opened as a separate user-facing workspace after
+the v0.2 console integration exists. The management UI may show its readiness
+and an explicit open action, but does not embed or imitate it.
 
 ## Required States
 

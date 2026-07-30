@@ -62,6 +62,35 @@ if (!source.includes('fetch(`${API_BASE}${path}`')) {
 if (!source.includes("result.degraded") || !source.includes("metricsUnavailable")) {
   throw new Error("metrics degraded state is not rendered explicitly");
 }
+if (!source.includes("function writesEnabled()") || !source.includes('CREATE_ENABLED && state.apiState === "ready"')) {
+  throw new Error("write affordances must require both config and a ready API");
+}
+if (!source.includes('/client-config') || !source.includes('data-action="load-client-config"')) {
+  throw new Error("safe client configuration entry point is missing");
+}
+if (!source.includes('method: "DELETE"') || !source.includes('data-action="delete-cluster"') || !source.includes('["settings", message("settings")]')) {
+  throw new Error("delete/settings closed-loop UI is missing");
+}
+if (!source.includes('data-action="dismiss-notice"') || !source.includes("noticeDismissed")) {
+  throw new Error("dismissible degraded notice is missing a stateful handler");
+}
+for (const key of [
+  "loadClientConfig",
+  "clientConfigUnavailable",
+  "noSecretMaterial",
+  "deleteCluster",
+  "deleteDisabledReadOnly",
+  "deleteConfirmPrompt"
+]) {
+  if (!source.includes(key)) {
+    throw new Error(`new i18n key is missing: ${key}`);
+  }
+}
+for (const forbidden of ["passwordInput", "privateKey", "kubeconfigText", "secretData"]) {
+  if (source.includes(forbidden)) {
+    throw new Error(`client config UI should not introduce secret material field: ${forbidden}`);
+  }
+}
 if (!source.includes("function commitRouteHash(target)") || !functionBody("commitRouteHash").includes("render();")) {
   throw new Error("route navigation must render immediately after changing the hash");
 }

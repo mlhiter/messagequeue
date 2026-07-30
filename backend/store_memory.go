@@ -57,6 +57,16 @@ func (s *MemoryStore) Get(_ context.Context, namespace, name string) (MessageQue
 	return resource, nil
 }
 
+func (s *MemoryStore) Delete(_ context.Context, namespace, name string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.items[namespace][name]; !ok {
+		return ErrNotFound
+	}
+	delete(s.items[namespace], name)
+	return nil
+}
+
 func (s *MemoryStore) Logs(_ context.Context, namespace, name string, request LogRequest) (LogResponse, error) {
 	if _, err := s.Get(context.Background(), namespace, name); err != nil {
 		return LogResponse{}, err

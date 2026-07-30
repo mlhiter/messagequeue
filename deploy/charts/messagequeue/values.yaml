@@ -59,8 +59,8 @@ backend:
   # identity routing is implemented.
   workspaceNamespace: ns-admin
   userID: messagequeue-backend
-  # Public desktop installs keep create disabled until the Sealos session
-  # adapter replaces the single-workspace fallback identity.
+  # Public desktop installs keep create/delete writes disabled until the Sealos
+  # session adapter replaces the single-workspace fallback identity.
   allowCreate: false
   logLevel: info
   resources:

@@ -15,8 +15,8 @@ chart_dir="$repo_root/deploy/charts/messagequeue"
 image_registry="${IMAGE_REGISTRY:-crpi-7jr40k6elhldekqp.cn-hangzhou.personal.cr.aliyuncs.com/mlhiter}"
 image_tag="${IMAGE_TAG:-v0.1.8}"
 controller_digest="${CONTROLLER_DIGEST:-sha256:5c47b5845b9f32112531a4dafc3887213a1c3eba1b61f9abd17a6c4e8e880b85}"
-backend_digest="${BACKEND_DIGEST:-sha256:cf43d71763757141901cf8d2bb808047649694c825dbd39e714b9d5e3e5fa6ce}"
-frontend_digest="${FRONTEND_DIGEST:-sha256:a0fa37c80cc58b84ba315e0949aa0a3af65b648eb3ae0e2a959cfd9be2671e83}"
+backend_digest="${BACKEND_DIGEST:-sha256:bedcef708a9e4f01586251e5536053a186fc6ec9d1af85f91c95af3f039cfe6f}"
+frontend_digest="${FRONTEND_DIGEST:-sha256:ea9e89ae512cbc4bd51b62cb037c20ea8de10eb7d123345713ef4efeb079c91e}"
 
 if [[ ! -r "$kubeconfig_path" ]]; then
   echo "kubeconfig is not readable: $kubeconfig_path" >&2

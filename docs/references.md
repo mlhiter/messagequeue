@@ -44,8 +44,8 @@ contract. MessageQueue `v0.1.8` images were published to the test registry as
 amd64 images:
 
 - controller: `sha256:5c47b5845b9f32112531a4dafc3887213a1c3eba1b61f9abd17a6c4e8e880b85`
-- backend: `sha256:cf43d71763757141901cf8d2bb808047649694c825dbd39e714b9d5e3e5fa6ce`
-- frontend: `sha256:a0fa37c80cc58b84ba315e0949aa0a3af65b648eb3ae0e2a959cfd9be2671e83`
+- backend: `sha256:bedcef708a9e4f01586251e5536053a186fc6ec9d1af85f91c95af3f039cfe6f`
+- frontend: `sha256:ea9e89ae512cbc4bd51b62cb037c20ea8de10eb7d123345713ef4efeb079c91e`
 
 Production values should set `global.imagePolicy.requireDigest=true` and use
 these or a separately reviewed immutable digest set.

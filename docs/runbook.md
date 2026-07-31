@@ -6,7 +6,9 @@ uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.8`.
 ## Deployment Order
 
 1. Verify Kubernetes version, default StorageClass, quota, and observability
-   capabilities.
+   capabilities. The backend Role in the workspace namespace must be able to
+   `get` `resourcequotas`; otherwise the quota note and create preflight will
+   fall back to a permission-denied state.
 2. Install compatible Strimzi CRDs and the cluster operator.
 3. Install the MessageQueue CRD and controller.
 4. Install the backend and management UI, then register the application entry.

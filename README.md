@@ -58,7 +58,7 @@ docs/          Architecture, information architecture, references, and runbook
 
 ## Development Status
 
-Release `0.1.8` provides a deployable Kafka control plane: Strimzi `0.46.0`
+Release `0.1.9` provides a deployable Kafka control plane: Strimzi `0.46.0`
 reconciles Kafka `3.9.0`/`4.0.0` KRaft resources, the backend exposes namespaced
 status/log/metrics contracts plus create/delete and secret-free
 client-configuration contracts. The first-party UI uses a dedicated cluster

@@ -63,9 +63,9 @@ helm upgrade --install messagequeue deploy/charts/messagequeue \
   --set images.controller.repository=<registry>/messagequeue-controller \
   --set images.backend.repository=<registry>/messagequeue-backend \
   --set images.frontend.repository=<registry>/messagequeue-frontend \
-  --set images.controller.tag=v0.1.8 \
-  --set images.backend.tag=v0.1.8 \
-  --set images.frontend.tag=v0.1.8
+  --set images.controller.tag=v0.1.9 \
+  --set images.backend.tag=v0.1.9 \
+  --set images.frontend.tag=v0.1.9
 ```
 
 `docker buildx bake -f deploy/docker-bake.hcl --push` defaults test builds to

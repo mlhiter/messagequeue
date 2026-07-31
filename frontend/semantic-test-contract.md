@@ -4,7 +4,7 @@
 
 - 模块：MessageQueue frontend
 - 页面：Kafka cluster create dialog
-- 适用版本：v0.1.8+
+- 适用版本：v0.1.9+
 - 维护人：MessageQueue frontend owner
 
 ## 2. 页面入口

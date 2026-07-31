@@ -8,7 +8,7 @@ variable "REGISTRY" {
 }
 
 variable "VERSION" {
-  default = "v0.1.8"
+  default = "v0.1.9"
 }
 
 group "default" {

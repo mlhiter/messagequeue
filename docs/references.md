@@ -40,7 +40,7 @@ React component library and is not used to implement the management UI.
   library, image, or migration adapter belongs in this repository.
 
 The current deployment pins Strimzi `0.46.0` and Kafka `3.9.0` by operator
-contract. MessageQueue `v0.1.8` images were published to the test registry as
+contract. MessageQueue `v0.1.9` images were published to the test registry as
 amd64 images:
 
 - controller: `sha256:5c47b5845b9f32112531a4dafc3887213a1c3eba1b61f9abd17a6c4e8e880b85`

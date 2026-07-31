@@ -11,15 +11,15 @@ global:
 images:
   controller:
     repository: ghcr.io/mlhiter/messagequeue-controller
-    tag: v0.1.7
+    tag: v0.1.8
     digest: ""
   backend:
     repository: ghcr.io/mlhiter/messagequeue-backend
-    tag: v0.1.7
+    tag: v0.1.8
     digest: ""
   frontend:
     repository: ghcr.io/mlhiter/messagequeue-frontend
-    tag: v0.1.7
+    tag: v0.1.8
     digest: ""
 
 serviceAccount:

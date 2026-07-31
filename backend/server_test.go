@@ -154,7 +154,7 @@ func TestCreateRejectsBrowserNamespaceAndSecretPayload(t *testing.T) {
 
 func TestCreateAcceptsFirstPartyFlatContract(t *testing.T) {
 	server, store := newTestServer()
-	body := `{"name":"orders","engine":"kafka","kafka":{"version":"3.9.0","brokers":3,"storageGi":20,"storageClass":"fast"},"deletionPolicy":"retain","monitoring":{"enabled":true},"console":{"enabled":false}}`
+	body := `{"name":"orders","engine":"kafka","kafka":{"version":"3.9.0","brokers":3,"cpu":"500m","memory":"1Gi","storageGi":20,"storageClass":"fast"},"deletionPolicy":"retain","monitoring":{"enabled":true},"console":{"enabled":false}}`
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(body))
 	recording := httptest.NewRecorder()
 	server.ServeHTTP(recording, request)
@@ -165,8 +165,111 @@ func TestCreateAcceptsFirstPartyFlatContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Spec.Kafka.Replicas != 3 || created.Spec.Kafka.Version != "3.9.0" || created.Spec.Storage.Size != "20Gi" || created.Spec.Storage.ClassName != "fast" || created.Spec.DeletionPolicy != "Retain" {
+	if created.Spec.Kafka.Replicas != 3 || created.Spec.Kafka.Version != "3.9.0" || created.Spec.Resources.CPU != "500m" || created.Spec.Resources.Memory != "1Gi" || created.Spec.Storage.Size != "20Gi" || created.Spec.Storage.ClassName != "fast" || created.Spec.DeletionPolicy != "Retain" {
 		t.Fatalf("flat request translation = %#v", created.Spec)
+	}
+}
+
+func TestCreateRejectsInvalidResourceQuantities(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		body string
+		want string
+	}{
+		{
+			name: "product_cpu",
+			body: `{"name":"orders","spec":{"engine":"kafka","resources":{"cpu":"0","memory":"1Gi"},"storage":{"size":"10Gi"}}}`,
+			want: "resources.cpu",
+		},
+		{
+			name: "product_memory",
+			body: `{"name":"orders","spec":{"engine":"kafka","resources":{"cpu":"500m","memory":"1024"},"storage":{"size":"10Gi"}}}`,
+			want: "resources.memory",
+		},
+		{
+			name: "flat_cpu",
+			body: `{"name":"orders","engine":"kafka","kafka":{"brokers":1,"cpu":"half","memory":"1Gi"}}`,
+			want: "resources.cpu",
+		},
+		{
+			name: "flat_memory",
+			body: `{"name":"orders","engine":"kafka","kafka":{"brokers":1,"cpu":"500m","memory":"1gi"}}`,
+			want: "resources.memory",
+		},
+		{
+			name: "product_storage",
+			body: `{"name":"orders","spec":{"engine":"kafka","resources":{"cpu":"500m","memory":"1Gi"},"storage":{"size":"not-a-quantity"}}}`,
+			want: "storage.size",
+		},
+		{
+			name: "cpu_too_large",
+			body: `{"name":"orders","spec":{"engine":"kafka","resources":{"cpu":"9","memory":"1Gi"},"storage":{"size":"10Gi"}}}`,
+			want: "resources.cpu",
+		},
+		{
+			name: "memory_too_large",
+			body: `{"name":"orders","spec":{"engine":"kafka","resources":{"cpu":"500m","memory":"65Gi"},"storage":{"size":"10Gi"}}}`,
+			want: "resources.memory",
+		},
+		{
+			name: "storage_too_large",
+			body: `{"name":"orders","spec":{"engine":"kafka","resources":{"cpu":"500m","memory":"1Gi"},"storage":{"size":"2Ti"}}}`,
+			want: "storage.size",
+		},
+		{
+			name: "storage_class_name",
+			body: `{"name":"orders","spec":{"engine":"kafka","storage":{"size":"10Gi","className":"bad/class"}}}`,
+			want: "storage.className",
+		},
+		{
+			name: "flat_storage_too_large",
+			body: `{"name":"orders","engine":"kafka","kafka":{"brokers":1,"cpu":"500m","memory":"1Gi","storageGi":1025}}`,
+			want: "kafka.storageGi",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server, _ := newTestServer()
+			request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(tc.body))
+			recording := httptest.NewRecorder()
+			server.ServeHTTP(recording, request)
+			if recording.Code != http.StatusBadRequest || !strings.Contains(recording.Body.String(), tc.want) {
+				t.Fatalf("invalid quantity status = %d, body=%s", recording.Code, recording.Body.String())
+			}
+		})
+	}
+}
+
+func TestCreateRejectsOperatorOnlySpecFields(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		body string
+		want string
+	}{
+		{
+			name: "suspend",
+			body: `{"name":"orders","spec":{"engine":"kafka","suspend":true}}`,
+			want: "spec.suspend",
+		},
+		{
+			name: "suspend_false",
+			body: `{"name":"orders","spec":{"engine":"kafka","suspend":false}}`,
+			want: "spec.suspend",
+		},
+		{
+			name: "topology",
+			body: `{"name":"orders","spec":{"engine":"kafka","topology":{"mode":"combined","replicas":1}}}`,
+			want: "spec.topology",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server, _ := newTestServer()
+			request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(tc.body))
+			recording := httptest.NewRecorder()
+			server.ServeHTTP(recording, request)
+			if recording.Code != http.StatusBadRequest || !strings.Contains(recording.Body.String(), tc.want) {
+				t.Fatalf("operator field status = %d, body=%s", recording.Code, recording.Body.String())
+			}
+		})
 	}
 }
 

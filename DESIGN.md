@@ -73,6 +73,11 @@ The entry route is the cluster list. Its job is to orient, search, create, and
 open a resource. The create action sits in the page header and is available by
 default whenever the management API is ready.
 
+The create dialog is a resource decision surface, not a raw operator form. It
+starts from development, standard, and custom profiles, keeps CPU, memory,
+storage, and deletion policy visible in a compact summary, and only unlocks the
+detailed numeric fields when custom is selected.
+
 Cluster rows navigate to a dedicated detail page. Detail pages own overview,
 connection, logs, and metrics tabs, and always provide a clear return path to
 the cluster list. Do not reintroduce a two-pane list-plus-detail layout.

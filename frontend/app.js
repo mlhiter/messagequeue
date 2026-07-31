@@ -142,22 +142,42 @@
       openHelp: "打开帮助",
       newResource: "新资源",
       createKafkaCluster: "创建 Kafka 集群",
-      createDescription: "控制器会在你的工作空间命名空间里创建 Strimzi 资源。",
+      createDescription: "选择一个规格，控制器会在你的工作空间命名空间里创建 Strimzi 资源。",
       close: "关闭",
+      basicSectionTitle: "基础信息",
+      basicSectionCopy: "名称会成为 Kubernetes 资源名称。",
       clusterName: "集群名称",
       required: "必填",
       lowercaseHint: "仅支持小写字母、数字和连字符。",
       kafkaVersionLabel: "Kafka 版本",
       recommended: "推荐",
+      profileLabel: "规格预设",
+      profileHelp: "开发规格默认打开，资源不够再切自定义。",
+      profileDevelopmentTitle: "开发",
+      profileDevelopmentCopy: "单 Broker，适合验证和轻量测试。",
+      profileDevelopmentMeta: "500m / 1Gi / 10Gi",
+      profileStandardTitle: "标准",
+      profileStandardCopy: "3 Broker，适合更接近生产的验证。",
+      profileStandardMeta: "1 CPU / 2Gi / 20Gi",
+      profileCustomTitle: "自定义",
+      profileCustomCopy: "手动配置 broker、CPU、内存和存储。",
+      profileCustomMeta: "可编辑",
+      resourceSectionTitle: "规格细节",
+      resourceSectionCopy: "CPU 和内存会写入每个 broker 的资源请求和限制。",
       brokerCount: "Broker 数量",
       brokerCountHint: "生产环境建议至少 3 个 broker。",
+      cpuPerBroker: "每个 Broker 的 CPU",
+      cpuHint: "支持 500m、1、1.5；每个 broker 不超过 8 CPU。",
+      memoryPerBroker: "每个 Broker 的内存",
+      memoryHint: "建议使用 Gi 或 Mi；每个 broker 不超过 64Gi。",
       storagePerBroker: "每个 Broker 的存储",
+      storageHint: "每个 broker 支持 1 到 1024 Gi。",
       storageClass: "存储类",
       deletionPolicyLabel: "删除策略",
       storageClassPlaceholder: "默认集群存储",
       resourceFootprint: "资源占用",
-      resourceFootprintCopy:
-        "1 个 broker · 20 Gi 存储 · TLS + SCRAM 认证 · 保留数据",
+      resourceFootprintCopy: ({ profile, brokers, cpu, memory, storageGi, policy }) =>
+        `${profile} · ${brokers} 个 broker · ${cpu} CPU / ${memory} 内存 · 每个 ${storageGi} Gi 存储 · ${policy}`,
       creationAsync: "创建是异步的。你可以在集群详情里跟踪观测状态。",
       lastTransition: "最后变更",
       cancel: "取消",
@@ -343,21 +363,42 @@
       openHelp: "Open help",
       newResource: "New resource",
       createKafkaCluster: "Create Kafka cluster",
-      createDescription: "The controller will provision Strimzi resources in your workspace namespace.",
+      createDescription: "Choose a profile and the controller will provision Strimzi resources in your workspace namespace.",
       close: "Close",
+      basicSectionTitle: "Basic information",
+      basicSectionCopy: "The name becomes the Kubernetes resource name.",
       clusterName: "Cluster name",
       required: "required",
       lowercaseHint: "Lowercase letters, numbers, and hyphens only.",
       kafkaVersionLabel: "Kafka version",
       recommended: "recommended",
+      profileLabel: "Spec profile",
+      profileHelp: "Development is enabled by default; switch to custom when you need more resources.",
+      profileDevelopmentTitle: "Development",
+      profileDevelopmentCopy: "Single broker for validation and light tests.",
+      profileDevelopmentMeta: "500m / 1Gi / 10Gi",
+      profileStandardTitle: "Standard",
+      profileStandardCopy: "Three brokers for production-like validation.",
+      profileStandardMeta: "1 CPU / 2Gi / 20Gi",
+      profileCustomTitle: "Custom",
+      profileCustomCopy: "Configure brokers, CPU, memory, and storage manually.",
+      profileCustomMeta: "Editable",
+      resourceSectionTitle: "Spec details",
+      resourceSectionCopy: "CPU and memory become each broker's resource requests and limits.",
       brokerCount: "Broker count",
       brokerCountHint: "Use 3+ brokers for production.",
+      cpuPerBroker: "CPU per broker",
+      cpuHint: "Use 500m, 1, or 1.5; each broker is capped at 8 CPU.",
+      memoryPerBroker: "Memory per broker",
+      memoryHint: "Use Gi or Mi values; each broker is capped at 64Gi.",
       storagePerBroker: "Storage per broker",
+      storageHint: "Each broker supports 1 to 1024 Gi.",
       storageClass: "Storage class",
       deletionPolicyLabel: "Deletion policy",
       storageClassPlaceholder: "Default cluster storage",
       resourceFootprint: "Resource footprint",
-      resourceFootprintCopy: "1 broker · 20 Gi storage · TLS + SCRAM authentication · Retain data",
+      resourceFootprintCopy: ({ profile, brokers, cpu, memory, storageGi, policy }) =>
+        `${profile} · ${brokers} broker${brokers === 1 ? "" : "s"} · ${cpu} CPU / ${memory} memory · ${storageGi} Gi each · ${policy}`,
       creationAsync: "Creation is asynchronous. You can follow the observed state from the cluster detail.",
       lastTransition: "last transition",
       cancel: "Cancel",
@@ -439,6 +480,36 @@
     }
   };
 
+  const CREATE_PROFILES = {
+    development: {
+      brokers: 1,
+      cpu: "500m",
+      memory: "1Gi",
+      storageGi: 10,
+      storageClass: "",
+      deletionPolicy: "Retain",
+      titleKey: "profileDevelopmentTitle"
+    },
+    standard: {
+      brokers: 3,
+      cpu: "1",
+      memory: "2Gi",
+      storageGi: 20,
+      storageClass: "",
+      deletionPolicy: "Retain",
+      titleKey: "profileStandardTitle"
+    }
+  };
+
+  const CUSTOM_RESOURCE_FIELD_IDS = [
+    "broker-count",
+    "broker-cpu",
+    "broker-memory",
+    "storage-size",
+    "storage-class",
+    "deletion-policy"
+  ];
+
   function getCookie(name) {
     const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=([^;]*)`));
     return match ? decodeURIComponent(match[1]) : "";
@@ -476,6 +547,7 @@
     observability: {},
     clientConfig: {},
     createSubmitting: false,
+    createProfile: "development",
     deleteSubmitting: false,
     deleteError: null,
     language: detectLanguage(),
@@ -683,19 +755,38 @@
       ["create-eyebrow", "newResource"],
       ["create-title", "createKafkaCluster"],
       ["create-description", "createDescription"],
+      ["basic-section-title", "basicSectionTitle"],
+      ["basic-section-copy", "basicSectionCopy"],
       ["field-name-label", "clusterName"],
       ["field-name-required", "required"],
       ["field-name-help", "lowercaseHint"],
       ["field-version-label", "kafkaVersionLabel"],
       ["field-version-recommended", "recommended"],
+      ["profile-label", "profileLabel"],
+      ["profile-help", "profileHelp"],
+      ["profile-development-title", "profileDevelopmentTitle"],
+      ["profile-development-copy", "profileDevelopmentCopy"],
+      ["profile-development-meta", "profileDevelopmentMeta"],
+      ["profile-standard-title", "profileStandardTitle"],
+      ["profile-standard-copy", "profileStandardCopy"],
+      ["profile-standard-meta", "profileStandardMeta"],
+      ["profile-custom-title", "profileCustomTitle"],
+      ["profile-custom-copy", "profileCustomCopy"],
+      ["profile-custom-meta", "profileCustomMeta"],
+      ["resource-section-title", "resourceSectionTitle"],
+      ["resource-section-copy", "resourceSectionCopy"],
       ["field-brokers-label", "brokerCount"],
       ["field-brokers-help", "brokerCountHint"],
+      ["field-cpu-label", "cpuPerBroker"],
+      ["field-cpu-help", "cpuHint"],
+      ["field-memory-label", "memoryPerBroker"],
+      ["field-memory-help", "memoryHint"],
       ["field-storage-label", "storagePerBroker"],
+      ["field-storage-help", "storageHint"],
       ["field-class-label", "storageClass"],
       ["field-policy-label", "deletionPolicyLabel"],
       ["field-class-placeholder", "storageClassPlaceholder"],
       ["impact-heading", "resourceFootprint"],
-      ["impact-copy", "resourceFootprintCopy"],
       ["impact-note", "creationAsync"],
       ["cancel-button", "cancel"],
       ["submit-create", "create"]
@@ -719,6 +810,7 @@
     if ($("#create-button")) {
       $("#create-button").disabled = !writesEnabled();
       $("#create-button").setAttribute("title", writesEnabled() ? message("newCluster") : message("clusterCreationUnavailable"));
+      setDisabledReason($("#create-button"), writesEnabled() ? "" : "api_unavailable");
     }
     $("#submit-create")?.setAttribute("value", "default");
 
@@ -733,6 +825,7 @@
     $("#modal-close")?.setAttribute("aria-label", message("close"));
     $("#modal-close")?.setAttribute("title", message("close"));
     $("#form-error") && ($("#form-error").textContent = message("formError"));
+    updateCreateSummary();
 
     const createButton = $("#create-button");
     if (createButton) createButton.textContent = message("newCluster");
@@ -1351,26 +1444,143 @@
     }
   }
 
+  function selectedCreateProfile() {
+    return document.querySelector("input[name='profile']:checked")?.value || "development";
+  }
+
+  function numberFieldValue(selector, fallback) {
+    const parsed = Number($(selector)?.value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  function readCreateSpec() {
+    const profile = selectedCreateProfile();
+    const lockedPreset = CREATE_PROFILES[profile];
+    if (lockedPreset) {
+      return { profile, ...lockedPreset };
+    }
+    return {
+      profile: "custom",
+      brokers: numberFieldValue("#broker-count", CREATE_PROFILES.development.brokers),
+      cpu: $("#broker-cpu")?.value.trim() || CREATE_PROFILES.development.cpu,
+      memory: $("#broker-memory")?.value.trim() || CREATE_PROFILES.development.memory,
+      storageGi: numberFieldValue("#storage-size", CREATE_PROFILES.development.storageGi),
+      storageClass: $("#storage-class")?.value.trim() || "",
+      deletionPolicy: $("#deletion-policy")?.value || "Retain",
+      titleKey: "profileCustomTitle"
+    };
+  }
+
+  function writeCreateFields(spec) {
+    if ($("#broker-count")) $("#broker-count").value = spec.brokers;
+    if ($("#broker-cpu")) $("#broker-cpu").value = spec.cpu;
+    if ($("#broker-memory")) $("#broker-memory").value = spec.memory;
+    if ($("#storage-size")) $("#storage-size").value = spec.storageGi;
+    if ($("#storage-class")) $("#storage-class").value = spec.storageClass || "";
+    if ($("#deletion-policy")) $("#deletion-policy").value = spec.deletionPolicy;
+  }
+
+  function setCustomFieldsEnabled(enabled) {
+    for (const id of CUSTOM_RESOURCE_FIELD_IDS) {
+      const field = document.getElementById(id);
+      if (!field) continue;
+      field.disabled = !enabled;
+      field.setAttribute("aria-disabled", String(!enabled));
+    }
+    const section = $("#custom-resource-fields");
+    if (section) section.dataset.qaState = enabled ? "custom" : "preset";
+  }
+
+  function setDisabledReason(node, reason) {
+    if (!node) return;
+    if (reason) {
+      node.dataset.qaDisabledReason = reason;
+    } else {
+      node.removeAttribute("data-qa-disabled-reason");
+    }
+  }
+
+  function updateCreateSummary() {
+    const summary = $("#impact-copy");
+    if (!summary) return;
+    const spec = readCreateSpec();
+    const policy = spec.deletionPolicy === "Delete" ? message("deleteWithCluster") : message("retainData");
+    summary.textContent = message("resourceFootprintCopy", {
+      profile: message(spec.titleKey),
+      brokers: spec.brokers,
+      cpu: spec.cpu,
+      memory: spec.memory,
+      storageGi: spec.storageGi,
+      policy
+    });
+    summary.dataset.qaState = spec.profile;
+  }
+
+  function applyCreateProfile(profile) {
+    state.createProfile = profile === "standard" || profile === "custom" ? profile : "development";
+    if (state.createProfile !== "custom") {
+      writeCreateFields(CREATE_PROFILES[state.createProfile]);
+    }
+    setCustomFieldsEnabled(state.createProfile === "custom");
+    const submitButton = $("#submit-create");
+    if (submitButton) {
+      submitButton.dataset.qaState = state.createSubmitting ? "loading" : "ready";
+      setDisabledReason(submitButton, writesEnabled() ? "" : "api_unavailable");
+    }
+    updateCreateSummary();
+  }
+
+  function resetCreateForm() {
+    const form = $("#create-form");
+    form?.reset();
+    const development = $("#profile-development");
+    if (development) development.checked = true;
+    applyCreateProfile("development");
+    const errorBox = $("#form-error");
+    if (errorBox) {
+      errorBox.hidden = true;
+      errorBox.textContent = message("formError");
+      errorBox.dataset.qaErrorCode = "invalid_request";
+    }
+    const submitButton = $("#submit-create");
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.dataset.qaState = "ready";
+      setDisabledReason(submitButton, writesEnabled() ? "" : "api_unavailable");
+    }
+  }
+
+  function openCreateModal() {
+    if (!writesEnabled()) return;
+    resetCreateForm();
+    $("#create-modal")?.showModal();
+    $("#cluster-name")?.focus();
+  }
+
   async function createCluster(event) {
     if (event.submitter?.value === "cancel") return;
     event.preventDefault();
     const form = event.currentTarget;
     const name = $("#cluster-name").value.trim();
+    const spec = readCreateSpec();
     const errorBox = $("#form-error");
     if (!writesEnabled()) {
       errorBox.hidden = false;
       errorBox.textContent = message("formPermissionDenied");
+      errorBox.dataset.qaErrorCode = "permission_denied";
       return;
     }
     if (!form.checkValidity()) {
       errorBox.hidden = false;
       errorBox.textContent = message("formError");
+      errorBox.dataset.qaErrorCode = "invalid_request";
       form.reportValidity();
       return;
     }
 
     state.createSubmitting = true;
     $("#submit-create").disabled = true;
+    $("#submit-create").dataset.qaState = "loading";
     errorBox.hidden = true;
     try {
       await request(`${API_PREFIX}`, {
@@ -1381,14 +1591,14 @@
             engine: "kafka",
             kafka: {
               version: $("#kafka-version").value,
-              replicas: Number($("#broker-count").value)
+              replicas: spec.brokers
             },
-            resources: { cpu: "1", memory: "2Gi" },
+            resources: { cpu: spec.cpu, memory: spec.memory },
             storage: {
-              size: `${Number($("#storage-size").value)}Gi`,
-              className: $("#storage-class").value.trim() || undefined
+              size: `${spec.storageGi}Gi`,
+              className: spec.storageClass || undefined
             },
-            deletionPolicy: $("#deletion-policy").value
+            deletionPolicy: spec.deletionPolicy
           }
         })
       });
@@ -1399,9 +1609,11 @@
     } catch (error) {
       errorBox.hidden = false;
       errorBox.textContent = error.code === 403 ? message("formPermissionDenied") : message("formCreateFailed", { message: error.message });
+      errorBox.dataset.qaErrorCode = error.code === 403 ? "permission_denied" : "create_failed";
     } finally {
       state.createSubmitting = false;
       $("#submit-create").disabled = false;
+      $("#submit-create").dataset.qaState = "ready";
     }
   }
 
@@ -1420,15 +1632,13 @@
       renderNotice();
     });
     $("#create-button")?.addEventListener("click", () => {
-      if (!writesEnabled()) return;
-      $("#create-modal")?.showModal();
+      openCreateModal();
     });
     $("#cluster-list")?.addEventListener("click", (event) => {
       const action = event.target.closest("[data-action]");
       if (action?.dataset.action === "open-create") {
         event.preventDefault();
-        if (!writesEnabled()) return;
-        $("#create-modal")?.showModal();
+        openCreateModal();
         return;
       }
       const row = event.target.closest("[data-cluster-name]");
@@ -1486,10 +1696,16 @@
       renderDetail();
     });
     $("#create-form")?.addEventListener("submit", createCluster);
+    $("#create-form")?.addEventListener("change", (event) => {
+      if (event.target.matches("input[name='profile']")) {
+        applyCreateProfile(event.target.value);
+        return;
+      }
+      updateCreateSummary();
+    });
+    $("#create-form")?.addEventListener("input", updateCreateSummary);
     $("#create-modal")?.addEventListener("close", () => {
-      const errorBox = $("#form-error");
-      if (errorBox) errorBox.hidden = true;
-      $("#submit-create").disabled = false;
+      resetCreateForm();
     });
     $("#create-modal")?.addEventListener("click", (event) => {
       if (event.target === $("#create-modal")) $("#create-modal").close();
@@ -1518,22 +1734,8 @@
   }
 
   function initFormDefaults() {
-    const storageClass = $("#storage-class");
-    if (storageClass) storageClass.setAttribute("placeholder", message("storageClassPlaceholder"));
-    $("#cluster-name")?.setAttribute("placeholder", "orders-dev");
-    $("#kafka-version")?.options?.[0] && ($("#kafka-version").options[0].textContent = `3.9.0 (${message("recommended")})`);
-    $("#kafka-version")?.options?.[1] && ($("#kafka-version").options[1].textContent = "4.0.0");
-    $("#deletion-policy")?.options?.[0] && ($("#deletion-policy").options[0].textContent = message("retainData"));
-    $("#deletion-policy")?.options?.[1] && ($("#deletion-policy").options[1].textContent = message("deleteWithCluster"));
-    $("#impact-copy").textContent = message("resourceFootprintCopy");
-    $("#create-title").textContent = message("createKafkaCluster");
-    $("#create-description").textContent = message("createDescription");
-    $("#create-eyebrow").textContent = message("newResource");
-    $("#impact-heading").textContent = message("resourceFootprint");
-    $("#impact-note").textContent = message("creationAsync");
-    $("#cancel-button").textContent = message("cancel");
-    $("#submit-create").textContent = message("create");
-    $("#form-error").textContent = message("formError");
+    localizeStaticShell();
+    resetCreateForm();
   }
 
   function boot() {

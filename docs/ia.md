@@ -20,10 +20,14 @@ access more than one workspace.
 
 ## Create Cluster
 
-The creation flow asks for topology, broker and controller resources, storage,
-version, deletion policy, and optional monitoring or user-console settings. It
-shows the resulting resource footprint and risky settings before submission.
-Raw Strimzi YAML is not part of the primary flow.
+The creation flow starts from a resource profile, then shows the resulting
+footprint before submission. Development is the default profile and matches the
+checked-in development example: 1 broker, 500m CPU, 1Gi memory, 10Gi storage per
+broker, and Retain deletion policy. Standard requests 3 brokers, 1 CPU, 2Gi
+memory, 20Gi storage per broker, and Retain deletion policy. Custom unlocks the
+broker, CPU, memory, storage, storage class, and deletion-policy fields while
+the API caps each broker at 8 CPU, 64Gi memory, and 1024Gi storage. Raw Strimzi
+YAML is not part of the primary flow.
 
 ## Cluster Detail
 

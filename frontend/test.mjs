@@ -71,6 +71,35 @@ if (!source.includes("result.degraded") || !source.includes("metricsUnavailable"
 if (source.includes("CREATE_ENABLED") || source.includes("MESSAGEQUEUE_CREATE_ENABLED")) {
   throw new Error("write affordances must not depend on a create feature flag");
 }
+if (!source.includes("const CREATE_PROFILES") || !source.includes('cpu: "500m"') || !source.includes('memory: "1Gi"') || !source.includes("updateCreateSummary")) {
+  throw new Error("create flow must expose development resource presets and a dynamic summary");
+}
+if (source.includes('resources: { cpu: "1", memory: "2Gi" }')) {
+  throw new Error("create flow must not hardcode the old standard broker resources");
+}
+for (const testId of [
+  "messagequeue.create.modal",
+  "messagequeue.create.profile-option",
+  "messagequeue.create.cpu-input",
+  "messagequeue.create.memory-input",
+  "messagequeue.create.summary",
+  "messagequeue.create.submit-button"
+]) {
+  if (!html.includes(`data-testid="${testId}"`)) {
+    throw new Error(`create semantic test id is missing: ${testId}`);
+  }
+}
+for (const profile of ["development", "standard", "custom"]) {
+  if (!html.includes(`data-qa-profile="${profile}"`)) {
+    throw new Error(`create profile option is missing: ${profile}`);
+  }
+}
+if (!html.includes('value="500m"') || !html.includes('value="1Gi"') || !html.includes('value="10"')) {
+  throw new Error("development create defaults must match deploy/examples/messagequeue-dev.yaml");
+}
+if (!html.includes('id="storage-size"') || !html.includes('max="1024"') || !source.includes("capped at 8 CPU") || !source.includes("不超过 64Gi")) {
+  throw new Error("create custom resource fields must expose the backend product limits");
+}
 if (!source.includes("function writesEnabled()") || !source.includes('return state.apiState === "ready";')) {
   throw new Error("write affordances must require a ready API");
 }

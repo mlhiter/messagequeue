@@ -4,7 +4,9 @@ This directory contains the first-party MessageQueue management interface. It
 owns cluster creation, lifecycle, status, connections, logs, and metrics. Kafbat
 is an optional user-facing Kafka console and is not embedded here. The current
 shell is list-first, with a compact header, search and create actions on the
-top bar, dense table rows, and a separate detail page.
+top bar, dense table rows, and a separate detail page. The create dialog uses
+development, standard, and custom resource profiles so broker CPU, memory, and
+storage are explicit before a write is submitted.
 
 ## Local development
 
@@ -46,8 +48,8 @@ Do not reintroduce a sidebar-first shell for this UI.
   `{ "items": [] }` envelope.
 - `POST /api/v1/messagequeues`: create a Kafka resource from the form body. The
   browser sends `{ "name": "...", "spec": { "engine": "kafka", "kafka":
-  { "version": "...", "replicas": 1 }, "resources": { "cpu": "1",
-  "memory": "2Gi" }, "storage": { "size": "20Gi", "className": "..." },
+  { "version": "...", "replicas": 1 }, "resources": { "cpu": "500m",
+  "memory": "1Gi" }, "storage": { "size": "10Gi", "className": "..." },
   "deletionPolicy": "Retain" } }`; workspace identity is server-derived.
 - `GET /api/v1/messagequeues/{name}` is reserved for detail refreshes.
 - `GET /api/v1/messagequeues/{name}/client-config` loads safe connection
@@ -72,3 +74,6 @@ The shell follows the Sealos Desktop language setting through the Desktop SDK
 protocol. Standalone local development falls back to Chinese unless
 `window.MESSAGEQUEUE_LOCALE`, `MESSAGEQUEUE_LOCALE`, `NEXT_LOCALE`, or the
 browser language supplies a supported locale.
+
+Semantic tags for the create workflow are documented in
+[`semantic-test-contract.md`](semantic-test-contract.md).

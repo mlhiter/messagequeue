@@ -60,76 +60,260 @@
       </main>
     </div>
 
-    <dialog class="modal" id="create-modal" aria-labelledby="create-title">
-      <form method="dialog" id="create-form" novalidate>
+    <dialog
+      class="modal create-modal"
+      id="create-modal"
+      aria-labelledby="create-title"
+      data-testid="messagequeue.create.modal"
+      data-qa-module="messagequeue"
+      data-qa-object="kafka-cluster"
+    >
+      <form method="dialog" id="create-form" novalidate data-testid="messagequeue.create.form">
         <div class="modal-header">
           <div>
             <p class="eyebrow" id="create-eyebrow">新资源</p>
             <h2 id="create-title">创建 Kafka 集群</h2>
             <p class="modal-description" id="create-description">
-              控制器会在你的工作空间命名空间里创建 Strimzi 资源。
+              选择一个规格，控制器会在你的工作空间命名空间里创建 Strimzi 资源。
             </p>
           </div>
-          <button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭" id="modal-close">×</button>
+          <button
+            class="icon-button modal-close-button"
+            value="cancel"
+            type="submit"
+            title="关闭"
+            aria-label="关闭"
+            id="modal-close"
+            data-testid="messagequeue.create.close-button"
+            data-qa-action="close"
+          >
+            ×
+          </button>
         </div>
         <div class="form-body">
-          <div id="form-error" class="form-error" role="alert" hidden>请输入合法的集群名称，并检查各项配置。</div>
-          <div class="field-grid">
-            <label class="field field-wide">
-              <span id="field-name-label">集群名称 <em id="field-name-required">必填</em></span>
-              <input
-                required
-                pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-                maxlength="40"
-                id="cluster-name"
-                name="name"
-                placeholder="orders-dev"
-              />
-              <small id="field-name-help">仅支持小写字母、数字和连字符。</small>
-            </label>
-            <label class="field">
-              <span id="field-version-label">Kafka 版本 <em id="field-version-recommended">推荐</em></span>
-              <select id="kafka-version" name="version">
-                <option value="3.9.0">3.9.0</option>
-                <option value="4.0.0">4.0.0</option>
-              </select>
-            </label>
-            <label class="field">
-              <span id="field-brokers-label">Broker 数量</span>
-              <input id="broker-count" name="brokers" type="number" value="1" min="1" max="9" step="1" />
-              <small id="field-brokers-help">生产环境建议至少 3 个 broker。</small>
-            </label>
-            <label class="field">
-              <span id="field-storage-label">每个 Broker 的存储</span>
-              <div class="input-suffix">
-                <input id="storage-size" name="storageGi" type="number" value="20" min="1" step="1" />
-                <span>Gi</span>
-              </div>
-            </label>
-            <label class="field">
-              <span id="field-class-label">存储类</span>
-              <input id="storage-class" name="storageClass" value="" placeholder="默认集群存储" />
-            </label>
-            <label class="field">
-              <span id="field-policy-label">删除策略</span>
-              <select id="deletion-policy" name="deletionPolicy">
-                <option value="Retain">保留数据</option>
-                <option value="Delete">随集群删除</option>
-              </select>
-            </label>
+          <div
+            id="form-error"
+            class="form-error"
+            role="alert"
+            hidden
+            data-testid="messagequeue.create.error"
+            data-qa-state="error"
+            data-qa-error-code="invalid_request"
+          >
+            请输入合法的集群名称，并检查各项配置。
           </div>
+          <section class="form-section" aria-labelledby="basic-section-title">
+            <div class="form-section-title">
+              <span class="step-badge" aria-hidden="true">1</span>
+              <div>
+                <h3 id="basic-section-title">基础信息</h3>
+                <p id="basic-section-copy">名称会成为 Kubernetes 资源名称。</p>
+              </div>
+            </div>
+            <div class="field-grid field-grid-basic">
+              <label class="field field-wide">
+                <span><span id="field-name-label">集群名称</span> <em id="field-name-required">必填</em></span>
+                <input
+                  required
+                  pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+                  maxlength="40"
+                  id="cluster-name"
+                  name="name"
+                  placeholder="orders-dev"
+                  data-testid="messagequeue.create.name-input"
+                  data-qa-field="name"
+                />
+                <small id="field-name-help">仅支持小写字母、数字和连字符。</small>
+              </label>
+              <label class="field">
+                <span><span id="field-version-label">Kafka 版本</span> <em id="field-version-recommended">推荐</em></span>
+                <select
+                  id="kafka-version"
+                  name="version"
+                  data-testid="messagequeue.create.version-select"
+                  data-qa-field="kafka_version"
+                >
+                  <option value="3.9.0">3.9.0</option>
+                  <option value="4.0.0">4.0.0</option>
+                </select>
+              </label>
+            </div>
+          </section>
+          <fieldset class="form-section preset-group" aria-describedby="profile-help">
+            <legend class="form-section-title">
+              <span class="step-badge" aria-hidden="true">2</span>
+              <div>
+                <span class="form-section-heading" id="profile-label">规格预设</span>
+                <span class="section-copy" id="profile-help">开发规格默认打开，资源不够再切自定义。</span>
+              </div>
+            </legend>
+            <div class="preset-grid">
+              <label
+                class="preset-card"
+                data-testid="messagequeue.create.profile-option"
+                data-qa-profile="development"
+              >
+                <input id="profile-development" name="profile" type="radio" value="development" checked />
+                <span class="preset-card-copy">
+                  <strong id="profile-development-title">开发</strong>
+                  <small id="profile-development-copy">单 Broker，适合验证和轻量测试。</small>
+                </span>
+                <span class="preset-card-meta" id="profile-development-meta">500m / 1Gi / 10Gi</span>
+              </label>
+              <label
+                class="preset-card"
+                data-testid="messagequeue.create.profile-option"
+                data-qa-profile="standard"
+              >
+                <input id="profile-standard" name="profile" type="radio" value="standard" />
+                <span class="preset-card-copy">
+                  <strong id="profile-standard-title">标准</strong>
+                  <small id="profile-standard-copy">3 Broker，适合更接近生产的验证。</small>
+                </span>
+                <span class="preset-card-meta" id="profile-standard-meta">1 CPU / 2Gi / 20Gi</span>
+              </label>
+              <label
+                class="preset-card"
+                data-testid="messagequeue.create.profile-option"
+                data-qa-profile="custom"
+              >
+                <input id="profile-custom" name="profile" type="radio" value="custom" />
+                <span class="preset-card-copy">
+                  <strong id="profile-custom-title">自定义</strong>
+                  <small id="profile-custom-copy">手动配置 broker、CPU、内存和存储。</small>
+                </span>
+                <span class="preset-card-meta" id="profile-custom-meta">可编辑</span>
+              </label>
+            </div>
+          </fieldset>
+          <section
+            class="form-section resource-section"
+            id="custom-resource-fields"
+            aria-labelledby="resource-section-title"
+            data-qa-state="preset"
+          >
+            <div class="form-section-title">
+              <span class="step-badge" aria-hidden="true">3</span>
+              <div>
+                <h3 id="resource-section-title">规格细节</h3>
+                <p id="resource-section-copy">CPU 和内存会写入每个 broker 的资源请求和限制。</p>
+              </div>
+            </div>
+            <div class="field-grid resource-grid">
+              <label class="field">
+                <span id="field-brokers-label">Broker 数量</span>
+                <input
+                  id="broker-count"
+                  name="brokers"
+                  type="number"
+                  value="1"
+                  min="1"
+                  max="9"
+                  step="1"
+                  data-testid="messagequeue.create.broker-input"
+                  data-qa-field="broker_count"
+                />
+                <small id="field-brokers-help">生产环境建议至少 3 个 broker。</small>
+              </label>
+              <label class="field">
+                <span id="field-cpu-label">每个 Broker 的 CPU</span>
+                <input
+                  id="broker-cpu"
+                  name="cpu"
+                  value="500m"
+                  required
+                  pattern="([1-9][0-9]*m|[1-9][0-9]*(\.[0-9]+)?|0\.[0-9]*[1-9][0-9]*)"
+                  title="例如 500m 或 1"
+                  data-testid="messagequeue.create.cpu-input"
+                  data-qa-field="broker_cpu"
+                />
+                <small id="field-cpu-help">支持 Kubernetes CPU 数量，例如 500m、1、1.5。</small>
+              </label>
+              <label class="field">
+                <span id="field-memory-label">每个 Broker 的内存</span>
+                <input
+                  id="broker-memory"
+                  name="memory"
+                  value="1Gi"
+                  required
+                  pattern="[1-9][0-9]*(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K)"
+                  title="例如 1Gi 或 1024Mi"
+                  data-testid="messagequeue.create.memory-input"
+                  data-qa-field="broker_memory"
+                />
+                <small id="field-memory-help">建议使用 Gi 或 Mi，例如 1Gi、2048Mi。</small>
+              </label>
+              <label class="field">
+                <span id="field-storage-label">每个 Broker 的存储</span>
+                <div class="input-suffix">
+                  <input
+                    id="storage-size"
+                    name="storageGi"
+                    type="number"
+                    value="10"
+                    min="1"
+                    max="1024"
+                    step="1"
+                    data-testid="messagequeue.create.storage-input"
+                    data-qa-field="storage_gi"
+                  />
+                  <span>Gi</span>
+                </div>
+                <small id="field-storage-help">每个 broker 支持 1 到 1024 Gi。</small>
+              </label>
+              <label class="field">
+                <span id="field-class-label">存储类</span>
+                <input
+                  id="storage-class"
+                  name="storageClass"
+                  value=""
+                  placeholder="默认集群存储"
+                  data-testid="messagequeue.create.storage-class-input"
+                  data-qa-field="storage_class"
+                />
+              </label>
+              <label class="field">
+                <span id="field-policy-label">删除策略</span>
+                <select
+                  id="deletion-policy"
+                  name="deletionPolicy"
+                  data-testid="messagequeue.create.deletion-policy-select"
+                  data-qa-field="deletion_policy"
+                >
+                  <option value="Retain">保留数据</option>
+                  <option value="Delete">随集群删除</option>
+                </select>
+              </label>
+            </div>
+          </section>
           <div class="impact-box">
             <div class="impact-heading">
               <span aria-hidden="true">i</span>
               <strong id="impact-heading">资源占用</strong>
             </div>
-            <p id="impact-copy">1 个 broker · 20 Gi 存储 · TLS + SCRAM 认证 · 保留数据</p>
+            <p
+              id="impact-copy"
+              data-testid="messagequeue.create.summary"
+              data-qa-state="development"
+            >
+              开发 · 1 个 broker · 500m CPU / 1Gi 内存 · 每个 10 Gi 存储 · 保留数据
+            </p>
             <small id="impact-note">创建是异步的。你可以在集群详情里跟踪观测状态。</small>
           </div>
         </div>
         <div class="modal-footer">
           <button class="button button-secondary" value="cancel" type="submit" id="cancel-button">取消</button>
-          <button class="button button-primary" id="submit-create" value="default" type="submit">创建</button>
+          <button
+            class="button button-primary"
+            id="submit-create"
+            value="default"
+            type="submit"
+            data-testid="messagequeue.create.submit-button"
+            data-qa-action="create"
+            data-qa-state="ready"
+          >
+            创建
+          </button>
         </div>
       </form>
     </dialog>

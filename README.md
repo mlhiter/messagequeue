@@ -58,7 +58,7 @@ docs/          Architecture, information architecture, references, and runbook
 
 ## Development Status
 
-Release `0.1.7` provides a deployable Kafka control plane: Strimzi `0.46.0`
+Release `0.1.8` provides a deployable Kafka control plane: Strimzi `0.46.0`
 reconciles Kafka `3.9.0`/`4.0.0` KRaft resources, the backend exposes namespaced
 status/log/metrics contracts plus create/delete and secret-free
 client-configuration contracts. The first-party UI uses a dedicated cluster
@@ -70,7 +70,10 @@ Desktop.
 The management UI now uses a DevBox-style list-first shell: a compact top
 header, dense table rows, and a dedicated per-cluster detail page. It follows
 the Sealos Desktop language setting through the Desktop SDK protocol, with
-Chinese as the standalone fallback.
+Chinese as the standalone fallback. Kafka creation defaults to the development
+profile from `deploy/examples/messagequeue-dev.yaml`: 1 broker, 500m CPU, 1Gi
+memory, 10Gi storage, and Retain deletion policy; standard and custom profiles
+make larger resource requests explicit before submission.
 
 Known limits are deliberate: metrics currently return a bounded degraded state
 until the platform VictoriaMetrics adapter is connected, historical logs are

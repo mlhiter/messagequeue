@@ -1,7 +1,7 @@
 # Runbook
 
 This runbook covers the deployable Kafka vertical slice. The tested release
-uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.7`.
+uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.8`.
 
 ## Deployment Order
 

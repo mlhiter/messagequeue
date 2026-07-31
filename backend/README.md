@@ -57,15 +57,19 @@ Create accepts the following product-level shape. `engine` must be `kafka`;
 Kafka version/replicas, deletion policy, resources, and storage are translated
 to the controller's `MessageQueueSpec`. The request decoder rejects unknown
 fields. The first-party UI may send the equivalent flat form with top-level
-`engine`, `kafka.version`, `kafka.brokers`, `kafka.storageGi`,
-`kafka.storageClass`, `deletionPolicy`, `monitoring`, and `console`; integration
-flags are intentionally not written into the Kubernetes CR. Browser requests may
-not set `spec.storage.deleteClaim` directly; deletion safety is derived from
-the product-level `deletionPolicy`.
+`engine`, `kafka.version`, `kafka.brokers`, `kafka.cpu`, `kafka.memory`,
+`kafka.storageGi`, `kafka.storageClass`, `deletionPolicy`, `monitoring`, and
+`console`; integration flags are intentionally not written into the Kubernetes
+CR. Browser requests may not set `spec.storage.deleteClaim` directly; deletion
+safety is derived from the product-level `deletionPolicy`.
 
 The accepted Kafka versions match the controller contract: `3.9.0` and
 `4.0.0`. An omitted version/replica/storage value is defaulted by the
-controller. Create and delete are first-class API operations; they require a
+controller. Create rejects operator-only fields such as `spec.topology`,
+`spec.suspend`, and `spec.storage.deleteClaim`; topology and claim safety are
+owned by the controller and product deletion policy. Broker requests are capped
+per broker at 8 CPU, 64Gi memory, and 1024Gi storage before Kubernetes quota is
+consulted. Create and delete are first-class API operations; they require a
 server-side workspace identity and never accept namespace authority from the
 browser.
 
@@ -75,7 +79,7 @@ browser.
   "spec": {
     "engine": "kafka",
     "kafka": { "version": "3.9.0", "replicas": 1 },
-    "resources": { "cpu": "1", "memory": "2Gi" },
+    "resources": { "cpu": "500m", "memory": "1Gi" },
     "storage": { "size": "10Gi", "className": "fast" },
     "deletionPolicy": "Retain"
   }

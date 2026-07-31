@@ -62,8 +62,11 @@ if (!source.includes('fetch(`${API_BASE}${path}`')) {
 if (!source.includes("result.degraded") || !source.includes("metricsUnavailable")) {
   throw new Error("metrics degraded state is not rendered explicitly");
 }
-if (!source.includes("function writesEnabled()") || !source.includes('CREATE_ENABLED && state.apiState === "ready"')) {
-  throw new Error("write affordances must require both config and a ready API");
+if (source.includes("CREATE_ENABLED") || source.includes("MESSAGEQUEUE_CREATE_ENABLED")) {
+  throw new Error("write affordances must not depend on a create feature flag");
+}
+if (!source.includes("function writesEnabled()") || !source.includes('return state.apiState === "ready";')) {
+  throw new Error("write affordances must require a ready API");
 }
 if (!source.includes('/client-config') || !source.includes('data-action="load-client-config"')) {
   throw new Error("safe client configuration entry point is missing");
@@ -79,7 +82,7 @@ for (const key of [
   "clientConfigUnavailable",
   "noSecretMaterial",
   "deleteCluster",
-  "deleteDisabledReadOnly",
+  "deleteUnavailable",
   "deleteConfirmPrompt"
 ]) {
   if (!source.includes(key)) {

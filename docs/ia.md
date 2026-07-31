@@ -13,10 +13,10 @@ Its first screen is the user's cluster list and current system state.
 
 The entry route is the cluster list. It presents name, readiness, effective
 version, broker count, storage, workspace, generation, and last transition in a
-dense table. The primary action is the header-level create action; public
-Desktop installs show it disabled until workspace identity is connected. Each
-row is a navigation link to the dedicated detail page. Filters cover status,
-engine, and workspace when the user can access more than one workspace.
+dense table. The primary action is the header-level create action, available
+whenever the management API is ready. Each row is a navigation link to the
+dedicated detail page. Filters cover status, engine, and workspace when the
+user can access more than one workspace.
 
 ## Create Cluster
 

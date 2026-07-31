@@ -19,10 +19,9 @@ func (i staticIdentity) Identity(_ context.Context, _ *http.Request) (Identity, 
 func newTestServer() (*Server, *MemoryStore) {
 	store := NewMemoryStore()
 	return &Server{
-		Store:       store,
-		Metrics:     FixedMetricsProvider{Values: map[string]MetricResponse{"broker_count": {Unit: "count", Values: []MetricPoint{{Value: 1}}}}},
-		Identity:    staticIdentity{Namespace: "ns-test", UserID: "user-1"},
-		AllowCreate: true,
+		Store:    store,
+		Metrics:  FixedMetricsProvider{Values: map[string]MetricResponse{"broker_count": {Unit: "count", Values: []MetricPoint{{Value: 1}}}}},
+		Identity: staticIdentity{Namespace: "ns-test", UserID: "user-1"},
 	}, store
 }
 
@@ -123,26 +122,22 @@ func TestCreateListDetailAndStatusUseIdentityNamespace(t *testing.T) {
 	}
 }
 
-func TestCreateDisabledRequiresAuthenticatedWorkspaceSession(t *testing.T) {
-	server, store := newTestServer()
-	seedReadyMessageQueue(t, store, "ns-test", "orders")
-	server.AllowCreate = false
-	body := `{"name":"orders","spec":{"engine":"kafka","kafka":{"replicas":1},"resources":{"cpu":"1","memory":"2Gi"},"storage":{"size":"10Gi"}}}`
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(body))
-	recording := httptest.NewRecorder()
-	server.ServeHTTP(recording, request)
-	if recording.Code != http.StatusForbidden {
-		t.Fatalf("create disabled status = %d, body=%s", recording.Code, recording.Body.String())
+func TestWritesRequireServerSideWorkspaceIdentity(t *testing.T) {
+	server := &Server{
+		Store:    NewMemoryStore(),
+		Metrics:  UnavailableMetricsProvider{},
+		Identity: staticIdentity{Namespace: "", UserID: "user-1"},
 	}
-
-	request = httptest.NewRequest(http.MethodDelete, "/api/v1/messagequeues/orders", nil)
-	recording = httptest.NewRecorder()
-	server.ServeHTTP(recording, request)
-	if recording.Code != http.StatusForbidden {
-		t.Fatalf("delete disabled status = %d, body=%s", recording.Code, recording.Body.String())
+	requests := []*http.Request{
+		httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(`{"name":"orders","engine":"kafka"}`)),
+		httptest.NewRequest(http.MethodDelete, "/api/v1/messagequeues/orders", nil),
 	}
-	if _, err := store.Get(context.Background(), "ns-test", "orders"); err != nil {
-		t.Fatalf("delete disabled removed resource: %v", err)
+	for _, request := range requests {
+		recording := httptest.NewRecorder()
+		server.ServeHTTP(recording, request)
+		if recording.Code != http.StatusUnauthorized {
+			t.Fatalf("%s status = %d, body=%s", request.Method, recording.Code, recording.Body.String())
+		}
 	}
 }
 

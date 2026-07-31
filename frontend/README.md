@@ -54,8 +54,7 @@ Do not reintroduce a sidebar-first shell for this UI.
   metadata for the Connections tab. It may include a Secret name reference but
   never Secret `data`, passwords, private keys, or kubeconfigs.
 - `DELETE /api/v1/messagequeues/{name}` is called from the Settings tab after
-  explicit confirmation. The action is disabled unless write actions are
-  enabled and the API is ready.
+  explicit confirmation. The action is available whenever the API is ready.
 - `GET /api/v1/messagequeues/{name}/logs?component=broker&tailLines=200` and
   `GET /api/v1/messagequeues/{name}/metrics?key=throughput` are fixed, bounded
   observability queries. The UI never sends raw PromQL or LogsQL.
@@ -64,12 +63,10 @@ The list and detail views distinguish loading, empty, ready, provisioning,
 degraded, failed, deleting, suspended, and permission-denied states. If the API
 is unreachable, the UI renders clearly labelled read-only demo data so the
 control surface remains inspectable; create, delete, and observability actions
-still require a working backend. Public desktop installs keep write actions
-disabled until the Sealos session/workspace adapter is connected. The browser
-reads `window.MESSAGEQUEUE_CREATE_ENABLED` from `config.js`; when it is false or
-the API is degraded/forbidden, create and delete controls remain disabled. A
-metrics provider response with `degraded: true` is rendered as “Metrics
-unavailable” rather than as zero-valued data.
+still require a working backend. Create and delete are not feature-flagged in
+the browser; the backend's server-side identity and Kubernetes authorization
+remain the write boundary. A metrics provider response with `degraded: true` is
+rendered as “Metrics unavailable” rather than as zero-valued data.
 
 The shell follows the Sealos Desktop language setting through the Desktop SDK
 protocol. Standalone local development falls back to Chinese unless

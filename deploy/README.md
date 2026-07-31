@@ -63,9 +63,9 @@ helm upgrade --install messagequeue deploy/charts/messagequeue \
   --set images.controller.repository=<registry>/messagequeue-controller \
   --set images.backend.repository=<registry>/messagequeue-backend \
   --set images.frontend.repository=<registry>/messagequeue-frontend \
-  --set images.controller.tag=v0.1.6 \
-  --set images.backend.tag=v0.1.6 \
-  --set images.frontend.tag=v0.1.6
+  --set images.controller.tag=v0.1.7 \
+  --set images.backend.tag=v0.1.7 \
+  --set images.frontend.tag=v0.1.7
 ```
 
 `docker buildx bake -f deploy/docker-bake.hcl --push` defaults test builds to
@@ -105,7 +105,7 @@ and uses `/logo.svg` from the frontend image. If `wildcard-cert` is absent from
 `TLS_SOURCE_NAMESPACE` (default `dbprovider-frontend`) without printing its
 data.
 
-The public Desktop entry is read-only while the backend is using the fixed
-cluster-62 workspace fallback. The chart renders `MESSAGEQUEUE_ALLOW_CREATE`
-and `CREATE_ENABLED` as `false` by default; enable create/delete writes only
-after the Sealos session/workspace adapter is connected.
+The public Desktop entry exposes create and delete by default. On cluster 62,
+the backend uses the fixed server-owned workspace fallback for `ns-admin`; do
+not accept namespace values from the browser when replacing this with the
+Sealos session/workspace adapter.

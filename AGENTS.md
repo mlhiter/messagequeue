@@ -35,6 +35,8 @@ behavior.
 
 ## Delivery
 
+- This is currently a solo-development repository. Work directly on `main`
+  unless the user explicitly asks for a feature branch or PR workflow.
 - Production container images target `linux/amd64` unless ARM is explicitly
   requested.
 - Pin operator, application, and console images by version and digest for

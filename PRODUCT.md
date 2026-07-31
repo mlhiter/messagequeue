@@ -11,8 +11,8 @@ and operate Kafka without managing raw operator resources. Developers consume
 connection information, logs, metrics, and a user-facing Kafka console within
 the permissions of their workspace. Platform operators install and maintain
 the shared controller, Strimzi, and observability integrations. The public
-Sealos Desktop entry remains read-only until session/workspace identity is
-wired end-to-end.
+Sealos Desktop entry exposes the same create and lifecycle workflows as the
+management API, with workspace ownership derived on the server side.
 
 ## Product Purpose
 

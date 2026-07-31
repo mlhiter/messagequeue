@@ -10,7 +10,6 @@ data:
   MESSAGEQUEUE_WORKSPACE_NAMESPACE: {{ required "backend.workspaceNamespace is required" .Values.backend.workspaceNamespace | quote }}
   MESSAGEQUEUE_USER_ID: {{ .Values.backend.userID | quote }}
   MESSAGEQUEUE_LISTEN_ADDR: {{ printf ":%d" (int .Values.backend.port) | quote }}
-  MESSAGEQUEUE_ALLOW_CREATE: {{ .Values.backend.allowCreate | quote }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -22,4 +21,3 @@ metadata:
     app.kubernetes.io/component: frontend
 data:
   API_BASE_URL: {{ .Values.frontend.apiBaseURL | quote }}
-  CREATE_ENABLED: {{ .Values.frontend.createEnabled | quote }}

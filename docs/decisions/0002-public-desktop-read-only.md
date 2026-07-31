@@ -1,6 +1,6 @@
 # 0002: Public Desktop Entry Is Read-Only Until Workspace Identity Is Connected
 
-- Status: Accepted
+- Status: Superseded by [0003](0003-create-enabled-by-default.md)
 - Date: 2026-07-28
 
 ## Context
@@ -32,6 +32,6 @@ state, and use read-only operational surfaces while identity integration is
 unfinished. Provisioning remains blocked on the public route, preventing the
 single-workspace fallback from becoming an authorization bypass.
 
-The next implementation step is to replace the fallback identity with the real
-session/workspace adapter, add permission checks for writes, and then enable
-the create flow through release values.
+This decision was superseded on 2026-07-31. Create and lifecycle writes are now
+default product capabilities; the backend workspace identity and Kubernetes
+authorization remain the write boundary.

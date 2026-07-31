@@ -1,7 +1,7 @@
 # Runbook
 
 This runbook covers the deployable Kafka vertical slice. The tested release
-uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.6`.
+uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.7`.
 
 ## Deployment Order
 
@@ -61,11 +61,11 @@ the `messagequeue.192.168.0.62.nip.io` Ingress, `/logo.svg`, and a real iframe
 open from the Desktop. A public HTTP 200 alone does not prove the desktop entry
 or embedded management workflow works.
 
-Until the Sealos session/workspace adapter replaces the fixed workspace
-fallback identity, the public Desktop entry must keep
-`MESSAGEQUEUE_ALLOW_CREATE=false` and `CREATE_ENABLED=false`. List, detail,
-logs, metrics, and safe client-configuration checks remain valid; create and
-delete writes are deliberately disabled.
+The public Desktop entry exposes create and delete by default. On cluster 62,
+the backend currently derives the writable workspace from the server-owned
+`ns-admin` fallback. When replacing that fallback with the Sealos
+session/workspace adapter, keep namespace authority server-derived and verify
+create/delete against the authenticated workspace before rollout.
 
 ## Degraded Dependencies
 
@@ -86,8 +86,8 @@ workloads directly as a suspension mechanism.
 
 ## Rollback
 
-- Disable new cluster creation before rolling back incompatible control-plane
-  changes.
+- Pause new user-initiated cluster creation while rolling back incompatible
+  control-plane changes; do not reintroduce a create feature flag for this.
 - Roll back frontend, backend, and MessageQueue controller images independently.
 - Keep Strimzi and all CRDs installed while Kafka resources exist.
 - Do not use Kafka binary downgrade as a routine rollback.

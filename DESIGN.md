@@ -70,8 +70,8 @@ surrounding content.
 ## Interaction Model
 
 The entry route is the cluster list. Its job is to orient, search, create, and
-open a resource. The create action sits in the page header; public Desktop
-installs keep it visibly disabled until workspace identity is connected.
+open a resource. The create action sits in the page header and is available by
+default whenever the management API is ready.
 
 Cluster rows navigate to a dedicated detail page. Detail pages own overview,
 connection, logs, and metrics tabs, and always provide a clear return path to

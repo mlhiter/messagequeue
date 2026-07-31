@@ -3,7 +3,6 @@
 
   const API_BASE = (window.MESSAGEQUEUE_API_BASE || "/api").replace(/\/$/, "");
   const API_PREFIX = "/v1/messagequeues";
-  const CREATE_ENABLED = window.MESSAGEQUEUE_CREATE_ENABLED !== false;
   const DEFAULT_LANGUAGE = "zh";
   const SEALOS_DESKTOP_EVENT_API = "event-bus";
   const SEALOS_DESKTOP_LANGUAGE_API = "getLanguage";
@@ -59,7 +58,7 @@
       noKafkaClustersYet: "还没有 Kafka 集群",
       noMatchingClusters: "没有匹配的集群",
       createDevClusterHint: "创建一个开发集群开始发送消息。",
-      createDisabledHint: "在工作空间会话身份接入前，创建功能已关闭。",
+      createUnavailableHint: "API 接通后即可创建开发集群。",
       tryDifferentName: "换个名字试试，或者清空搜索。",
       selectACluster: "选择一个集群",
       selectAClusterHint: "从列表中选择一个资源查看它的观测状态。",
@@ -201,8 +200,8 @@
       topbarRefresh: "刷新",
       managementApiUnavailable:
         "后端不可达。这里显示只读演示数据；请先接通 API 再创建资源。",
-      clusterCreationDisabled:
-        "在工作空间会话身份接入前，集群创建已禁用。",
+      clusterCreationUnavailable:
+        "管理 API 不可用，暂时不能创建集群。",
       loadingState: "正在加载…",
       noHelp: "暂无帮助内容",
       operationsComingSoon: "运维功能正在完善中",
@@ -211,7 +210,7 @@
       deletingCluster: "正在删除…",
       dangerZone: "危险操作",
       deleteClusterDescription: "删除 MessageQueue 资源。实际 PVC 处理遵循创建时选择的删除策略。",
-      deleteDisabledReadOnly: "当前会话是只读模式，不能删除集群。",
+      deleteUnavailable: "管理 API 不可用，暂时不能删除集群。",
       deleteConfirmPrompt: (name) => `确认删除 ${name}？这个操作会提交到当前工作空间。`,
       deleteFailed: (message) => `删除失败：${message}`,
       deleteRetainImpact: "当前策略会保留数据卷。",
@@ -268,7 +267,7 @@
       noKafkaClustersYet: "No Kafka clusters yet",
       noMatchingClusters: "No matching clusters",
       createDevClusterHint: "Create a development cluster to start producing messages.",
-      createDisabledHint: "Cluster creation is disabled until workspace session identity is connected.",
+      createUnavailableHint: "Connect the API to create a development cluster.",
       tryDifferentName: "Try a different name or clear the search.",
       selectACluster: "Select a cluster",
       selectAClusterHint: "Choose a resource from the list to inspect its observed status.",
@@ -405,7 +404,7 @@
       topbarRefresh: "Refresh",
       managementApiUnavailable:
         "The backend could not be reached. Demo data is read only; connect the API before creating resources.",
-      clusterCreationDisabled: "Cluster creation is disabled until workspace session identity is connected.",
+      clusterCreationUnavailable: "The management API is unavailable, so clusters cannot be created yet.",
       loadingState: "Loading…",
       noHelp: "No help content yet",
       operationsComingSoon: "Operations are still being polished",
@@ -414,7 +413,7 @@
       deletingCluster: "Deleting…",
       dangerZone: "Danger zone",
       deleteClusterDescription: "Delete the MessageQueue resource. PVC handling follows the deletion policy selected during creation.",
-      deleteDisabledReadOnly: "This session is read-only and cannot delete clusters.",
+      deleteUnavailable: "The management API is unavailable, so clusters cannot be deleted yet.",
       deleteConfirmPrompt: (name) => `Delete ${name}? This submits a write to the current workspace.`,
       deleteFailed: (message) => `Delete failed: ${message}`,
       deleteRetainImpact: "The current policy retains data volumes.",
@@ -727,7 +726,7 @@
     $("#search-input")?.setAttribute("placeholder", message("searchPlaceholder"));
     if ($("#create-button")) {
       $("#create-button").disabled = !writesEnabled();
-      $("#create-button").setAttribute("title", writesEnabled() ? message("newCluster") : message("clusterCreationDisabled"));
+      $("#create-button").setAttribute("title", writesEnabled() ? message("newCluster") : message("clusterCreationUnavailable"));
     }
     $("#submit-create")?.setAttribute("value", "default");
 
@@ -960,7 +959,7 @@
   }
 
   function writesEnabled() {
-    return CREATE_ENABLED && state.apiState === "ready";
+    return state.apiState === "ready";
   }
 
   async function request(path, options = {}) {
@@ -1087,7 +1086,7 @@
       createButton.setAttribute(
         "title",
         !canWrite
-          ? message("clusterCreationDisabled")
+          ? message("clusterCreationUnavailable")
           : isDetail
             ? message("detailPageTitle")
             : message("newCluster")
@@ -1121,7 +1120,7 @@
     if (subtitleNode) subtitleNode.textContent = subtitle;
 
     if (!clusters.length) {
-      const emptyCopy = canWrite ? message("createDevClusterHint") : message("createDisabledHint");
+      const emptyCopy = canWrite ? message("createDevClusterHint") : message("createUnavailableHint");
       list.innerHTML = `<div class="empty-state"><strong>${escapeHtml(state.search ? message("noMatchingClusters") : message("noKafkaClustersYet"))}</strong><p>${escapeHtml(state.search ? message("tryDifferentName") : emptyCopy)}</p>${state.search || !canWrite ? "" : `<button class="button button-primary" type="button" data-action="open-create">${escapeHtml(message("createButtonShort"))}</button>`}</div>`;
       return;
     }
@@ -1185,7 +1184,7 @@
         ? message("deleteDeleteImpact")
         : message("deleteRetainImpact");
     const error = state.deleteError?.name === cluster.name ? `<div class="form-error" role="alert">${escapeHtml(state.deleteError.message)}</div>` : "";
-    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("dangerZone"))}</h3><span>${escapeHtml(message("deletionPolicy"))}</span></div><div class="danger-panel"><div><strong>${escapeHtml(message("deleteCluster"))}</strong><p>${escapeHtml(message("deleteClusterDescription"))} ${escapeHtml(deleteCopy)}</p>${canWrite ? "" : `<p>${escapeHtml(message("deleteDisabledReadOnly"))}</p>`}</div><button class="button button-danger" type="button" data-action="delete-cluster" ${canWrite && !state.deleteSubmitting ? "" : "disabled"}>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</button></div>${error}</section>`;
+    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("dangerZone"))}</h3><span>${escapeHtml(message("deletionPolicy"))}</span></div><div class="danger-panel"><div><strong>${escapeHtml(message("deleteCluster"))}</strong><p>${escapeHtml(message("deleteClusterDescription"))} ${escapeHtml(deleteCopy)}</p>${canWrite ? "" : `<p>${escapeHtml(message("deleteUnavailable"))}</p>`}</div><button class="button button-danger" type="button" data-action="delete-cluster" ${canWrite && !state.deleteSubmitting ? "" : "disabled"}>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</button></div>${error}</section>`;
   }
 
   function logsHtml(cluster) {

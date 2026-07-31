@@ -90,18 +90,6 @@ func envOr(name, fallback string) string {
 	return fallback
 }
 
-func envBool(name string, fallback bool) bool {
-	raw := strings.TrimSpace(os.Getenv(name))
-	if raw == "" {
-		return fallback
-	}
-	value, err := strconv.ParseBool(raw)
-	if err != nil {
-		return fallback
-	}
-	return value
-}
-
 type MessageQueueStore interface {
 	List(context.Context, string) ([]MessageQueue, error)
 	Create(context.Context, string, MessageQueue) (MessageQueue, error)
@@ -118,12 +106,11 @@ type MetricsProvider interface {
 }
 
 type Server struct {
-	Store       MessageQueueStore
-	Metrics     MetricsProvider
-	Identity    IdentityProvider
-	AllowCreate bool
-	Logger      *slog.Logger
-	Now         func() time.Time
+	Store    MessageQueueStore
+	Metrics  MetricsProvider
+	Identity IdentityProvider
+	Logger   *slog.Logger
+	Now      func() time.Time
 }
 
 type IdentityProvider interface {
@@ -159,10 +146,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Method == http.MethodPost {
-			if !s.AllowCreate {
-				writeError(w, http.StatusForbidden, "forbidden", "cluster writes require an authenticated workspace session")
-				return
-			}
 			s.create(w, r)
 			return
 		}
@@ -185,10 +168,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Method == http.MethodDelete {
-			if !s.AllowCreate {
-				writeError(w, http.StatusForbidden, "forbidden", "cluster writes require an authenticated workspace session")
-				return
-			}
 			s.delete(w, r, name)
 			return
 		}
@@ -429,15 +408,14 @@ func main() {
 		os.Exit(1)
 	}
 	server := &Server{
-		Store:       store,
-		Metrics:     UnavailableMetricsProvider{},
-		Identity:    EnvIdentityProvider{Namespace: identity.Namespace, UserID: identity.UserID},
-		AllowCreate: envBool("MESSAGEQUEUE_ALLOW_CREATE", false),
-		Logger:      logger,
-		Now:         time.Now,
+		Store:    store,
+		Metrics:  UnavailableMetricsProvider{},
+		Identity: EnvIdentityProvider{Namespace: identity.Namespace, UserID: identity.UserID},
+		Logger:   logger,
+		Now:      time.Now,
 	}
 	listen := envOr("MESSAGEQUEUE_LISTEN_ADDR", ":8080")
-	logger.Info("messagequeue backend listening", "addr", listen, "namespace", identity.Namespace, "allowCreate", server.AllowCreate)
+	logger.Info("messagequeue backend listening", "addr", listen, "namespace", identity.Namespace)
 	httpServer := &http.Server{
 		Addr:              listen,
 		Handler:           server,

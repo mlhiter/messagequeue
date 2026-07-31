@@ -1,6 +1,6 @@
 {
   "name": "@messagequeue/management-ui",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "description": "First-party MessageQueue Kafka management UI",
   "scripts": {

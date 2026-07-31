@@ -100,9 +100,9 @@ semantics where the brokers differ.
 - Kubernetes authorization remains the final permission check.
 - Secrets are referenced by name in status and fetched only for authorized
   server-side operations.
-- Public desktop installs keep cluster creation disabled until the Sealos
-  session/workspace adapter is connected; list/detail/logs/metrics remain
-  available in read-only mode.
+- Public desktop installs expose create and lifecycle writes by default. The
+  backend's server-owned workspace identity decides the target namespace; the
+  browser never supplies namespace authority.
 - Broker authentication uses TLS, SCRAM-SHA-512, and Kafka ACLs by default.
 - Kafbat has no public Service or Kubernetes API token. Network policy permits
   only approved ingress and Kafka-related egress.

@@ -37,11 +37,6 @@ spec:
                 configMapKeyRef:
                   name: {{ include "messagequeue.fullname" . }}-frontend
                   key: API_BASE_URL
-            - name: CREATE_ENABLED
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "messagequeue.fullname" . }}-frontend
-                  key: CREATE_ENABLED
             - name: BACKEND_URL
               value: {{ printf "http://%s-backend:%d" (include "messagequeue.fullname" .) (int .Values.backend.port) | quote }}
           ports:

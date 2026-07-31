@@ -11,15 +11,15 @@ global:
 images:
   controller:
     repository: ghcr.io/mlhiter/messagequeue-controller
-    tag: v0.1.6
+    tag: v0.1.7
     digest: ""
   backend:
     repository: ghcr.io/mlhiter/messagequeue-backend
-    tag: v0.1.6
+    tag: v0.1.7
     digest: ""
   frontend:
     repository: ghcr.io/mlhiter/messagequeue-frontend
-    tag: v0.1.6
+    tag: v0.1.7
     digest: ""
 
 serviceAccount:
@@ -59,9 +59,6 @@ backend:
   # identity routing is implemented.
   workspaceNamespace: ns-admin
   userID: messagequeue-backend
-  # Public desktop installs keep create/delete writes disabled until the Sealos
-  # session adapter replaces the single-workspace fallback identity.
-  allowCreate: false
   logLevel: info
   resources:
     requests:
@@ -78,7 +75,6 @@ frontend:
   port: 3000
   servicePort: 80
   apiBaseURL: /api
-  createEnabled: false
   resources:
     requests:
       cpu: 25m

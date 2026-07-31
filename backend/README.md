@@ -45,9 +45,9 @@ resolve credentials without exposing their values to the browser.
 | --- | --- | --- |
 | `GET` | `/healthz` | Process health; does not require workspace identity. Returns `{"service":"messagequeue","status":"ok"}` with `Cache-Control: no-store`. |
 | `GET` | `/api/v1/messagequeues` | List resources in the authenticated namespace. |
-| `POST` | `/api/v1/messagequeues` | Create a Kafka resource in the authenticated namespace when writes are enabled. Public desktop installs keep this disabled until the Sealos session/workspace adapter is connected. |
+| `POST` | `/api/v1/messagequeues` | Create a Kafka resource in the authenticated namespace. |
 | `GET` | `/api/v1/messagequeues/{name}` | Return spec and observed status. |
-| `DELETE` | `/api/v1/messagequeues/{name}` | Delete the authenticated namespace's `MessageQueue` resource when writes are enabled. Kubernetes owner references and the selected deletion policy decide follow-on Strimzi/PVC cleanup. |
+| `DELETE` | `/api/v1/messagequeues/{name}` | Delete the authenticated namespace's `MessageQueue` resource. Kubernetes owner references and the selected deletion policy decide follow-on Strimzi/PVC cleanup. |
 | `GET` | `/api/v1/messagequeues/{name}/status` | Return observed status only. |
 | `GET` | `/api/v1/messagequeues/{name}/client-config` | Return secret-free client connection metadata: bootstrap servers, username, auth mechanism, transport, and Secret name reference. |
 | `GET` | `/api/v1/messagequeues/{name}/logs` | Return bounded pod logs. |
@@ -65,8 +65,9 @@ the product-level `deletionPolicy`.
 
 The accepted Kafka versions match the controller contract: `3.9.0` and
 `4.0.0`. An omitted version/replica/storage value is defaulted by the
-controller. When `MESSAGEQUEUE_ALLOW_CREATE=false`, create and delete requests
-return `403` and the public Desktop entry remains read-only.
+controller. Create and delete are first-class API operations; they require a
+server-side workspace identity and never accept namespace authority from the
+browser.
 
 ```json
 {

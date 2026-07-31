@@ -183,7 +183,6 @@ pre {
   flex-wrap: wrap;
 }
 
-.api-indicator,
 .icon-button,
 .button {
   display: inline-flex;
@@ -199,48 +198,6 @@ pre {
   transition-property: background-color, border-color, color, opacity;
   transition-duration: 160ms;
   transition-timing-function: ease;
-}
-
-.api-indicator {
-  padding: 0 12px;
-  color: var(--muted);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.indicator-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--faint);
-}
-
-.api-indicator[data-state="loading"] .indicator-dot {
-  background: var(--amber);
-}
-
-.api-indicator[data-state="ready"] .indicator-dot {
-  background: var(--green);
-}
-
-.api-indicator[data-state="degraded"] .indicator-dot {
-  background: var(--amber);
-}
-
-.api-indicator[data-state="forbidden"] .indicator-dot {
-  background: var(--red);
-}
-
-.api-indicator[data-state="ready"] {
-  color: var(--green);
-}
-
-.api-indicator[data-state="degraded"] {
-  color: var(--amber);
-}
-
-.api-indicator[data-state="forbidden"] {
-  color: var(--red);
 }
 
 .icon-button {
@@ -284,8 +241,7 @@ pre {
 }
 
 .button:hover,
-.icon-button:hover,
-.api-indicator:hover {
+.icon-button:hover {
   border-color: var(--line-strong);
 }
 
@@ -296,8 +252,7 @@ pre {
   }
 
   .button-secondary:hover,
-  .icon-button:hover,
-  .api-indicator:hover {
+  .icon-button:hover {
     background: #fafafa;
   }
 
@@ -486,29 +441,11 @@ pre {
   white-space: nowrap;
 }
 
-.cluster-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
-  font-variant-numeric: tabular-nums;
-}
-
-.cluster-meta code,
 .cluster-namespace code,
 .info-item dd code,
 .copy-row code {
   font-family: var(--mono);
   font-size: 11px;
-}
-
-.cluster-meta code {
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: #f1f5f9;
-  color: var(--ink);
 }
 
 .cluster-status,
@@ -1389,18 +1326,11 @@ pre {
     grid-row: 4;
   }
 
-  .cluster-meta {
-    display: none;
-  }
 }
 
 @media (max-width: 480px) {
   .brand-copy strong {
     font-size: 14px;
-  }
-
-  .api-indicator {
-    display: none;
   }
 
   .header-actions {

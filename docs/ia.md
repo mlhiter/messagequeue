@@ -12,11 +12,11 @@ Its first screen is the user's cluster list and current system state.
 ## Cluster List
 
 The entry route is the cluster list. It presents name, readiness, effective
-version, broker count, storage, workspace, generation, and last transition in a
-dense table. The primary action is the header-level create action, available
-whenever the management API is ready. Each row is a navigation link to the
-dedicated detail page. Filters cover status, engine, and workspace when the
-user can access more than one workspace.
+version, broker count, storage, workspace, and last transition in a dense
+table. The primary action is the header-level create action, available whenever
+the management API is ready. Each row is a navigation link to the dedicated
+detail page. Filters cover status, engine, and workspace when the user can
+access more than one workspace.
 
 ## Create Cluster
 

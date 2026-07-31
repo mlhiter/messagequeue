@@ -44,6 +44,12 @@ if (!html.includes('lang="zh-CN"') || !html.includes("MessageQueue | 消息队�
 if (html.includes("language-button") || html.includes("lang-button") || source.includes("language-button")) {
   throw new Error("language should follow Sealos Desktop without an explicit in-app toggle");
 }
+if (html.includes("api-indicator") || source.includes("renderApiIndicator") || styles.includes(".api-indicator")) {
+  throw new Error("list toolbar must not show the API connection pill");
+}
+if (source.includes("cluster-meta") || styles.includes(".cluster-meta")) {
+  throw new Error("cluster list rows must not show secondary namespace/generation meta under the name");
+}
 if (!html.includes('id="back-button"') || !html.includes("header-back-button")) {
   throw new Error("top-left detail back button is missing from the shell");
 }

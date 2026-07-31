@@ -29,10 +29,6 @@
       backToList: "集群列表",
       createCluster: "创建集群",
       newCluster: "新建",
-      apiConnecting: "连接中",
-      apiConnected: "API 已连接",
-      apiDegraded: "API 降级",
-      accessDenied: "访问受限",
       totalClusters: "集群总数",
       observedInWorkspace: "在当前工作空间中观测到",
       ready: "就绪",
@@ -238,10 +234,6 @@
       backToList: "Cluster list",
       createCluster: "Create cluster",
       newCluster: "New",
-      apiConnecting: "Connecting",
-      apiConnected: "API connected",
-      apiDegraded: "API degraded",
-      accessDenied: "Access denied",
       totalClusters: "Total clusters",
       observedInWorkspace: "Observed in this workspace",
       ready: "Ready",
@@ -992,20 +984,6 @@
     }
     state.apiState = apiState;
     state.apiMessage = messageText;
-    renderApiIndicator();
-  }
-
-  function renderApiIndicator() {
-    const indicator = $("#api-indicator");
-    if (indicator) indicator.dataset.state = state.apiState;
-    const labels = {
-      loading: message("apiConnecting"),
-      ready: message("apiConnected"),
-      degraded: message("apiDegraded"),
-      forbidden: message("accessDenied")
-    };
-    const indicatorLabel = $("#api-indicator-label");
-    if (indicatorLabel) indicatorLabel.textContent = labels[state.apiState] || state.apiState;
   }
 
   function renderNotice() {
@@ -1140,7 +1118,7 @@
       .map((cluster) => {
         const [label, statusClass] = statusLabel(cluster.phase);
         const href = `#/clusters/${encodeURIComponent(cluster.name)}`;
-        return `<a class="cluster-row" href="${href}" data-cluster-name="${escapeHtml(cluster.name)}" aria-label="${escapeHtml(message("openDetail"))} ${escapeHtml(cluster.name)}"><span class="cluster-name-cell"><span class="cluster-name">${escapeHtml(cluster.name)}</span><span class="cluster-meta"><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("generation"))} ${escapeHtml(cluster.status.observedGeneration || "—")}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-version">${escapeHtml(cluster.version)}</span><span class="cluster-topology"><strong>${escapeHtml(formatBrokerCount(cluster.brokers))}</strong></span><span class="cluster-storage">${escapeHtml(formatBrokerStorage(cluster.storageGi))}</span><span class="cluster-namespace"><code>${escapeHtml(cluster.namespace)}</code></span><span class="cluster-updated">${escapeHtml(formatTime(cluster.lastTransitionTime))}</span><span class="cluster-action" aria-hidden="true">›</span></a>`;
+        return `<a class="cluster-row" href="${href}" data-cluster-name="${escapeHtml(cluster.name)}" aria-label="${escapeHtml(message("openDetail"))} ${escapeHtml(cluster.name)}"><span class="cluster-name-cell"><span class="cluster-name">${escapeHtml(cluster.name)}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-version">${escapeHtml(cluster.version)}</span><span class="cluster-topology"><strong>${escapeHtml(formatBrokerCount(cluster.brokers))}</strong></span><span class="cluster-storage">${escapeHtml(formatBrokerStorage(cluster.storageGi))}</span><span class="cluster-namespace"><code>${escapeHtml(cluster.namespace)}</code></span><span class="cluster-updated">${escapeHtml(formatTime(cluster.lastTransitionTime))}</span><span class="cluster-action" aria-hidden="true">›</span></a>`;
       })
       .join("")}</div></div>`;
   }
@@ -1265,7 +1243,6 @@
 
   function render() {
     localizeStaticShell();
-    renderApiIndicator();
     renderRouteChrome();
     const clusters = filteredClusters();
     renderNotice();

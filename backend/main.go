@@ -83,6 +83,18 @@ func identityFromEnv() (Identity, error) {
 	})
 }
 
+func optionalIdentityFromEnv() (Identity, bool, error) {
+	namespace := strings.TrimSpace(os.Getenv("MESSAGEQUEUE_WORKSPACE_NAMESPACE"))
+	if namespace == "" {
+		return Identity{}, false, nil
+	}
+	identity, err := validateIdentity(Identity{
+		Namespace: namespace,
+		UserID:    envOr("MESSAGEQUEUE_USER_ID", "messagequeue-backend"),
+	})
+	return identity, true, err
+}
+
 func envOr(name, fallback string) string {
 	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
 		return value
@@ -108,6 +120,7 @@ type MetricsProvider interface {
 type Server struct {
 	Store    MessageQueueStore
 	Metrics  MetricsProvider
+	Quota    QuotaProvider
 	Identity IdentityProvider
 	Logger   *slog.Logger
 	Now      func() time.Time
@@ -115,6 +128,25 @@ type Server struct {
 
 type IdentityProvider interface {
 	Identity(context.Context, *http.Request) (Identity, error)
+}
+
+type KubernetesContextProvider interface {
+	KubernetesContext(context.Context, *http.Request) (context.Context, error)
+}
+
+type publicError struct {
+	err     error
+	status  int
+	code    string
+	message string
+}
+
+func (e publicError) Error() string {
+	return e.err.Error() + ": " + e.message
+}
+
+func (e publicError) Unwrap() error {
+	return e.err
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -138,6 +170,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := WithIdentity(r.Context(), identity)
+	if provider, ok := s.Identity.(KubernetesContextProvider); ok {
+		ctx, err = provider.KubernetesContext(ctx, r)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "unauthenticated", "an authenticated workspace session is required")
+			return
+		}
+	}
 	r = r.WithContext(ctx)
 
 	if r.URL.Path == apiPrefix || r.URL.Path == apiPrefix+"/" {
@@ -156,7 +195,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", "route not found")
 		return
 	}
-	parts := strings.Split(strings.Trim(strings.TrimPrefix(r.URL.Path, apiPrefix+"/"), "/"), "/")
+	tail := strings.Trim(strings.TrimPrefix(r.URL.Path, apiPrefix+"/"), "/")
+	if tail == "-/quota" {
+		if r.Method == http.MethodGet {
+			s.quota(w, r)
+			return
+		}
+		methodNotAllowed(w, http.MethodGet)
+		return
+	}
+	parts := strings.Split(tail, "/")
 	if len(parts) == 0 || parts[0] == "" || !validDNSLabel(parts[0]) {
 		writeError(w, http.StatusNotFound, "not_found", "messagequeue not found")
 		return
@@ -223,6 +271,11 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	spec := request.ProductSpec()
+	if err := s.preflightCreate(r.Context(), identity.Namespace, spec); err != nil {
+		s.writeStoreError(w, err)
+		return
+	}
 	resource := MessageQueue{
 		APIVersion: "messagequeue.sealos.io/v1alpha1",
 		Kind:       "MessageQueue",
@@ -230,7 +283,7 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 			Name:      request.Name,
 			Namespace: identity.Namespace,
 		},
-		Spec: request.ProductSpec(),
+		Spec: spec,
 	}
 	created, err := s.Store.Create(r.Context(), identity.Namespace, resource)
 	if err != nil {
@@ -362,6 +415,11 @@ func identityFromContext(ctx context.Context) Identity {
 }
 
 func (s *Server) writeStoreError(w http.ResponseWriter, err error) {
+	var p publicError
+	if errors.As(err, &p) {
+		writeError(w, p.status, p.code, p.message)
+		return
+	}
 	status := http.StatusInternalServerError
 	code := "internal_error"
 	message := "the request could not be completed"
@@ -372,6 +430,8 @@ func (s *Server) writeStoreError(w http.ResponseWriter, err error) {
 		status, code, message = http.StatusConflict, "conflict", "messagequeue already exists"
 	case errors.Is(err, ErrForbidden):
 		status, code, message = http.StatusForbidden, "forbidden", "the workspace is not allowed to perform this operation"
+	case errors.Is(err, ErrQuotaExceeded):
+		status, code, message = http.StatusForbidden, "quota_exceeded", "workspace quota is not sufficient for this cluster"
 	case errors.Is(err, ErrDependencyUnavailable):
 		status, code, message = http.StatusServiceUnavailable, "dependency_unavailable", "the requested dependency is unavailable"
 	case errors.Is(err, ErrInvalid):
@@ -397,9 +457,9 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	identity, err := identityFromEnv()
+	fallbackIdentity, hasFallbackIdentity, err := optionalIdentityFromEnv()
 	if err != nil {
-		logger.Error("backend cannot start without server-side workspace identity", "error", err)
+		logger.Error("backend cannot start with invalid fallback workspace identity", "error", err)
 		os.Exit(1)
 	}
 	store, err := NewInClusterStoreFromEnv()
@@ -407,15 +467,20 @@ func main() {
 		logger.Error("backend cannot connect to Kubernetes", "error", err)
 		os.Exit(1)
 	}
+	var fallbackProvider IdentityProvider
+	if hasFallbackIdentity {
+		fallbackProvider = EnvIdentityProvider{Namespace: fallbackIdentity.Namespace, UserID: fallbackIdentity.UserID}
+	}
 	server := &Server{
 		Store:    store,
 		Metrics:  UnavailableMetricsProvider{},
-		Identity: EnvIdentityProvider{Namespace: identity.Namespace, UserID: identity.UserID},
+		Quota:    store,
+		Identity: KubeconfigIdentityProvider{Fallback: fallbackProvider},
 		Logger:   logger,
 		Now:      time.Now,
 	}
 	listen := envOr("MESSAGEQUEUE_LISTEN_ADDR", ":8080")
-	logger.Info("messagequeue backend listening", "addr", listen, "namespace", identity.Namespace)
+	logger.Info("messagequeue backend listening", "addr", listen, "fallbackWorkspace", hasFallbackIdentity)
 	httpServer := &http.Server{
 		Addr:              listen,
 		Handler:           server,

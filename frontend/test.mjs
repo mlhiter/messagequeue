@@ -71,6 +71,9 @@ if (!source.includes("result.degraded") || !source.includes("metricsUnavailable"
 if (source.includes("CREATE_ENABLED") || source.includes("MESSAGEQUEUE_CREATE_ENABLED")) {
   throw new Error("write affordances must not depend on a create feature flag");
 }
+if (!source.includes("parseApiError") || !source.includes("describeApiError") || !source.includes("workspaceQuota") || !source.includes("loadWorkspaceQuota")) {
+  throw new Error("create flow must normalize API errors and initialize workspace quota");
+}
 if (!source.includes("const CREATE_PROFILES") || !source.includes('cpu: "500m"') || !source.includes('memory: "1Gi"') || !source.includes("updateCreateSummary")) {
   throw new Error("create flow must expose development resource presets and a dynamic summary");
 }
@@ -83,6 +86,7 @@ for (const testId of [
   "messagequeue.create.cpu-input",
   "messagequeue.create.memory-input",
   "messagequeue.create.summary",
+  "messagequeue.create.quota-note",
   "messagequeue.create.submit-button"
 ]) {
   if (!html.includes(`data-testid="${testId}"`)) {
@@ -99,6 +103,9 @@ if (!html.includes('value="500m"') || !html.includes('value="1Gi"') || !html.inc
 }
 if (!html.includes('id="storage-size"') || !html.includes('max="1024"') || !source.includes("capped at 8 CPU") || !source.includes("不超过 64Gi")) {
   throw new Error("create custom resource fields must expose the backend product limits");
+}
+if (!html.includes('id="quota-note"') || !source.includes("quotaReady") || !source.includes("quotaExceededCopy") || !source.includes("sessionRequiredCopy")) {
+  throw new Error("create flow must expose quota-aware status and fixed error copy");
 }
 if (!source.includes("function writesEnabled()") || !source.includes('return state.apiState === "ready";')) {
   throw new Error("write affordances must require a ready API");

@@ -13,6 +13,7 @@ var (
 	ErrNotFound              = errors.New("not found")
 	ErrConflict              = errors.New("conflict")
 	ErrForbidden             = errors.New("forbidden")
+	ErrQuotaExceeded         = errors.New("quota exceeded")
 	ErrDependencyUnavailable = errors.New("dependency unavailable")
 	ErrInvalid               = errors.New("invalid request")
 )
@@ -194,19 +195,21 @@ type IntegrationSetting struct {
 }
 
 func (r CreateRequest) ProductSpec() MessageQueueSpec {
+	var spec MessageQueueSpec
 	if r.Spec.hasValues() {
-		return r.Spec.messageQueueSpec()
-	}
-	spec := MessageQueueSpec{Engine: r.Engine, DeletionPolicy: titlePolicy(r.DeletionPolicy)}
-	if r.Kafka != nil {
-		spec.Kafka = KafkaSpec{Version: r.Kafka.Version, Replicas: r.Kafka.Brokers}
-		spec.Resources = ResourceSpec{CPU: strings.TrimSpace(r.Kafka.CPU), Memory: strings.TrimSpace(r.Kafka.Memory)}
-		if r.Kafka.StorageGi > 0 {
-			spec.Storage.Size = fmt.Sprintf("%dGi", r.Kafka.StorageGi)
+		spec = r.Spec.messageQueueSpec()
+	} else {
+		spec = MessageQueueSpec{Engine: r.Engine, DeletionPolicy: titlePolicy(r.DeletionPolicy)}
+		if r.Kafka != nil {
+			spec.Kafka = KafkaSpec{Version: r.Kafka.Version, Replicas: r.Kafka.Brokers}
+			spec.Resources = ResourceSpec{CPU: strings.TrimSpace(r.Kafka.CPU), Memory: strings.TrimSpace(r.Kafka.Memory)}
+			if r.Kafka.StorageGi > 0 {
+				spec.Storage.Size = fmt.Sprintf("%dGi", r.Kafka.StorageGi)
+			}
+			spec.Storage.ClassName = r.Kafka.StorageClass
 		}
-		spec.Storage.ClassName = r.Kafka.StorageClass
 	}
-	return spec
+	return applyProductDefaults(spec)
 }
 
 func (s ProductCreateSpec) hasValues() bool {

@@ -18,6 +18,13 @@ type KubernetesStore struct {
 	Client  *http.Client
 }
 
+func (s *KubernetesStore) access(ctx context.Context) KubernetesAccess {
+	if access, ok := kubernetesAccessFromContext(ctx); ok {
+		return access
+	}
+	return KubernetesAccess{BaseURL: s.BaseURL, Token: s.Token, Client: s.Client}
+}
+
 func (s *KubernetesStore) List(ctx context.Context, namespace string) ([]MessageQueue, error) {
 	var response struct {
 		Items []MessageQueue `json:"items"`
@@ -120,17 +127,18 @@ func (s *KubernetesStore) requestJSON(ctx context.Context, method, path string, 
 		}
 		body = strings.NewReader(string(encoded))
 	}
-	request, err := http.NewRequestWithContext(ctx, method, strings.TrimRight(s.BaseURL, "/")+path, body)
+	access := s.access(ctx)
+	request, err := http.NewRequestWithContext(ctx, method, strings.TrimRight(access.BaseURL, "/")+path, body)
 	if err != nil {
 		return fmt.Errorf("create Kubernetes request: %w", err)
 	}
-	if s.Token != "" {
-		request.Header.Set("Authorization", "Bearer "+s.Token)
+	if access.Token != "" {
+		request.Header.Set("Authorization", "Bearer "+access.Token)
 	}
 	if payload != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
-	client := s.Client
+	client := access.Client
 	if client == nil {
 		client = http.DefaultClient
 	}
@@ -152,14 +160,15 @@ func (s *KubernetesStore) requestJSON(ctx context.Context, method, path string, 
 }
 
 func (s *KubernetesStore) requestText(ctx context.Context, method, path string) (string, error) {
-	request, err := http.NewRequestWithContext(ctx, method, strings.TrimRight(s.BaseURL, "/")+path, nil)
+	access := s.access(ctx)
+	request, err := http.NewRequestWithContext(ctx, method, strings.TrimRight(access.BaseURL, "/")+path, nil)
 	if err != nil {
 		return "", err
 	}
-	if s.Token != "" {
-		request.Header.Set("Authorization", "Bearer "+s.Token)
+	if access.Token != "" {
+		request.Header.Set("Authorization", "Bearer "+access.Token)
 	}
-	client := s.Client
+	client := access.Client
 	if client == nil {
 		client = http.DefaultClient
 	}

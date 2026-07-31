@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -14,6 +16,20 @@ type staticIdentity Identity
 
 func (i staticIdentity) Identity(_ context.Context, _ *http.Request) (Identity, error) {
 	return validateIdentity(Identity(i))
+}
+
+type staticQuota struct {
+	response QuotaResponse
+	err      error
+}
+
+func (q staticQuota) Quota(_ context.Context, namespace string) (QuotaResponse, error) {
+	if q.err != nil {
+		return QuotaResponse{}, q.err
+	}
+	response := q.response
+	response.Namespace = namespace
+	return response, nil
 }
 
 func newTestServer() (*Server, *MemoryStore) {
@@ -62,6 +78,32 @@ func TestServerRequiresServerSideIdentity(t *testing.T) {
 	if recording.Code != http.StatusOK {
 		t.Fatalf("configured server status = %d, want 200", recording.Code)
 	}
+}
+
+func encodedKubeconfig(namespace, user, server, token string) string {
+	contextNamespace := ""
+	if namespace != "" {
+		contextNamespace = fmt.Sprintf("      namespace: %s\n", namespace)
+	}
+	data := fmt.Sprintf(`apiVersion: v1
+kind: Config
+current-context: current
+clusters:
+  - name: cluster
+    cluster:
+      server: %s
+      insecure-skip-tls-verify: true
+contexts:
+  - name: current
+    context:
+      cluster: cluster
+      user: %s
+%susers:
+  - name: %s
+    user:
+      token: %s
+`, server, user, contextNamespace, user, token)
+	return url.PathEscape(data)
 }
 
 func TestHealthAndReadinessDoNotRequireWorkspaceIdentity(t *testing.T) {
@@ -122,6 +164,47 @@ func TestCreateListDetailAndStatusUseIdentityNamespace(t *testing.T) {
 	}
 }
 
+func TestKubeconfigIdentityProviderUsesAuthorizationNamespace(t *testing.T) {
+	server, store := newTestServer()
+	server.Identity = KubeconfigIdentityProvider{Fallback: staticIdentity{Namespace: "ns-fallback", UserID: "fallback"}}
+	body := `{"name":"orders","spec":{"engine":"kafka"}}`
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(body))
+	request.Header.Set("Authorization", encodedKubeconfig("ns-alice", "alice", "https://kubernetes.example", "token-1"))
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, body=%s", recording.Code, recording.Body.String())
+	}
+	if _, err := store.Get(context.Background(), "ns-alice", "orders"); err != nil {
+		t.Fatalf("resource was not written to kubeconfig namespace: %v", err)
+	}
+	if _, err := store.Get(context.Background(), "ns-fallback", "orders"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("invalid fallback write: %v", err)
+	}
+}
+
+func TestKubeconfigIdentityProviderRejectsInvalidAuthorizationWithoutFallback(t *testing.T) {
+	server, _ := newTestServer()
+	server.Identity = KubeconfigIdentityProvider{Fallback: staticIdentity{Namespace: "ns-fallback", UserID: "fallback"}}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/messagequeues", nil)
+	request.Header.Set("Authorization", "Bearer not-a-kubeconfig")
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusUnauthorized {
+		t.Fatalf("invalid authorization status = %d, body=%s", recording.Code, recording.Body.String())
+	}
+}
+
+func TestKubeconfigIdentityProviderFallsBackToUserNamespace(t *testing.T) {
+	_, identity, err := accessFromAuthorization(encodedKubeconfig("", "alice", "https://kubernetes.example", "token-1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if identity.Namespace != "ns-alice" || identity.UserID != "alice" {
+		t.Fatalf("identity = %#v", identity)
+	}
+}
+
 func TestWritesRequireServerSideWorkspaceIdentity(t *testing.T) {
 	server := &Server{
 		Store:    NewMemoryStore(),
@@ -167,6 +250,69 @@ func TestCreateAcceptsFirstPartyFlatContract(t *testing.T) {
 	}
 	if created.Spec.Kafka.Replicas != 3 || created.Spec.Kafka.Version != "3.9.0" || created.Spec.Resources.CPU != "500m" || created.Spec.Resources.Memory != "1Gi" || created.Spec.Storage.Size != "20Gi" || created.Spec.Storage.ClassName != "fast" || created.Spec.DeletionPolicy != "Retain" {
 		t.Fatalf("flat request translation = %#v", created.Spec)
+	}
+}
+
+func TestCreateAppliesDevelopmentDefaults(t *testing.T) {
+	server, store := newTestServer()
+	body := `{"name":"orders","spec":{"engine":"kafka"}}`
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(body))
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, body=%s", recording.Code, recording.Body.String())
+	}
+	created, err := store.Get(context.Background(), "ns-test", "orders")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Spec.Kafka.Version != "3.9.0" || created.Spec.Kafka.Replicas != 1 || created.Spec.Resources.CPU != "500m" || created.Spec.Resources.Memory != "1Gi" || created.Spec.Storage.Size != "10Gi" || created.Spec.DeletionPolicy != "Retain" {
+		t.Fatalf("defaults = %#v", created.Spec)
+	}
+}
+
+func TestCreateRejectsQuotaExceededBeforeWrite(t *testing.T) {
+	server, store := newTestServer()
+	server.Quota = staticQuota{response: QuotaResponse{Items: []QuotaItem{
+		{Type: "cpu", Limit: 4, Used: 3.8, Available: 0.2, Unit: "cores"},
+		{Type: "memory", Limit: 8, Used: 1, Available: 7, Unit: "Gi"},
+		{Type: "storage", Limit: 100, Used: 10, Available: 90, Unit: "Gi"},
+	}}}
+	body := `{"name":"orders","spec":{"engine":"kafka","kafka":{"replicas":1},"resources":{"cpu":"500m","memory":"1Gi"},"storage":{"size":"10Gi"}}}`
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(body))
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusForbidden || !strings.Contains(recording.Body.String(), `"code":"quota_exceeded"`) {
+		t.Fatalf("quota response = %d %s", recording.Code, recording.Body.String())
+	}
+	if _, err := store.Get(context.Background(), "ns-test", "orders"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("quota failure should not create resource: %v", err)
+	}
+}
+
+func TestCreateAllowsDegradedQuotaPreflight(t *testing.T) {
+	server, store := newTestServer()
+	server.Quota = staticQuota{response: QuotaResponse{Degraded: true, Message: "workspace quota is not configured"}}
+	body := `{"name":"orders","spec":{"engine":"kafka"}}`
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/messagequeues", strings.NewReader(body))
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusCreated {
+		t.Fatalf("degraded quota create status = %d, body=%s", recording.Code, recording.Body.String())
+	}
+	if _, err := store.Get(context.Background(), "ns-test", "orders"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestQuotaEndpointReturnsWorkspaceQuota(t *testing.T) {
+	server, _ := newTestServer()
+	server.Quota = staticQuota{response: QuotaResponse{Items: []QuotaItem{{Type: "cpu", Limit: 4, Used: 1, Available: 3, Unit: "cores"}}}}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/messagequeues/-/quota", nil)
+	recording := httptest.NewRecorder()
+	server.ServeHTTP(recording, request)
+	if recording.Code != http.StatusOK || !strings.Contains(recording.Body.String(), `"namespace":"ns-test"`) || !strings.Contains(recording.Body.String(), `"type":"cpu"`) {
+		t.Fatalf("quota response = %d %s", recording.Code, recording.Body.String())
 	}
 }
 

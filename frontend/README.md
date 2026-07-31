@@ -6,7 +6,8 @@ is an optional user-facing Kafka console and is not embedded here. The current
 shell is list-first, with a compact header, search and create actions on the
 top bar, dense table rows, and a separate detail page. The create dialog uses
 development, standard, and custom resource profiles so broker CPU, memory, and
-storage are explicit before a write is submitted.
+storage are explicit before a write is submitted. It also shows the current
+workspace quota summary so submit-time rejections can stay fixed and readable.
 
 ## Local development
 
@@ -55,6 +56,8 @@ Do not reintroduce a sidebar-first shell for this UI.
 - `GET /api/v1/messagequeues/{name}/client-config` loads safe connection
   metadata for the Connections tab. It may include a Secret name reference but
   never Secret `data`, passwords, private keys, or kubeconfigs.
+- `GET /api/v1/messagequeues/-/quota` returns the authenticated workspace quota
+  snapshot used by the create dialog's quota note.
 - `DELETE /api/v1/messagequeues/{name}` is called from the Settings tab after
   explicit confirmation. The action is available whenever the API is ready.
 - `GET /api/v1/messagequeues/{name}/logs?component=broker&tailLines=200` and

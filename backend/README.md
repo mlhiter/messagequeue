@@ -30,8 +30,9 @@ Required production environment:
 The ServiceAccount token and CA are read from the standard in-cluster paths.
 `MESSAGEQUEUE_SERVICE_ACCOUNT_TOKEN`, `MESSAGEQUEUE_SERVICE_ACCOUNT_CA`, and
 `MESSAGEQUEUE_LISTEN_ADDR` can override those paths/address for a controlled
-deployment. The process exits rather than starting unauthenticated when the
-server-side namespace or Kubernetes credentials are absent.
+deployment. The process exits when Kubernetes credentials are absent; the
+namespace fallback only applies when `MESSAGEQUEUE_WORKSPACE_NAMESPACE` is
+configured.
 
 ## API contract
 
@@ -50,6 +51,7 @@ resolve credentials without exposing their values to the browser.
 | `DELETE` | `/api/v1/messagequeues/{name}` | Delete the authenticated namespace's `MessageQueue` resource. Kubernetes owner references and the selected deletion policy decide follow-on Strimzi/PVC cleanup. |
 | `GET` | `/api/v1/messagequeues/{name}/status` | Return observed status only. |
 | `GET` | `/api/v1/messagequeues/{name}/client-config` | Return secret-free client connection metadata: bootstrap servers, username, auth mechanism, transport, and Secret name reference. |
+| `GET` | `/api/v1/messagequeues/-/quota` | Return workspace quota data for the authenticated namespace. If the workspace quota resource is missing, the response degrades without blocking cluster creation. The backend ServiceAccount must be able to `get` `resourcequotas` in the workspace namespace for this route and create preflight to work. |
 | `GET` | `/api/v1/messagequeues/{name}/logs` | Return bounded pod logs. |
 | `GET` | `/api/v1/messagequeues/{name}/metrics` | Return one fixed metric series. |
 

@@ -30,6 +30,7 @@
 | 存储类 | `frontend/index.html` | `messagequeue.create.storage-class-input` | field | StorageClass | `data-qa-field=storage_class` | custom 时是 | 是 | Kubernetes | 调度失败 |
 | 删除策略 | `frontend/index.html` | `messagequeue.create.deletion-policy-select` | field | Retain / Delete | `data-qa-field=deletion_policy` | custom 时是 | 是 | safety | PVC 删除风险 |
 | 资源摘要 | `frontend/index.html` | `messagequeue.create.summary` | state | 当前将提交的资源占用 | `data-qa-state=development|standard|custom` | 否 | 是 | state | 提交前误解资源 |
+| 配额提示 | `frontend/index.html` | `messagequeue.create.quota-note` | state | 当前工作空间配额状态 | `data-qa-state=loading|ready|warning|degraded` | 否 | 是 | state | 配额信息不可见 |
 | 错误提示 | `frontend/index.html` | `messagequeue.create.error` | error | 创建校验或 API 错误 | `data-qa-state=error`, `data-qa-error-code=*` | 否 | 是 | API | 失败不可见 |
 | 提交按钮 | `frontend/index.html` | `messagequeue.create.submit-button` | action | 创建 Kafka 集群 | `data-qa-action=create`, `data-qa-state=ready|loading` | 是 | 是 | mutation | 写资源 |
 
@@ -38,6 +39,7 @@
 | 元素 | data-qa-state 可选值 | 说明 |
 | --- | --- | --- |
 | `messagequeue.create.summary` | `development`, `standard`, `custom` | 当前规格来源。 |
+| `messagequeue.create.quota-note` | `loading`, `ready`, `warning`, `degraded` | 当前工作空间配额摘要或降级状态。 |
 | `messagequeue.create.submit-button` | `ready`, `loading` | 可提交或正在提交。 |
 | `#custom-resource-fields` | `preset`, `custom` | 规格字段锁定或可编辑。 |
 
@@ -53,6 +55,7 @@
 | --- | --- | --- |
 | `invalid_request` | 本地或后端校验失败 | 表单应保留打开状态。 |
 | `permission_denied` | 当前工作空间无写权限 | 表单应显示权限错误。 |
+| `quota_exceeded` | 工作空间配额不足 | 表单应显示固定的人话配额提示。 |
 | `create_failed` | 后端创建失败 | 表单应显示后端错误消息。 |
 
 ## 7. 资源绑定

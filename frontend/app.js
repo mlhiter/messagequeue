@@ -184,6 +184,15 @@
       create: "创建",
       formError: "请输入合法的集群名称，并检查各项配置。",
       formPermissionDenied: "权限不足：当前工作空间不能创建集群。",
+      sessionRequiredTitle: "会话不可用",
+      sessionRequiredCopy: "当前会话不可用，请刷新 Desktop 后再试。",
+      quotaLoading: "正在读取当前工作空间的 CPU、内存和存储配额。",
+      quotaUnavailable: "配额信息暂不可用，提交后仍会由后端再校验。",
+      quotaReady: ({ cpu, memory, storage }) =>
+        `工作空间配额：CPU ${cpu}，内存 ${memory}，存储 ${storage}。`,
+      quotaDegraded: (message) => `配额暂未配置${message ? `：${message}` : ""}`,
+      quotaExceededCopy: (message) => `工作空间配额不足${message ? `：${message}` : ""}`,
+      resourceNotFoundCopy: "这个集群已经不存在了，请返回列表后重试。",
       formCreateFailed: (message) => `集群创建失败：${message}`,
       createButton: "创建集群",
       createButtonShort: "+ 新建",
@@ -405,6 +414,15 @@
       create: "Create",
       formError: "Enter a valid cluster name and check the requested values.",
       formPermissionDenied: "Permission denied: your workspace cannot create clusters.",
+      sessionRequiredTitle: "Session unavailable",
+      sessionRequiredCopy: "The current session is unavailable. Refresh Desktop and try again.",
+      quotaLoading: "Reading the current workspace CPU, memory, and storage quota…",
+      quotaUnavailable: "Quota details are unavailable for now; the backend will still recheck on submit.",
+      quotaReady: ({ cpu, memory, storage }) =>
+        `Workspace quota: CPU ${cpu}, memory ${memory}, storage ${storage}.`,
+      quotaDegraded: (message) => `Quota is not configured${message ? `: ${message}` : ""}`,
+      quotaExceededCopy: (message) => `Workspace quota is insufficient${message ? `: ${message}` : ""}`,
+      resourceNotFoundCopy: "That cluster no longer exists. Go back to the list and try again.",
       formCreateFailed: (message) => `Cluster creation failed: ${message}`,
       createButton: "Create cluster",
       createButtonShort: "+ New",
@@ -550,6 +568,7 @@
     createProfile: "development",
     deleteSubmitting: false,
     deleteError: null,
+    workspaceQuota: { status: "idle", data: null, message: "" },
     language: detectLanguage(),
     route: { view: "list", clusterName: "" }
   };
@@ -661,6 +680,66 @@
   function createMessageId() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function parseApiError(body) {
+    if (!body) {
+      return { code: "", message: "" };
+    }
+    try {
+      const parsed = JSON.parse(body);
+      const error = parsed?.error;
+      if (error && typeof error === "object") {
+        return {
+          code: String(error.code || "").trim(),
+          message: String(error.message || "").trim()
+        };
+      }
+    } catch {
+      // Fall back to raw text below.
+    }
+    return { code: "", message: body.trim() };
+  }
+
+  function describeApiError(error, fallbackKey = "managementApiUnavailable") {
+    const status = Number(error?.code || 0);
+    const apiCode = String(error?.apiCode || "").trim().toLowerCase();
+    const apiMessage = String(error?.apiMessage || error?.message || "").trim();
+    if (status === 401 || apiCode === "unauthenticated") {
+      return message("sessionRequiredCopy");
+    }
+    if (apiCode === "quota_exceeded") {
+      return message("quotaExceededCopy", { message: apiMessage || message("quotaUnavailable") });
+    }
+    if (status === 403) {
+      return message("permissionDeniedCopy");
+    }
+    if (status === 404 || apiCode === "not_found") {
+      return message("resourceNotFoundCopy");
+    }
+    if (status === 400 || apiCode === "invalid_request") {
+      return apiMessage || message("formError");
+    }
+    return apiMessage || message(fallbackKey);
+  }
+
+  function formatQuotaValue(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "—";
+    const rounded = Math.round(numeric * 1000) / 1000;
+    return String(rounded).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+  }
+
+  function formatQuotaItem(item) {
+    if (!item) return "—";
+    const available = formatQuotaValue(item.available);
+    const limit = formatQuotaValue(item.limit);
+    const unit = String(item.unit || "").trim();
+    if (available === "—" && limit === "—") return "—";
+    if (limit === "—" || limit === "") {
+      return `${available}${unit ? ` ${unit}` : ""}`;
+    }
+    return `${available}/${limit}${unit ? ` ${unit}` : ""}`;
   }
 
   function requestSealosDesktopLanguage() {
@@ -1056,15 +1135,13 @@
       credentials: "include",
       ...options
     });
-    if (response.status === 403) {
-      const error = new Error("Permission denied");
-      error.code = 403;
-      throw error;
-    }
     if (!response.ok) {
       const body = await response.text();
-      const error = new Error(body || `Request failed (${response.status})`);
+      const apiError = parseApiError(body);
+      const error = new Error(apiError.message || body || `Request failed (${response.status})`);
       error.code = response.status;
+      error.apiCode = apiError.code;
+      error.apiMessage = apiError.message;
       throw error;
     }
     if (response.status === 204) return null;
@@ -1089,7 +1166,8 @@
     if (state.apiState === "degraded") {
       region.innerHTML = `<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">!</span><div class="notice-copy"><strong>${escapeHtml(message("apiUnavailableTitle"))}</strong><p>${escapeHtml(message("apiUnavailableCopy", { message: state.apiMessage }))}</p></div><button class="icon-button notice-close" type="button" aria-label="${escapeHtml(message("close"))}" data-action="dismiss-notice">×</button></div>`;
     } else if (state.apiState === "forbidden") {
-      region.innerHTML = `<div class="notice" data-tone="error"><span class="notice-icon" aria-hidden="true">!</span><div class="notice-copy"><strong>${escapeHtml(message("permissionDeniedTitle"))}</strong><p>${escapeHtml(message("permissionDeniedCopy"))}</p></div></div>`;
+      const title = state.apiMessage === message("sessionRequiredCopy") ? message("sessionRequiredTitle") : message("permissionDeniedTitle");
+      region.innerHTML = `<div class="notice" data-tone="error"><span class="notice-icon" aria-hidden="true">!</span><div class="notice-copy"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(state.apiMessage || message("permissionDeniedCopy"))}</p></div></div>`;
     } else {
       region.innerHTML = "";
     }
@@ -1346,6 +1424,35 @@
     if (operationsHint) operationsHint.textContent = message("operationsComingSoon");
   }
 
+  function renderWorkspaceQuotaNote() {
+    const note = $("#quota-note");
+    if (!note) return;
+    const quotaState = state.workspaceQuota || { status: "idle", data: null, message: "" };
+    let tone = "loading";
+    let text = message("quotaLoading");
+
+    if (quotaState.status === "ready" && quotaState.data) {
+      const items = Array.isArray(quotaState.data.items) ? quotaState.data.items : [];
+      const byType = Object.fromEntries(items.map((item) => [item.type, item]));
+      text = message("quotaReady", {
+        cpu: formatQuotaItem(byType.cpu),
+        memory: formatQuotaItem(byType.memory),
+        storage: formatQuotaItem(byType.storage)
+      });
+      tone = "ready";
+      if (quotaState.data.degraded) {
+        text = message("quotaDegraded", { message: quotaState.data.message || "" });
+        tone = "degraded";
+      }
+    } else if (quotaState.status === "error") {
+      text = quotaState.message || message("quotaUnavailable");
+      tone = "warning";
+    }
+
+    note.textContent = text;
+    note.dataset.qaState = tone;
+  }
+
   async function loadClusters() {
     state.loading = true;
     setApiState("loading");
@@ -1356,17 +1463,39 @@
       state.clusters = items;
       setApiState("ready");
     } catch (error) {
-      if (error.code === 403) {
+      if (error.code === 401 || error.code === 403) {
         state.clusters = [];
-        setApiState("forbidden", message("permissionDeniedCopy"));
+        setApiState("forbidden", describeApiError(error, "permissionDeniedCopy"));
       } else {
         state.clusters = demoClustersFor(state.language);
-        setApiState("degraded", message("managementApiUnavailable"));
+        setApiState("degraded", describeApiError(error, "managementApiUnavailable"));
       }
     } finally {
       state.loading = false;
       render();
+      if (state.apiState === "ready") {
+        void loadWorkspaceQuota();
+      }
     }
+  }
+
+  async function loadWorkspaceQuota() {
+    if (state.apiState !== "ready") {
+      return;
+    }
+    state.workspaceQuota = { status: "loading", data: null, message: "" };
+    renderWorkspaceQuotaNote();
+    try {
+      const payload = await request(`${API_PREFIX}/-/quota`);
+      state.workspaceQuota = { status: "ready", data: payload, message: "" };
+    } catch (error) {
+      state.workspaceQuota = {
+        status: "error",
+        data: null,
+        message: describeApiError(error, "quotaUnavailable")
+      };
+    }
+    renderWorkspaceQuotaNote();
   }
 
   async function loadObservability(kind) {
@@ -1395,7 +1524,7 @@
     } catch (error) {
       state.observability[kind] = {
         name: cluster.name,
-        error: error.code === 403 ? message("permissionDeniedCopy") : message("managementApiUnavailable")
+        error: describeApiError(error, "managementApiUnavailable")
       };
     }
     render();
@@ -1412,7 +1541,7 @@
     } catch (error) {
       state.clientConfig = {
         name: cluster.name,
-        error: error.code === 403 ? message("permissionDeniedCopy") : message("managementApiUnavailable")
+        error: describeApiError(error, "managementApiUnavailable")
       };
     }
     render();
@@ -1435,7 +1564,10 @@
     } catch (error) {
       state.deleteError = {
         name: cluster.name,
-        message: error.code === 403 ? message("permissionDeniedCopy") : message("deleteFailed", { message: error.message })
+        message:
+          error.code === 401 || error.code === 403
+            ? message("permissionDeniedCopy")
+            : message("deleteFailed", { message: describeApiError(error, "managementApiUnavailable") })
       };
       renderDetail();
     } finally {
@@ -1514,6 +1646,7 @@
       policy
     });
     summary.dataset.qaState = spec.profile;
+    renderWorkspaceQuotaNote();
   }
 
   function applyCreateProfile(profile) {
@@ -1608,8 +1741,15 @@
       navigateToCluster(name);
     } catch (error) {
       errorBox.hidden = false;
-      errorBox.textContent = error.code === 403 ? message("formPermissionDenied") : message("formCreateFailed", { message: error.message });
-      errorBox.dataset.qaErrorCode = error.code === 403 ? "permission_denied" : "create_failed";
+      const isPermissionDenied = error.code === 401 || (error.code === 403 && error.apiCode !== "quota_exceeded");
+      errorBox.textContent = isPermissionDenied
+        ? message("formPermissionDenied")
+        : message("formCreateFailed", { message: describeApiError(error, "formError") });
+      errorBox.dataset.qaErrorCode = isPermissionDenied
+        ? "permission_denied"
+        : error.apiCode === "quota_exceeded"
+          ? "quota_exceeded"
+          : "create_failed";
     } finally {
       state.createSubmitting = false;
       $("#submit-create").disabled = false;
@@ -1736,6 +1876,7 @@
   function initFormDefaults() {
     localizeStaticShell();
     resetCreateForm();
+    renderWorkspaceQuotaNote();
   }
 
   function boot() {

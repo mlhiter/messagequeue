@@ -3,7 +3,7 @@
 ## 1. 模块信息
 
 - 模块：MessageQueue frontend
-- 页面：Kafka cluster create dialog
+- 页面：Kafka instance create dialog
 - 适用版本：v0.1.9+
 - 维护人：MessageQueue frontend owner
 
@@ -11,16 +11,16 @@
 
 | 页面 | 路由 | 说明 |
 | --- | --- | --- |
-| 集群列表 | `#/clusters` | Header `新建` 按钮打开创建弹窗。 |
+| 实例列表 | `#/clusters` | Header `新建` 按钮打开创建弹窗。 |
 | 空列表 | `#/clusters` | Empty state create action打开同一个创建弹窗。 |
 
 ## 3. 语义标签清单
 
 | 页面元素 | 代码位置 | data-testid | 类型 | 业务语义 | data-qa-* | 可操作 | 可断言 | 证据来源 | 关联风险 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 创建弹窗 | `frontend/index.html` | `messagequeue.create.modal` | panel | Kafka 集群创建入口 | `data-qa-module=messagequeue`, `data-qa-object=kafka-cluster` | 否 | 是 | requirement | 写资源入口 |
+| 创建弹窗 | `frontend/index.html` | `messagequeue.create.modal` | panel | Kafka 实例创建入口 | `data-qa-module=messagequeue`, `data-qa-object=kafka-cluster` | 否 | 是 | requirement | 写资源入口 |
 | 创建表单 | `frontend/index.html` | `messagequeue.create.form` | panel | 创建请求表单 | none | 否 | 是 | form | 表单合同漂移 |
-| 集群名称 | `frontend/index.html` | `messagequeue.create.name-input` | field | MessageQueue 资源名称 | `data-qa-field=name` | 是 | 是 | API | Kubernetes DNS 名称 |
+| 实例名称 | `frontend/index.html` | `messagequeue.create.name-input` | field | MessageQueue 资源名称 | `data-qa-field=name` | 是 | 是 | API | Kubernetes DNS 名称 |
 | Kafka 版本 | `frontend/index.html` | `messagequeue.create.version-select` | field | Kafka 版本 | `data-qa-field=kafka_version` | 是 | 是 | API | 不支持版本 |
 | 规格选项 | `frontend/index.html` | `messagequeue.create.profile-option` | field | development / standard / custom 规格 | `data-qa-profile=development|standard|custom` | 是 | 是 | requirement | 规格选择错误 |
 | Broker 数量 | `frontend/index.html` | `messagequeue.create.broker-input` | field | broker 副本数 | `data-qa-field=broker_count` | custom 时是 | 是 | API | 资源成本 |
@@ -32,7 +32,7 @@
 | 资源摘要 | `frontend/index.html` | `messagequeue.create.summary` | state | 当前将提交的资源占用 | `data-qa-state=development|standard|custom` | 否 | 是 | state | 提交前误解资源 |
 | 配额提示 | `frontend/index.html` | `messagequeue.create.quota-note` | state | 当前工作空间配额状态 | `data-qa-state=loading|ready|warning|degraded` | 否 | 是 | state | 配额信息不可见 |
 | 错误提示 | `frontend/index.html` | `messagequeue.create.error` | error | 创建校验或 API 错误 | `data-qa-state=error`, `data-qa-error-code=*` | 否 | 是 | API | 失败不可见 |
-| 提交按钮 | `frontend/index.html` | `messagequeue.create.submit-button` | action | 创建 Kafka 集群 | `data-qa-action=create`, `data-qa-state=ready|loading` | 是 | 是 | mutation | 写资源 |
+| 提交按钮 | `frontend/index.html` | `messagequeue.create.submit-button` | action | 创建 Kafka 实例 | `data-qa-action=create`, `data-qa-state=ready|loading` | 是 | 是 | mutation | 写资源 |
 
 ## 4. 状态枚举
 

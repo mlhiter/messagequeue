@@ -17,15 +17,15 @@ management API, with workspace ownership derived on the server side.
 ## Product Purpose
 
 MessageQueue provides a focused Kubernetes message-broker control plane. It
-turns a small, explicit product API into secure Kafka clusters, lifecycle
+turns a small, explicit product API into secure Kafka instances, lifecycle
 operations, credentials, logs, and metrics. Success means users can provision,
 diagnose, and safely change Kafka without understanding Strimzi internals, while
 platform operators retain predictable ownership, quota, billing, and rollback
 behavior.
 
 Kafka is the first engine. RabbitMQ can be added through its own operator after
-the Kafka contract is stable. Existing KubeBlocks-managed clusters are outside
-the runtime ownership boundary and are not adopted automatically.
+the Kafka contract is stable. Existing KubeBlocks-managed Kafka resources are
+outside the runtime ownership boundary and are not adopted automatically.
 
 ## Brand Personality
 
@@ -47,14 +47,14 @@ incident, precise during routine changes, and honest about asynchronous state.
 
 1. Show observed state, not optimistic intent. Every operation must expose its
    progress, last transition, and actionable failure reason.
-2. Keep common workflows short. Creating a cluster, finding credentials, and
+2. Keep common workflows short. Creating an instance, finding credentials, and
    opening logs or metrics should not require Kubernetes knowledge.
 3. Make risk explicit. Destructive changes, version upgrades, storage policy,
    and public access require clear impact before confirmation.
 4. Preserve tenant boundaries. Workspace identity and permission checks are
    server-owned and visible data never crosses namespaces.
 5. Degrade locally. Missing logs, metrics, or the optional Kafka console must
-   not make the cluster control plane unusable.
+   not make the instance control plane unusable.
 
 ## Accessibility & Inclusion
 

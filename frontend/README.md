@@ -1,7 +1,7 @@
 # Frontend
 
 This directory contains the first-party MessageQueue management interface. It
-owns cluster creation, lifecycle, status, connections, logs, and metrics. Kafbat
+owns instance creation, lifecycle, status, connections, logs, and metrics. Kafbat
 is an optional user-facing Kafka console and is not embedded here. The current
 shell is list-first, with a compact header, search and create actions on the
 top bar, dense table rows, and a separate detail page. The create dialog uses
@@ -35,9 +35,9 @@ docker build --platform linux/amd64 -t messagequeue-frontend:dev .
 The static UI uses hash routes so it can run behind the existing nginx static
 entrypoint:
 
-- `#/clusters`: the entry cluster list page with search and a header-level
+- `#/clusters`: the entry instance list page with search and a header-level
   create action.
-- `#/clusters/{name}`: a dedicated cluster detail page with Overview,
+- `#/clusters/{name}`: a dedicated instance detail page with Overview,
   Connections, Logs, Metrics, and Settings tabs.
 
 Do not reintroduce a split view that renders the list and detail side by side.

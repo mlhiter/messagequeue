@@ -16,11 +16,11 @@
           class="button button-secondary header-back-button is-hidden"
           type="button"
           id="back-button"
-          title="集群列表"
-          aria-label="集群列表"
+          title="实例列表"
+          aria-label="实例列表"
           aria-hidden="true"
         >
-          集群列表
+          实例列表
         </button>
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">MQ</span>
@@ -33,7 +33,7 @@
         <div class="header-actions">
           <label class="search-field">
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input id="search-input" type="search" placeholder="搜索集群" autocomplete="off" />
+            <input id="search-input" type="search" placeholder="搜索实例" autocomplete="off" />
           </label>
           <button class="icon-button" type="button" title="刷新数据" aria-label="刷新数据" id="refresh-button">
             ↻
@@ -47,7 +47,7 @@
         <p id="page-description" class="sr-only">MessageQueue Kafka 管理控制台</p>
 
         <section class="route-panel list-panel" id="list-panel" aria-labelledby="cluster-list-title">
-          <h2 id="cluster-list-title" class="sr-only">你的集群</h2>
+          <h2 id="cluster-list-title" class="sr-only">你的实例</h2>
           <div id="cluster-list" class="cluster-list" aria-live="polite" aria-busy="true"></div>
         </section>
 
@@ -71,8 +71,8 @@
       <form method="dialog" id="create-form" novalidate data-testid="messagequeue.create.form">
         <div class="modal-header">
           <div>
-            <p class="eyebrow" id="create-eyebrow">新资源</p>
-            <h2 id="create-title">创建 Kafka 集群</h2>
+            <p class="eyebrow" id="create-eyebrow">新实例</p>
+            <h2 id="create-title">创建 Kafka 实例</h2>
             <p class="modal-description" id="create-description">
               选择一个规格，控制器会在你的工作空间命名空间里创建 Strimzi 资源。
             </p>
@@ -100,7 +100,7 @@
             data-qa-state="error"
             data-qa-error-code="invalid_request"
           >
-            请输入合法的集群名称，并检查各项配置。
+            请输入合法的实例名称，并检查各项配置。
           </div>
           <section class="form-section" aria-labelledby="basic-section-title">
             <div class="form-section-title">
@@ -112,7 +112,7 @@
             </div>
             <div class="field-grid field-grid-basic">
               <label class="field field-wide">
-                <span><span id="field-name-label">集群名称</span> <em id="field-name-required">必填</em></span>
+                <span><span id="field-name-label">实例名称</span> <em id="field-name-required">必填</em></span>
                 <input
                   required
                   pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
@@ -267,7 +267,7 @@
                   id="storage-class"
                   name="storageClass"
                   value=""
-                  placeholder="默认集群存储"
+                  placeholder="默认存储类"
                   data-testid="messagequeue.create.storage-class-input"
                   data-qa-field="storage_class"
                 />
@@ -281,7 +281,7 @@
                   data-qa-field="deletion_policy"
                 >
                   <option value="Retain">保留数据</option>
-                  <option value="Delete">随集群删除</option>
+                  <option value="Delete">随实例删除</option>
                 </select>
               </label>
             </div>
@@ -298,7 +298,7 @@
             >
               开发 · 1 个 broker · 500m CPU / 1Gi 内存 · 每个 10 Gi 存储 · 保留数据
             </p>
-            <small id="impact-note">创建是异步的。你可以在集群详情里跟踪观测状态。</small>
+            <small id="impact-note">创建是异步的。你可以在实例详情里跟踪观测状态。</small>
             <small id="quota-note" data-testid="messagequeue.create.quota-note" data-qa-state="loading">正在读取当前工作空间的 CPU、内存和存储配额。</small>
           </div>
         </div>

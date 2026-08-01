@@ -52,7 +52,7 @@ Secret data. The Job requests `250m/512Mi` and limits `1 CPU/1Gi`; this is
 required on the test cluster because the `ns-admin` LimitRange defaults Java
 containers to `50m/64Mi`.
 
-A healthy cluster has a current `observedGeneration`, a true `Ready` condition,
+A healthy instance has a current `observedGeneration`, a true `Ready` condition,
 ready Strimzi resources, expected broker and controller Pods, bound PVCs, and
 a working authenticated client. Metrics may still show an explicit degraded
 state until the platform VictoriaMetrics adapter is connected; this does not
@@ -75,7 +75,7 @@ create/delete against the authenticated workspace before rollout.
 | --- | --- |
 | Metrics backend unavailable | Kafka remains manageable; monitoring shows a scoped degraded state. |
 | Historical logs unavailable | Live Kubernetes logs remain available. |
-| Kafbat unavailable | Cluster lifecycle and native management remain available. |
+| Kafbat unavailable | Instance lifecycle and native management remain available. |
 | Strimzi operator unavailable | Reconciliation reports a dependency failure and avoids unsafe workload edits. |
 | Quota exhausted | Creation or scaling reports the Kubernetes rejection without partial success claims. |
 
@@ -88,7 +88,7 @@ workloads directly as a suspension mechanism.
 
 ## Rollback
 
-- Pause new user-initiated cluster creation while rolling back incompatible
+- Pause new user-initiated instance creation while rolling back incompatible
   control-plane changes; do not reintroduce a create feature flag for this.
 - Roll back frontend, backend, and MessageQueue controller images independently.
 - Keep Strimzi and all CRDs installed while Kafka resources exist.

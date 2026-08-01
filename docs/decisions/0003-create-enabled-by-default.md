@@ -5,7 +5,7 @@
 
 ## Context
 
-MessageQueue is a management product, not a read-only viewer. Cluster creation
+MessageQueue is a management product, not a read-only viewer. Instance creation
 and deletion are part of the core workflow on the public Sealos Desktop entry.
 The previous release used deployment flags to disable writes while cluster 62
 was running a fixed single-workspace fallback identity.

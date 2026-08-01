@@ -26,4 +26,4 @@ workspace and platform services.
 The product can release independently and does not inherit database-provider or
 KubeBlocks resource semantics. It must own installation, version compatibility,
 authentication, account suspension, observability contracts, and rollback.
-Legacy Kafka clusters require coexistence or an explicit data-migration project.
+Legacy Kafka instances require coexistence or an explicit data-migration project.

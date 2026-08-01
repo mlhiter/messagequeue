@@ -51,7 +51,7 @@ resolve credentials without exposing their values to the browser.
 | `DELETE` | `/api/v1/messagequeues/{name}` | Delete the authenticated namespace's `MessageQueue` resource. Kubernetes owner references and the selected deletion policy decide follow-on Strimzi/PVC cleanup. |
 | `GET` | `/api/v1/messagequeues/{name}/status` | Return observed status only. |
 | `GET` | `/api/v1/messagequeues/{name}/client-config` | Return secret-free client connection metadata: bootstrap servers, username, auth mechanism, transport, and Secret name reference. |
-| `GET` | `/api/v1/messagequeues/-/quota` | Return workspace quota data for the authenticated namespace. If the workspace quota resource is missing, the response degrades without blocking cluster creation. The backend ServiceAccount must be able to `get` `resourcequotas` in the workspace namespace for this route and create preflight to work. |
+| `GET` | `/api/v1/messagequeues/-/quota` | Return workspace quota data for the authenticated namespace. If the workspace quota resource is missing, the response degrades without blocking instance creation. The backend ServiceAccount must be able to `get` `resourcequotas` in the workspace namespace for this route and create preflight to work. |
 | `GET` | `/api/v1/messagequeues/{name}/logs` | Return bounded pod logs. |
 | `GET` | `/api/v1/messagequeues/{name}/metrics` | Return one fixed metric series. |
 
@@ -99,7 +99,7 @@ one `key` from this server-owned set:
 
 The API never accepts a raw log or metric query. A missing VictoriaMetrics or
 VictoriaLogs dependency is returned as a bounded degraded response, so an
-observability outage does not block cluster management.
+observability outage does not block instance management.
 
 ## Structure
 

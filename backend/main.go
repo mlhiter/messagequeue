@@ -431,7 +431,7 @@ func (s *Server) writeStoreError(w http.ResponseWriter, err error) {
 	case errors.Is(err, ErrForbidden):
 		status, code, message = http.StatusForbidden, "forbidden", "the workspace is not allowed to perform this operation"
 	case errors.Is(err, ErrQuotaExceeded):
-		status, code, message = http.StatusForbidden, "quota_exceeded", "workspace quota is not sufficient for this cluster"
+		status, code, message = http.StatusForbidden, "quota_exceeded", "workspace quota is not sufficient for this instance"
 	case errors.Is(err, ErrDependencyUnavailable):
 		status, code, message = http.StatusServiceUnavailable, "dependency_unavailable", "the requested dependency is unavailable"
 	case errors.Is(err, ErrInvalid):

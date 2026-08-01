@@ -13,11 +13,11 @@ Strimzi. RabbitMQ is a planned engine, not part of the first release.
 
 MessageQueue will provide:
 
-- A first-party management UI for provisioning and operating Kafka clusters.
+- A first-party management UI for provisioning and operating Kafka instances.
 - A backend API for authenticated Kubernetes, metrics, and log access.
 - A Kubernetes controller that translates `MessageQueue` resources into
   Strimzi resources.
-- Cluster lifecycle, credentials, logs, metrics, and safe failure handling.
+- Instance lifecycle, credentials, logs, metrics, and safe failure handling.
 - An optional user-facing Kafka console based on Kafbat UI.
 
 MessageQueue does not use KubeBlocks and does not live in the Sealos monorepo.
@@ -61,14 +61,14 @@ docs/          Architecture, information architecture, references, and runbook
 Release `0.1.9` provides a deployable Kafka control plane: Strimzi `0.46.0`
 reconciles Kafka `3.9.0`/`4.0.0` KRaft resources, the backend exposes namespaced
 status/log/metrics contracts plus create/delete and secret-free
-client-configuration contracts. The first-party UI uses a dedicated cluster
-list page plus per-cluster detail pages for connections, logs, metrics, and
+client-configuration contracts. The first-party UI uses a dedicated instance
+list page plus per-instance detail pages for connections, logs, metrics, and
 settings. The cluster-62 smoke path creates `ns-admin/kafka-dev`, verifies SCRAM
 produce/consume, and registers an HTTPS `MessageQueue` iframe entry on Sealos
 Desktop.
 
 The management UI now uses a DevBox-style list-first shell: a compact top
-header, dense table rows, and a dedicated per-cluster detail page. It follows
+header, dense table rows, and a dedicated per-instance detail page. It follows
 the Sealos Desktop language setting through the Desktop SDK protocol, with
 Chinese as the standalone fallback. Kafka creation defaults to the development
 profile from `deploy/examples/messagequeue-dev.yaml`: 1 broker, 500m CPU, 1Gi

@@ -166,7 +166,7 @@ func (r *MessageQueueReconciler) Reconcile(ctx context.Context, req reconcile.Re
 		status.Phase = v1alpha1.PhaseReady
 		setCondition(status, mq.Generation, v1alpha1.ConditionReady, metav1.ConditionTrue, "KafkaReady", observedMessage)
 		setCondition(status, mq.Generation, v1alpha1.ConditionProgressing, metav1.ConditionFalse, "KafkaReady", observedMessage)
-		setCondition(status, mq.Generation, v1alpha1.ConditionDegraded, metav1.ConditionFalse, "KafkaReady", "Strimzi reports the Kafka cluster is ready")
+		setCondition(status, mq.Generation, v1alpha1.ConditionDegraded, metav1.ConditionFalse, "KafkaReady", "Strimzi reports the Kafka instance is ready")
 		setCondition(status, mq.Generation, v1alpha1.ConditionSuspended, metav1.ConditionFalse, "Active", "reconciliation is active")
 	} else {
 		status.Phase = v1alpha1.PhaseProvisioning
@@ -496,7 +496,7 @@ func kafkaStatus(obj *unstructured.Unstructured) (ready bool, readyReplicas int3
 				if conditionMessage != "" {
 					message = conditionMessage
 				} else {
-					message = "Strimzi reports the Kafka cluster is ready"
+					message = "Strimzi reports the Kafka instance is ready"
 				}
 				return true, readyReplicas, message
 			}

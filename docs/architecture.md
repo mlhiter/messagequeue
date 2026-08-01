@@ -30,7 +30,7 @@ Optional user path: authenticated entry -> Kafbat UI -> Kafka
 
 ### Management UI
 
-The first-party interface owns cluster creation, lifecycle operations,
+The first-party interface owns instance creation, lifecycle operations,
 credentials, status, logs, metrics, and operation history. It never delegates
 management workflows to Kafbat UI.
 
@@ -79,8 +79,8 @@ is disabled.
 - VictoriaMetrics storage, query, and collection services
 - VictoriaLogs, log collectors, VMAlert, and notification infrastructure
 
-No per-cluster monitoring control resource is required in the workspace
-namespace. Cluster deletion naturally removes metric endpoints and log sources.
+No per-instance monitoring control resource is required in the workspace
+namespace. Instance deletion naturally removes metric endpoints and log sources.
 
 ## API Ownership
 

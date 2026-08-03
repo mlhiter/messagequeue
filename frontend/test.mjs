@@ -4,6 +4,7 @@ const source = await readFile(new URL("./app.js", import.meta.url), "utf8");
 const html = await readFile(new URL("./index.html", import.meta.url), "utf8");
 const config = await readFile(new URL("./config.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("./styles.css", import.meta.url), "utf8");
+const build = await readFile(new URL("./build.mjs", import.meta.url), "utf8");
 const nginx = await readFile(new URL("./nginx.conf.template", import.meta.url), "utf8");
 
 const apiPrefix = source.match(/const API_PREFIX = "([^"]+)";/)?.[1];
@@ -70,6 +71,9 @@ for (const path of ["/index.html", "(app|config)", "/styles.css"]) {
 }
 if (!nginx.includes('add_header Cache-Control "no-store" always')) {
   throw new Error("same-name frontend assets must be served with no-store");
+}
+if (!build.includes("createHash") || !build.includes('replaceAll(`"${asset}"`')) {
+  throw new Error("build output must version same-name frontend assets");
 }
 if (!source.includes('fetch(`${API_BASE}${path}`')) {
   throw new Error("request() no longer joins API_BASE with a relative path");

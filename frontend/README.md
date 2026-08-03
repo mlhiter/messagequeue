@@ -44,6 +44,10 @@ entrypoint:
 Do not reintroduce a split view that renders the list and detail side by side.
 Do not reintroduce a sidebar-first shell for this UI.
 
+The container serves `index.html`, `app.js`, `styles.css`, and `config.js` with
+`Cache-Control: no-store`. These assets are not filename-hashed, so rollouts
+must not let Sealos Desktop iframes or browsers keep stale shell files.
+
 ## API contract used by the UI
 
 - `GET /api/v1/messagequeues`: list resources. The response is an

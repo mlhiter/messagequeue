@@ -4,6 +4,7 @@ const source = await readFile(new URL("./app.js", import.meta.url), "utf8");
 const html = await readFile(new URL("./index.html", import.meta.url), "utf8");
 const config = await readFile(new URL("./config.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("./styles.css", import.meta.url), "utf8");
+const nginx = await readFile(new URL("./nginx.conf.template", import.meta.url), "utf8");
 
 const apiPrefix = source.match(/const API_PREFIX = "([^"]+)";/)?.[1];
 
@@ -61,6 +62,14 @@ if (
 }
 if (!config.includes("window.MESSAGEQUEUE_LOCALE")) {
   throw new Error("locale override hook is missing");
+}
+for (const path of ["/index.html", "(app|config)", "/styles.css"]) {
+  if (!nginx.includes(path)) {
+    throw new Error(`nginx cache policy is missing ${path}`);
+  }
+}
+if (!nginx.includes('add_header Cache-Control "no-store" always')) {
+  throw new Error("same-name frontend assets must be served with no-store");
 }
 if (!source.includes('fetch(`${API_BASE}${path}`')) {
   throw new Error("request() no longer joins API_BASE with a relative path");

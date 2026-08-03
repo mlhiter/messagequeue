@@ -61,7 +61,10 @@ make Kafka management unhealthy.
 For Sealos Desktop delivery, additionally verify `app-system/messagequeue`,
 the `messagequeue.192.168.0.62.nip.io` Ingress, `/logo.svg`, and a real iframe
 open from the Desktop. A public HTTP 200 alone does not prove the desktop entry
-or embedded management workflow works.
+or embedded management workflow works. Because the current frontend serves
+same-name shell assets rather than filename-hashed bundles, verify `index.html`,
+`app.js`, `styles.css`, and `config.js` return `Cache-Control: no-store` after
+frontend rollouts.
 
 The public Desktop entry exposes create and delete by default. On cluster 62,
 the backend currently derives the writable workspace from the server-owned

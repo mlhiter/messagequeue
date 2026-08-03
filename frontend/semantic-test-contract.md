@@ -40,7 +40,7 @@
 | 外网未开启 | `frontend/app.js` | `messagequeue.detail.connection-external-disabled` | state | 外网访问关闭或无端点 | `data-qa-state=pending` | 否 | 是 | state | 误导公网可用 |
 | 日志面板 | `frontend/app.js` | `messagequeue.detail.logs` | panel | 自动加载的 broker 日志 | none | 刷新 | 是 | API | 诊断入口不可用 |
 | 监控面板 | `frontend/app.js` | `messagequeue.detail.monitoring` | panel | 自动加载的固定 key 监控 | `data-metric-key=*` | 刷新 | 是 | API | 暴露 raw query |
-| 详情操作区 | `frontend/app.js` | `messagequeue.detail.header-actions` | action-group | 刷新、更新、暂停/恢复、删除 | none | 部分可操作 | 是 | mutation | 生命周期误操作 |
+| 详情操作区 | `frontend/app.js` | `messagequeue.detail.header-actions` | dropdown-menu | 刷新，以及更多菜单中的更新、暂停/恢复、删除 | none | 部分可操作 | 是 | mutation | 生命周期误操作 |
 
 ## 4. 状态枚举
 

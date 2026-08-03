@@ -138,13 +138,20 @@ if (
 if (
   !source.includes('method: "DELETE"') ||
   !source.includes('data-action="delete-cluster"') ||
+  !source.includes("function actionMenuHtml") ||
+  !source.includes("function menuIcon") ||
+  !source.includes('data-icon="inline-start"') ||
   !source.includes("function rowActionsHtml") ||
   !source.includes("function detailActionsHtml") ||
+  !source.includes("action-menu-content") ||
+  !styles.includes('[data-icon="inline-start"]') ||
+  !styles.includes(".action-menu-content") ||
   !source.includes('["monitoring", message("monitoring")]') ||
   source.includes('["settings", message("settings")]') ||
-  source.includes('message("settings")')
+  source.includes('message("settings")') ||
+  source.includes('title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(message("updateInstance"))}</button><button class="button button-secondary"')
 ) {
-  throw new Error("delete actions must live in row/detail actions and Settings tab must be absent");
+  throw new Error("row/detail lifecycle actions must live in the dropdown menu and Settings tab must be absent");
 }
 if (!source.includes('data-action="dismiss-notice"') || !source.includes("noticeDismissed")) {
   throw new Error("dismissible degraded notice is missing a stateful handler");

@@ -699,6 +699,16 @@
     return typeof raw === "function" ? raw(params?.count ?? params.message ?? params.name ?? params) : interpolate(raw, params);
   }
 
+  function menuIcon(name) {
+    const icons = {
+      update: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>',
+      pause: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>',
+      resume: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"></path></svg>',
+      delete: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>'
+    };
+    return icons[name] || "";
+  }
+
   function normalizeLanguage(raw) {
     let value = "";
     if (typeof raw === "string") {
@@ -1376,10 +1386,20 @@
     return normalizedClusters().filter((cluster) => !query || `${cluster.name} ${cluster.namespace} ${cluster.version}`.toLowerCase().includes(query));
   }
 
-  function rowActionsHtml(cluster) {
-    const isOpen = state.openActionMenu === cluster.name;
+  function actionMenuHtml(cluster, menuId) {
+    const isOpen = state.openActionMenu === menuId;
     const suspended = String(cluster.phase || "").toLowerCase() === "suspended";
-    return `<span class="cluster-row-actions" data-menu-open="${isOpen ? "true" : "false"}"><button class="icon-button row-more-button" type="button" data-action="toggle-row-actions" data-cluster-name="${escapeHtml(cluster.name)}" aria-haspopup="menu" aria-expanded="${isOpen ? "true" : "false"}" aria-label="${escapeHtml(message("moreActions"))} ${escapeHtml(cluster.name)}" title="${escapeHtml(message("moreActions"))}">⋯</button>${isOpen ? `<span class="row-action-menu" role="menu" aria-label="${escapeHtml(message("instanceActions"))}"><button type="button" role="menuitem" data-action="lifecycle-unavailable" title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(message("updateInstance"))}</button><button type="button" role="menuitem" data-action="lifecycle-unavailable" title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(suspended ? message("resumeInstance") : message("pauseInstance"))}</button><button type="button" role="menuitem" data-action="delete-cluster" data-cluster-name="${escapeHtml(cluster.name)}" ${writesEnabled() && !state.deleteSubmitting ? "" : "disabled"}>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</button></span>` : ""}</span>`;
+    const clusterName = escapeHtml(cluster.name);
+    const toggleLabel = `${message("moreActions")} ${cluster.name}`;
+    const deleteDisabled = !writesEnabled() || state.deleteSubmitting;
+    const unavailableTitle = escapeHtml(message("lifecycleUnavailable"));
+    const lifecycleIcon = suspended ? menuIcon("resume") : menuIcon("pause");
+    const lifecycleLabel = suspended ? message("resumeInstance") : message("pauseInstance");
+    return `<span class="action-menu" data-menu-open="${isOpen ? "true" : "false"}" data-menu-id="${escapeHtml(menuId)}"><button class="icon-button action-menu-trigger" type="button" data-action="toggle-row-actions" data-menu-id="${escapeHtml(menuId)}" data-cluster-name="${clusterName}" aria-haspopup="menu" aria-expanded="${isOpen ? "true" : "false"}" aria-label="${escapeHtml(toggleLabel)}" title="${escapeHtml(message("moreActions"))}"><span aria-hidden="true">⋯</span></button>${isOpen ? `<span class="action-menu-content" role="menu" aria-label="${escapeHtml(message("instanceActions"))}"><span class="action-menu-group" role="group"><button class="action-menu-item" type="button" role="menuitem" data-action="lifecycle-unavailable" title="${unavailableTitle}" disabled>${menuIcon("update")}<span>${escapeHtml(message("updateInstance"))}</span></button><button class="action-menu-item" type="button" role="menuitem" data-action="lifecycle-unavailable" title="${unavailableTitle}" disabled>${lifecycleIcon}<span>${escapeHtml(lifecycleLabel)}</span></button></span><span class="action-menu-separator" role="separator"></span><span class="action-menu-group" role="group"><button class="action-menu-item is-destructive" type="button" role="menuitem" data-action="delete-cluster" data-cluster-name="${clusterName}" ${deleteDisabled ? "disabled" : ""}>${menuIcon("delete")}<span>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</span></button></span></span>` : ""}</span>`;
+  }
+
+  function rowActionsHtml(cluster) {
+    return `<span class="cluster-row-actions">${actionMenuHtml(cluster, `row:${cluster.name}`)}</span>`;
   }
 
   function renderRouteChrome() {
@@ -1570,9 +1590,7 @@
   }
 
   function detailActionsHtml(cluster, label, statusClass) {
-    const suspended = String(cluster.phase || "").toLowerCase() === "suspended";
-    const deleteDisabled = !writesEnabled() || state.deleteSubmitting;
-    return `<div class="detail-actions" data-testid="messagequeue.detail.header-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button><button class="button button-secondary" type="button" title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(message("updateInstance"))}</button><button class="button button-secondary" type="button" title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(suspended ? message("resumeInstance") : message("pauseInstance"))}</button><button class="button button-danger" type="button" data-action="delete-cluster" data-cluster-name="${escapeHtml(cluster.name)}" ${deleteDisabled ? "disabled" : ""}>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</button></div>`;
+    return `<div class="detail-actions" data-testid="messagequeue.detail.header-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button>${actionMenuHtml(cluster, `detail:${cluster.name}`)}</div>`;
   }
 
   function queueAutoLoadForActiveTab(cluster) {
@@ -2035,8 +2053,8 @@
       if (action?.dataset.action === "toggle-row-actions") {
         event.preventDefault();
         event.stopPropagation();
-        const name = action.dataset.clusterName || "";
-        state.openActionMenu = state.openActionMenu === name ? "" : name;
+        const menuId = action.dataset.menuId || "";
+        state.openActionMenu = state.openActionMenu === menuId ? "" : menuId;
         renderClusterList();
         return;
       }
@@ -2081,6 +2099,14 @@
       }
       const button = event.target.closest("[data-action]");
       if (!button) return;
+      if (button.dataset.action === "toggle-row-actions") {
+        event.preventDefault();
+        event.stopPropagation();
+        const menuId = button.dataset.menuId || "";
+        state.openActionMenu = state.openActionMenu === menuId ? "" : menuId;
+        renderDetail();
+        return;
+      }
       if (button.dataset.action === "back-to-list") {
         navigateToList();
         return;
@@ -2138,7 +2164,19 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && $("#create-modal")?.open) {
         $("#create-modal").close();
+        return;
       }
+      if (event.key === "Escape" && state.openActionMenu) {
+        state.openActionMenu = "";
+        renderClusterList();
+        renderDetail();
+      }
+    });
+    document.addEventListener("click", (event) => {
+      if (!state.openActionMenu || event.target.closest(".action-menu")) return;
+      state.openActionMenu = "";
+      renderClusterList();
+      renderDetail();
     });
     window.addEventListener("hashchange", () => {
       const previous = { ...state.route };

@@ -480,51 +480,110 @@ pre {
   min-width: 40px;
 }
 
-.row-more-button {
-  width: 32px;
-  min-height: 32px;
+.action-menu {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.action-menu-trigger {
+  width: 36px;
+  min-height: 36px;
+  border-radius: 8px;
+  color: var(--muted);
   font-size: 18px;
   line-height: 1;
 }
 
-.row-action-menu {
+.action-menu-trigger[aria-expanded="true"] {
+  border-color: var(--line-strong);
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.action-menu-content {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
-  z-index: 8;
-  display: grid;
-  min-width: 132px;
-  overflow: hidden;
-  border: 0.5px solid var(--line);
+  z-index: 12;
+  display: flex;
+  min-width: 152px;
+  padding: 4px;
+  flex-direction: column;
+  border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow-lg);
 }
 
-.row-action-menu button {
-  min-height: 34px;
-  padding: 0 12px;
+.action-menu-group {
+  display: grid;
+  gap: 1px;
+}
+
+.action-menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0 10px;
   border: 0;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  border-radius: 6px;
+  background: transparent;
   color: var(--ink);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   text-align: left;
 }
 
-.row-action-menu button:last-child {
-  border-bottom: 0;
+.action-menu-item [data-icon="inline-start"] {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.action-menu-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-menu-item.is-destructive {
   color: var(--red);
 }
 
-.row-action-menu button:hover:not(:disabled) {
+.action-menu-item:hover:not(:disabled) {
   background: var(--surface-soft);
 }
 
-.row-action-menu button:disabled {
+.action-menu-item.is-destructive:hover:not(:disabled) {
+  background: var(--red-soft);
+  color: #b91c1c;
+}
+
+.action-menu-item:focus-visible {
+  outline: none;
+  background: var(--surface-soft);
+}
+
+.action-menu-item:disabled {
   cursor: not-allowed;
   color: var(--faint);
+}
+
+.action-menu-separator {
+  display: block;
+  height: 1px;
+  margin: 4px -4px;
+  background: var(--line);
 }
 
 .detail-error,
@@ -773,6 +832,7 @@ pre {
 .detail-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
 }

@@ -8,7 +8,7 @@ product
 
 The primary users are Sealos workspace owners and managers who need to deploy
 and operate Kafka without managing raw operator resources. Developers consume
-connection information, logs, metrics, and a user-facing Kafka console within
+connection information, logs, monitoring, and a user-facing Kafka console within
 the permissions of their workspace. Platform operators install and maintain
 the shared controller, Strimzi, and observability integrations. The public
 Sealos Desktop entry exposes the same create and lifecycle workflows as the
@@ -18,7 +18,7 @@ management API, with workspace ownership derived on the server side.
 
 MessageQueue provides a focused Kubernetes message-broker control plane. It
 turns a small, explicit product API into secure Kafka instances, lifecycle
-operations, credentials, logs, and metrics. Success means users can provision,
+operations, credentials, logs, and monitoring. Success means users can provision,
 diagnose, and safely change Kafka without understanding Strimzi internals, while
 platform operators retain predictable ownership, quota, billing, and rollback
 behavior.
@@ -48,12 +48,12 @@ incident, precise during routine changes, and honest about asynchronous state.
 1. Show observed state, not optimistic intent. Every operation must expose its
    progress, last transition, and actionable failure reason.
 2. Keep common workflows short. Creating an instance, finding credentials, and
-   opening logs or metrics should not require Kubernetes knowledge.
+   opening logs or monitoring should not require Kubernetes knowledge.
 3. Make risk explicit. Destructive changes, version upgrades, storage policy,
    and public access require clear impact before confirmation.
 4. Preserve tenant boundaries. Workspace identity and permission checks are
    server-owned and visible data never crosses namespaces.
-5. Degrade locally. Missing logs, metrics, or the optional Kafka console must
+5. Degrade locally. Missing logs, monitoring, or the optional Kafka console must
    not make the instance control plane unusable.
 
 ## Accessibility & Inclusion

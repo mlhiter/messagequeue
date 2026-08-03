@@ -50,10 +50,10 @@ resolve credentials without exposing their values to the browser.
 | `GET` | `/api/v1/messagequeues/{name}` | Return spec and observed status. |
 | `DELETE` | `/api/v1/messagequeues/{name}` | Delete the authenticated namespace's `MessageQueue` resource. Kubernetes owner references and the selected deletion policy decide follow-on Strimzi/PVC cleanup. |
 | `GET` | `/api/v1/messagequeues/{name}/status` | Return observed status only. |
-| `GET` | `/api/v1/messagequeues/{name}/client-config` | Return secret-free client connection metadata: bootstrap servers, username, auth mechanism, transport, and Secret name reference. |
+| `GET` | `/api/v1/messagequeues/{name}/client-config` | Return secret-free client connection metadata: bootstrap servers, username, auth mechanism, transport, and Secret name reference. The UI derives internal host, port, and connection string display fields from `bootstrapServers`/status endpoints; external host, port, and connection string are shown only when future secret-free external endpoint metadata is present. |
 | `GET` | `/api/v1/messagequeues/-/quota` | Return workspace quota data for the authenticated namespace. If the workspace quota resource is missing, the response degrades without blocking instance creation. The backend ServiceAccount must be able to `get` `resourcequotas` in the workspace namespace for this route and create preflight to work. |
 | `GET` | `/api/v1/messagequeues/{name}/logs` | Return bounded pod logs. |
-| `GET` | `/api/v1/messagequeues/{name}/metrics` | Return one fixed metric series. |
+| `GET` | `/api/v1/messagequeues/{name}/metrics` | Return one fixed monitoring series per request. |
 
 Create accepts the following product-level shape. `engine` must be `kafka`;
 Kafka version/replicas, deletion policy, resources, and storage are translated
@@ -95,7 +95,8 @@ logs degrade until a system log adapter exists. Metric requests accept exactly
 one `key` from this server-owned set:
 
 `broker_count`, `partition_health`, `throughput`, `consumer_lag`, `cpu`,
-`memory`, `storage`.
+`memory`, `storage`. The management UI may combine multiple fixed-key requests
+to render one Monitoring tab, but it must never send PromQL.
 
 The API never accepts a raw log or metric query. A missing VictoriaMetrics or
 VictoriaLogs dependency is returned as a bounded degraded response, so an

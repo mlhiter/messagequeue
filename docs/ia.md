@@ -34,17 +34,27 @@ YAML is not part of the primary flow.
 The detail page is a separate route, not a right-hand panel attached to the
 list. Tabs are ordered by the current vertical-slice workflow:
 
-1. Overview: desired and observed state, endpoints, topology, and recent events
-2. Connections: secret-free client configuration metadata and copyable endpoints
-3. Logs: pod, container, time range, live follow, previous container, and search
-4. Metrics: resources, broker health, partition health, throughput, and lag
-5. Settings: deletion policy and the delete action
+1. Overview: health summary, observed readiness, broker readiness, connection
+   availability, resource footprint, storage/deletion policy, failure reason,
+   conditions, and recent events
+2. Connections: secret-free internal and external host, port, connection string,
+   authentication metadata, and copyable fields
+3. Logs: automatically loaded broker logs, refresh/retry, and scoped degraded
+   states when logs are unavailable
+4. Monitoring: automatically loaded CPU, memory, storage, throughput, consumer
+   lag, partition health, and scoped degraded states when metrics are
+   unavailable
+
+Delete, update, pause, and resume controls belong in the instance detail header
+and list-row more menu. Deletion is available whenever the management API is
+ready and still requires explicit confirmation. Update, pause, and resume remain
+disabled or explanatory until backend lifecycle contracts are implemented.
 
 The following detail tabs are v0.2 surfaces, not part of the current v0.1
 closed loop:
 
 - Operations: scaling, restart, upgrade, suspension, and operation history
-- Advanced settings: advanced engine settings and future lifecycle controls
+- Advanced configuration: advanced engine settings and future lifecycle controls
 
 The optional Kafka console is opened as a separate user-facing workspace after
 the v0.2 console integration exists. The management UI may show its readiness

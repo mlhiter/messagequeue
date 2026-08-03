@@ -38,7 +38,8 @@ entrypoint:
 - `#/clusters`: the entry instance list page with search and a header-level
   create action.
 - `#/clusters/{name}`: a dedicated instance detail page with Overview,
-  Connections, Logs, Metrics, and Settings tabs.
+  Connections, Logs, and Monitoring tabs. Lifecycle and delete actions live in
+  the detail header and the list row more menu rather than in a Settings tab.
 
 Do not reintroduce a split view that renders the list and detail side by side.
 Do not reintroduce a sidebar-first shell for this UI.
@@ -58,11 +59,13 @@ Do not reintroduce a sidebar-first shell for this UI.
   never Secret `data`, passwords, private keys, or kubeconfigs.
 - `GET /api/v1/messagequeues/-/quota` returns the authenticated workspace quota
   snapshot used by the create dialog's quota note.
-- `DELETE /api/v1/messagequeues/{name}` is called from the Settings tab after
-  explicit confirmation. The action is available whenever the API is ready.
+- `DELETE /api/v1/messagequeues/{name}` is called from the detail header or
+  list row more menu after explicit confirmation. The action is available
+  whenever the API is ready.
 - `GET /api/v1/messagequeues/{name}/logs?component=broker&tailLines=200` and
-  `GET /api/v1/messagequeues/{name}/metrics?key=throughput` are fixed, bounded
-  observability queries. The UI never sends raw PromQL or LogsQL.
+  `GET /api/v1/messagequeues/{name}/metrics?key=cpu|memory|storage|throughput|consumer_lag|partition_health`
+  are fixed, bounded observability queries. The Logs and Monitoring tabs fetch
+  automatically when opened. The UI never sends raw PromQL or LogsQL.
 
 The list and detail views distinguish loading, empty, ready, provisioning,
 degraded, failed, deleting, suspended, and permission-denied states. If the API
@@ -71,12 +74,12 @@ control surface remains inspectable; create, delete, and observability actions
 still require a working backend. Create and delete are not feature-flagged in
 the browser; the backend's server-side identity and Kubernetes authorization
 remain the write boundary. A metrics provider response with `degraded: true` is
-rendered as “Metrics unavailable” rather than as zero-valued data.
+rendered as “Monitoring unavailable” rather than as zero-valued data.
 
 The shell follows the Sealos Desktop language setting through the Desktop SDK
 protocol. Standalone local development falls back to Chinese unless
 `window.MESSAGEQUEUE_LOCALE`, `MESSAGEQUEUE_LOCALE`, `NEXT_LOCALE`, or the
 browser language supplies a supported locale.
 
-Semantic tags for the create workflow are documented in
+Semantic tags for the create and detail workflows are documented in
 [`semantic-test-contract.md`](semantic-test-contract.md).

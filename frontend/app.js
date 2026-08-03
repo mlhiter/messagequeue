@@ -23,7 +23,7 @@
       breadcrumbClusters: "实例",
       sectionTag: "消息代理 / Kafka",
       pageTitle: "消息队列实例",
-      pageDescription: "先看列表，再进入详情页查看连接、日志和指标。",
+      pageDescription: "先看列表，再进入详情页查看连接、日志和监控。",
       detailPageTitle: "实例详情",
       detailPageDescription: "这里单独展示一个实例的状态、连接和可观测信息。",
       backToList: "实例列表",
@@ -72,6 +72,21 @@
       storage: "存储",
       bootstrapEndpoint: "Bootstrap 端点",
       deletionPolicy: "删除策略",
+      desiredState: "期望状态",
+      resourceFootprint: "资源规格",
+      readyBrokers: "Broker 就绪",
+      connectionState: "连接状态",
+      connectionAvailable: "可连接",
+      connectionPending: "等待端点",
+      latestSignal: "最新信号",
+      failureReason: "异常原因",
+      noFailureReason: "暂无异常",
+      instanceActions: "实例操作",
+      moreActions: "更多操作",
+      updateInstance: "更新",
+      pauseInstance: "暂停",
+      resumeInstance: "恢复",
+      lifecycleUnavailable: "该操作需要后端生命周期接口接入后可用",
       retainData: "保留数据",
       deleteWithCluster: "随实例删除",
       controllerDefault: "控制器默认",
@@ -96,6 +111,13 @@
       clientConfigFetchNote: (name) => `配置通过服务端获取，范围限定为 ${name}。`,
       clientConfigDegraded: "客户端配置尚未就绪，不会暴露 Secret 数据。",
       bootstrapServers: "Bootstrap 服务",
+      internalAddress: "内网地址",
+      externalAddress: "外网地址",
+      host: "Host",
+      port: "Port",
+      connectionString: "连接串",
+      internalService: "集群内服务",
+      externalAccessDisabled: "外网访问未开启",
       username: "用户名",
       secretReference: "Secret 引用",
       noSecretMaterial: "这里仅显示连接元数据。密码、私钥和 kubeconfig 不会返回到浏览器。",
@@ -118,22 +140,30 @@
         "历史或实时日志是可选的平台依赖，不会阻塞 Kafka 操作。",
       logsFetchNote: (name) => `日志通过固定的服务端查询获取，范围限定为 ${name}。`,
       logs: "日志",
-      loadMetrics: "加载指标",
-      retryMetrics: "重试指标",
+      retryMetrics: "重试监控",
       brokerHealth: "Broker 健康",
-      loadingMetrics: "正在加载 broker 指标…",
-      metricsUnavailable: "指标不可用",
+      loadingMetrics: "正在加载监控数据…",
+      monitoringUnavailable: "监控不可用",
       metricsOptional:
         "VictoriaMetrics 可能不可用，或者还没有为这个工作空间配置。",
       metricsFetchNote:
-        "指标使用固定的服务端查询。命名空间和实例选择器由后端注入。",
+        "监控使用固定的服务端查询。命名空间和实例选择器由后端注入。",
       metricsProviderMissing:
-        "指标提供器未配置，不会影响 Kafka 操作。",
+        "监控提供器未配置，不会影响 Kafka 操作。",
       metricsMessagesIn: "消息进入",
       metricsMessagesOut: "消息流出",
       metricsUnderReplicated: "未同步副本",
       metricsConsumerLag: "消费者堆积",
-      metrics: "指标",
+      monitoring: "监控",
+      monitoringOverview: "实例监控",
+      resourceUsage: "资源变化",
+      trafficHealth: "流量与健康",
+      metricCpu: "CPU",
+      metricMemory: "内存",
+      metricStorage: "存储",
+      metricThroughput: "吞吐",
+      metricPartitionHealth: "分区健康",
+      currentValue: "当前值",
       perSecond: "每秒",
       partitions: "分区",
       messages: "条消息",
@@ -205,6 +235,7 @@
       statusSuspended: "已挂起",
       statusDeleting: "删除中",
       statusLabel: "状态",
+      details: "详情",
       loadingDemoClusters: "正在加载观测到的实例…",
       stateReadyMeta: "已观测且可服务",
       stateAttentionMeta: "正在创建或异常",
@@ -213,7 +244,7 @@
       demoProvisioningEvent1: "MessageQueue 已被控制器接收。",
       demoProvisioningEvent2: "Kafka 资源正在通过 Strimzi 创建。",
       demoReadyCondition1: "Kafka Broker 正在接受连接。",
-      demoReadyCondition2: "Broker 指标和日志已可用。",
+      demoReadyCondition2: "Broker 监控和日志已可用。",
       demoProvisioningCondition1: "等待 Kafka broker Pod 就绪。",
       demoProvisioningCondition2: "正在协调 Strimzi 资源。",
       noRecentEvents: "暂无最近事件。",
@@ -230,7 +261,6 @@
       loadingState: "正在加载…",
       noHelp: "暂无帮助内容",
       operationsComingSoon: "运维功能正在完善中",
-      settings: "设置",
       deleteCluster: "删除实例",
       deletingCluster: "正在删除…",
       dangerZone: "危险操作",
@@ -259,7 +289,7 @@
       pageTitle: "Message queue instances",
       pageDescription: "Start with the list, then open a dedicated detail page for each instance.",
       detailPageTitle: "Instance details",
-      detailPageDescription: "Inspect the selected instance's status, connections, logs, and metrics here.",
+      detailPageDescription: "Inspect the selected instance's status, connections, logs, and monitoring here.",
       backToList: "Instance list",
       createCluster: "Create instance",
       newCluster: "New",
@@ -306,6 +336,21 @@
       storage: "Storage",
       bootstrapEndpoint: "Bootstrap endpoint",
       deletionPolicy: "Deletion policy",
+      desiredState: "Desired state",
+      resourceFootprint: "Resource footprint",
+      readyBrokers: "Brokers ready",
+      connectionState: "Connection state",
+      connectionAvailable: "Connectable",
+      connectionPending: "Waiting for endpoint",
+      latestSignal: "Latest signal",
+      failureReason: "Failure reason",
+      noFailureReason: "No current failure",
+      instanceActions: "Instance actions",
+      moreActions: "More actions",
+      updateInstance: "Update",
+      pauseInstance: "Pause",
+      resumeInstance: "Resume",
+      lifecycleUnavailable: "This operation will be available after the lifecycle API is connected",
       retainData: "Retain data",
       deleteWithCluster: "Delete with instance",
       controllerDefault: "Controller default",
@@ -330,6 +375,13 @@
       clientConfigFetchNote: (name) => `Configuration is fetched through the server and scoped to ${name}.`,
       clientConfigDegraded: "Client configuration is not ready yet; Secret data is not exposed.",
       bootstrapServers: "Bootstrap servers",
+      internalAddress: "Internal address",
+      externalAddress: "External address",
+      host: "Host",
+      port: "Port",
+      connectionString: "Connection string",
+      internalService: "In-cluster service",
+      externalAccessDisabled: "External access is not enabled",
       username: "Username",
       secretReference: "Secret reference",
       noSecretMaterial: "Only connection metadata is shown here. Passwords, private keys, and kubeconfigs are never returned to the browser.",
@@ -351,19 +403,27 @@
       logsOptional: "Historical or live logs are an optional platform dependency and do not block Kafka operations.",
       logsFetchNote: (name) => `Logs are fetched through a fixed server-owned query scoped to ${name}.`,
       logs: "Logs",
-      loadMetrics: "Load metrics",
-      retryMetrics: "Retry metrics",
+      retryMetrics: "Retry monitoring",
       brokerHealth: "Broker health",
-      loadingMetrics: "Loading broker metrics…",
-      metricsUnavailable: "Metrics unavailable",
+      loadingMetrics: "Loading monitoring data…",
+      monitoringUnavailable: "Monitoring unavailable",
       metricsOptional: "VictoriaMetrics may be unavailable or not configured for this workspace.",
-      metricsFetchNote: "Metrics use a fixed server-owned query. Namespace and instance selectors are injected by the backend.",
-      metricsProviderMissing: "The metrics provider is not configured; Kafka operations are unaffected.",
+      metricsFetchNote: "Monitoring data uses fixed server-owned queries. Namespace and instance selectors are injected by the backend.",
+      metricsProviderMissing: "The monitoring provider is not configured; Kafka operations are unaffected.",
       metricsMessagesIn: "Messages in",
       metricsMessagesOut: "Messages out",
       metricsUnderReplicated: "Under-replicated",
       metricsConsumerLag: "Consumer lag",
-      metrics: "Metrics",
+      monitoring: "Monitoring",
+      monitoringOverview: "Instance monitoring",
+      resourceUsage: "Resource changes",
+      trafficHealth: "Traffic and health",
+      metricCpu: "CPU",
+      metricMemory: "Memory",
+      metricStorage: "Storage",
+      metricThroughput: "Throughput",
+      metricPartitionHealth: "Partition health",
+      currentValue: "Current value",
       perSecond: "per second",
       partitions: "partitions",
       messages: "messages",
@@ -435,6 +495,7 @@
       statusSuspended: "Suspended",
       statusDeleting: "Deleting",
       statusLabel: "Status",
+      details: "Details",
       loadingDemoClusters: "Loading observed instances…",
       stateReadyMeta: "Observed and serving",
       stateAttentionMeta: "Provisioning or degraded",
@@ -443,7 +504,7 @@
       demoProvisioningEvent1: "MessageQueue accepted by the controller.",
       demoProvisioningEvent2: "Kafka resource created through Strimzi.",
       demoReadyCondition1: "Kafka brokers are accepting connections.",
-      demoReadyCondition2: "Broker metrics and logs are available.",
+      demoReadyCondition2: "Broker monitoring and logs are available.",
       demoProvisioningCondition1: "Waiting for the Kafka broker pod to become Ready.",
       demoProvisioningCondition2: "Reconciling Strimzi resources.",
       noRecentEvents: "No recent events reported.",
@@ -459,7 +520,6 @@
       loadingState: "Loading…",
       noHelp: "No help content yet",
       operationsComingSoon: "Operations are still being polished",
-      settings: "Settings",
       deleteCluster: "Delete instance",
       deletingCluster: "Deleting…",
       dangerZone: "Danger zone",
@@ -527,6 +587,7 @@
     "storage-class",
     "deletion-policy"
   ];
+  const MONITORING_KEYS = ["cpu", "memory", "storage", "throughput", "consumer_lag", "partition_health"];
 
   function getCookie(name) {
     const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=([^;]*)`));
@@ -562,6 +623,7 @@
     apiMessage: "",
     noticeDismissed: false,
     search: "",
+    openActionMenu: "",
     observability: {},
     clientConfig: {},
     createSubmitting: false,
@@ -610,6 +672,7 @@
   }
 
   function navigateToList() {
+    state.openActionMenu = "";
     commitRouteHash("#/clusters");
   }
 
@@ -617,6 +680,7 @@
     if (!name) return;
     state.tab = "overview";
     state.observability = {};
+    state.openActionMenu = "";
     commitRouteHash(`#/clusters/${encodeURIComponent(name)}`);
   }
 
@@ -957,6 +1021,114 @@
     return state.language === "zh" ? `${size} Gi / broker` : `${size} Gi / broker`;
   }
 
+  function formatDeletionPolicy(cluster) {
+    const value = String(cluster.deletionPolicy || "").toLowerCase();
+    if (value === "delete") return message("deleteWithCluster");
+    if (value === "retain") return message("retainData");
+    return message("controllerDefault");
+  }
+
+  function readyBrokerLabel(cluster) {
+    const desired = Number(cluster.brokers) || 0;
+    const ready = Number(cluster.status.readyReplicas ?? cluster.raw?.status?.readyReplicas ?? 0);
+    return desired > 0 ? `${ready}/${desired}` : "—";
+  }
+
+  function formatResourceFootprint(cluster) {
+    const cpu = cluster.spec.resources?.cpu || cluster.kafka.cpu || "—";
+    const memory = cluster.spec.resources?.memory || cluster.kafka.memory || "—";
+    return `${formatBrokerCount(cluster.brokers)} · ${cpu} / ${memory} · ${formatBrokerStorage(cluster.storageGi)}`;
+  }
+
+  function latestSignal(cluster) {
+    const latestEvent = cluster.events?.[0]?.message || cluster.events?.[0]?.reason;
+    const latestCondition = cluster.conditions?.[0]?.message || cluster.conditions?.[0]?.reason;
+    return localizeBackendText(latestEvent || latestCondition || message("noRecentEvents"));
+  }
+
+  function failureReason(cluster) {
+    const failedCondition = cluster.conditions.find((condition) => {
+      const status = String(condition.status || "").toLowerCase();
+      const type = String(condition.type || "").toLowerCase();
+      return status === "false" || type.includes("degraded") || type.includes("failed");
+    });
+    const phase = String(cluster.phase || "").toLowerCase();
+    if (failedCondition) return localizeBackendText(failedCondition.message || failedCondition.reason || message("noFailureReason"));
+    if (["degraded", "failed"].includes(phase)) return localizeBackendText(cluster.status.message || message("noFailureReason"));
+    return message("noFailureReason");
+  }
+
+  function parseEndpoint(value, fallbackPort = "9092") {
+    const raw = String(value || "").trim();
+    if (!raw || raw === "Pending" || raw === "—") {
+      return { host: "—", port: "—", connection: "—", available: false };
+    }
+    const first = raw.split(",")[0].trim();
+    const withoutProtocol = first.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
+    const withoutPath = withoutProtocol.split("/")[0];
+    const separator = withoutPath.lastIndexOf(":");
+    const host = separator > -1 ? withoutPath.slice(0, separator) : withoutPath;
+    const port = separator > -1 ? withoutPath.slice(separator + 1) : fallbackPort;
+    return { host, port, connection: raw, available: Boolean(host && host !== "—") };
+  }
+
+  function endpointListFrom(value) {
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (typeof value === "string" && value.trim()) return [value.trim()];
+    return [];
+  }
+
+  function connectionModel(cluster, config = {}) {
+    const internalCandidates = [
+      ...endpointListFrom(config.bootstrapServers),
+      ...endpointListFrom(cluster.status.endpoints),
+      cluster.endpoint
+    ].filter(Boolean);
+    const externalCandidates = [
+      ...endpointListFrom(config.externalBootstrapServers),
+      ...endpointListFrom(config.externalEndpoints),
+      config.externalEndpoint,
+      config.publicEndpoint,
+      cluster.status.externalEndpoint
+    ].filter(Boolean);
+    return {
+      internal: parseEndpoint(internalCandidates[0] || cluster.endpoint),
+      external: externalCandidates.length ? parseEndpoint(externalCandidates[0]) : null
+    };
+  }
+
+  function latestMetricValue(series) {
+    const values = Array.isArray(series?.values) ? series.values : [];
+    const value = values[values.length - 1]?.value;
+    return Number.isFinite(Number(value)) ? Number(value) : null;
+  }
+
+  function formatMetricValue(value, unit = "") {
+    if (value == null) return "—";
+    const formatted = Math.abs(value) >= 100 ? Math.round(value).toLocaleString() : Number(value.toFixed(2)).toLocaleString();
+    return unit ? `${formatted} ${unit}` : formatted;
+  }
+
+  function sparklineSvg(series) {
+    const values = (Array.isArray(series?.values) ? series.values : [])
+      .map((point) => Number(point.value))
+      .filter((value) => Number.isFinite(value));
+    if (values.length < 2) return `<div class="metric-sparkline is-empty" aria-hidden="true"></div>`;
+    const width = 180;
+    const height = 54;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = max - min || 1;
+    const points = values
+      .map((value, index) => {
+        const x = values.length === 1 ? width : (index / (values.length - 1)) * width;
+        const y = height - ((value - min) / span) * (height - 8) - 4;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(" ");
+    return `<svg class="metric-sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}"></polyline></svg>`;
+  }
+
   function formatConditionType(type) {
     const value = String(type || message("statusUnknown"));
     if (state.language !== "zh") return value;
@@ -992,7 +1164,7 @@
       "Waiting for the Kafka broker pod to become Ready.": "等待 Kafka broker Pod 就绪。",
       "Reconciling Strimzi resources.": "正在协调 Strimzi 资源。",
       "Kafka brokers are accepting connections.": "Kafka broker 正在接受连接。",
-      "Broker metrics and logs are available.": "Broker 指标和日志已可用。",
+      "Broker metrics and logs are available.": "Broker 监控和日志已可用。",
       "Kafka user credentials reconciled.": "Kafka 用户凭据已完成协调。",
       "All 3 brokers reported Ready.": "3 个 broker 已全部就绪。",
       "MessageQueue accepted by the controller.": "MessageQueue 已被控制器接收。",
@@ -1124,6 +1296,11 @@
     return clusters.find((cluster) => cluster.name === state.route.clusterName) || null;
   }
 
+  function clusterByName(name) {
+    if (!name) return null;
+    return normalizedClusters().find((cluster) => cluster.name === name) || null;
+  }
+
   function writesEnabled() {
     return state.apiState === "ready";
   }
@@ -1197,6 +1374,12 @@
   function filteredClusters() {
     const query = state.search.trim().toLowerCase();
     return normalizedClusters().filter((cluster) => !query || `${cluster.name} ${cluster.namespace} ${cluster.version}`.toLowerCase().includes(query));
+  }
+
+  function rowActionsHtml(cluster) {
+    const isOpen = state.openActionMenu === cluster.name;
+    const suspended = String(cluster.phase || "").toLowerCase() === "suspended";
+    return `<span class="cluster-row-actions" data-menu-open="${isOpen ? "true" : "false"}"><button class="icon-button row-more-button" type="button" data-action="toggle-row-actions" data-cluster-name="${escapeHtml(cluster.name)}" aria-haspopup="menu" aria-expanded="${isOpen ? "true" : "false"}" aria-label="${escapeHtml(message("moreActions"))} ${escapeHtml(cluster.name)}" title="${escapeHtml(message("moreActions"))}">⋯</button>${isOpen ? `<span class="row-action-menu" role="menu" aria-label="${escapeHtml(message("instanceActions"))}"><button type="button" role="menuitem" data-action="lifecycle-unavailable" title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(message("updateInstance"))}</button><button type="button" role="menuitem" data-action="lifecycle-unavailable" title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(suspended ? message("resumeInstance") : message("pauseInstance"))}</button><button type="button" role="menuitem" data-action="delete-cluster" data-cluster-name="${escapeHtml(cluster.name)}" ${writesEnabled() && !state.deleteSubmitting ? "" : "disabled"}>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</button></span>` : ""}</span>`;
   }
 
   function renderRouteChrome() {
@@ -1276,6 +1459,10 @@
       return;
     }
 
+    const listDeleteError =
+      state.deleteError && state.route.view === "list"
+        ? `<div class="form-error list-delete-error" role="alert">${escapeHtml(state.deleteError.message)}</div>`
+        : "";
     const columns = [
       message("clusterNameColumn"),
       message("statusColumn"),
@@ -1284,14 +1471,14 @@
       message("storageColumn"),
       message("namespaceColumn"),
       message("updatedColumn"),
-      ""
+      message("instanceActions")
     ];
 
-    list.innerHTML = `<div class="cluster-table"><div class="cluster-table-head" aria-hidden="true">${columns.map((label, index) => `<span class="cluster-head-cell ${index === 0 ? "is-name" : ""}">${escapeHtml(label)}</span>`).join("")}</div><div class="cluster-table-body">${clusters
+    list.innerHTML = `${listDeleteError}<div class="cluster-table"><div class="cluster-table-head" aria-hidden="true">${columns.map((label, index) => `<span class="cluster-head-cell ${index === 0 ? "is-name" : ""}">${escapeHtml(label)}</span>`).join("")}</div><div class="cluster-table-body">${clusters
       .map((cluster) => {
         const [label, statusClass] = statusLabel(cluster.phase);
         const href = `#/clusters/${encodeURIComponent(cluster.name)}`;
-        return `<a class="cluster-row" href="${href}" data-cluster-name="${escapeHtml(cluster.name)}" aria-label="${escapeHtml(message("openDetail"))} ${escapeHtml(cluster.name)}"><span class="cluster-name-cell"><span class="cluster-name">${escapeHtml(cluster.name)}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-version">${escapeHtml(cluster.version)}</span><span class="cluster-topology"><strong>${escapeHtml(formatBrokerCount(cluster.brokers))}</strong></span><span class="cluster-storage">${escapeHtml(formatBrokerStorage(cluster.storageGi))}</span><span class="cluster-namespace"><code>${escapeHtml(cluster.namespace)}</code></span><span class="cluster-updated">${escapeHtml(formatTime(cluster.lastTransitionTime))}</span><span class="cluster-action" aria-hidden="true">›</span></a>`;
+        return `<div class="cluster-row" role="link" tabindex="0" data-cluster-name="${escapeHtml(cluster.name)}" data-href="${href}" aria-label="${escapeHtml(message("openDetail"))} ${escapeHtml(cluster.name)}"><span class="cluster-name-cell"><span class="cluster-name">${escapeHtml(cluster.name)}</span></span><span class="cluster-status"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span></span><span class="cluster-version">${escapeHtml(cluster.version)}</span><span class="cluster-topology"><strong>${escapeHtml(formatBrokerCount(cluster.brokers))}</strong></span><span class="cluster-storage">${escapeHtml(formatBrokerStorage(cluster.storageGi))}</span><span class="cluster-namespace"><code>${escapeHtml(cluster.namespace)}</code></span><span class="cluster-updated">${escapeHtml(formatTime(cluster.lastTransitionTime))}</span>${rowActionsHtml(cluster)}</div>`;
       })
       .join("")}</div></div>`;
   }
@@ -1299,43 +1486,44 @@
   function overviewHtml(cluster) {
     const conditions = cluster.conditions.length ? cluster.conditions : [{ type: "Ready", status: "Unknown", reason: "NoCondition", message: message("noConditions") }];
     const events = cluster.events.length ? cluster.events : [{ time: "—", message: message("noRecentEvents") }];
-    const deletionPolicy =
-      cluster.deletionPolicy === "delete" || cluster.deletionPolicy === "Delete"
-        ? message("deleteWithCluster")
-        : cluster.deletionPolicy === "retain" || cluster.deletionPolicy === "Retain"
-          ? message("retainData")
-          : message("controllerDefault");
+    const [label, statusClass] = statusLabel(cluster.phase);
+    const connection = parseEndpoint(cluster.endpoint);
+    const summaryCards = [
+      [message("observedState"), label, `${message("generation")} ${cluster.status.observedGeneration || "—"}`, `status-${statusClass}`],
+      [message("readyBrokers"), readyBrokerLabel(cluster), message("controllerReported"), ""],
+      [message("connectionState"), connection.available ? message("connectionAvailable") : message("connectionPending"), connection.connection, connection.available ? "status-ready" : "status-provisioning"],
+      [message("resourceFootprint"), formatResourceFootprint(cluster), `${message("kafkaVersion")} ${cluster.version}`, ""],
+      [message("deletionPolicy"), formatDeletionPolicy(cluster), message("storage"), ""],
+      [message("failureReason"), failureReason(cluster), message("latestSignal"), failureReason(cluster) === message("noFailureReason") ? "" : "status-failed"]
+    ];
 
-    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("observedState"))}</h3><span>${escapeHtml(message("generation"))} ${escapeHtml(cluster.status.observedGeneration || "—")}</span></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("engine"))}</dt><dd>${escapeHtml(message("engineName"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaVersion"))}</dt><dd>${escapeHtml(cluster.version)}</dd></div><div class="info-item"><dt>${escapeHtml(message("topology"))}</dt><dd>${escapeHtml(formatBrokerCount(cluster.brokers))}</dd></div><div class="info-item"><dt>${escapeHtml(message("storage"))}</dt><dd>${escapeHtml(formatBrokerStorage(cluster.storageGi))}</dd></div><div class="info-item"><dt>${escapeHtml(message("bootstrapEndpoint"))}</dt><dd><code>${escapeHtml(cluster.endpoint)}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("deletionPolicy"))}</dt><dd>${escapeHtml(deletionPolicy)}</dd></div></dl></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("conditions"))}</h3><span>${escapeHtml(message("controllerReported"))}</span></div><div class="condition-list">${conditions.map((condition) => `<div class="condition-row"><strong>${escapeHtml(formatConditionType(condition.type))} · ${escapeHtml(formatConditionStatus(condition.status))}</strong><span>${escapeHtml(localizeBackendText(condition.message || condition.reason || message("conditionPlaceholder")))}</span></div>`).join("")}</div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("recentEvents"))}</h3><span>${escapeHtml(message("latestFirst"))}</span></div><div class="event-list">${events.map((event) => `<div class="event-row"><time>${escapeHtml(formatEventTime(event))}</time><p>${escapeHtml(localizeBackendText(event.message || event.reason || message("controllerEvent")))}</p></div>`).join("")}</div></section>`;
+    return `<section class="detail-section" data-testid="messagequeue.detail.overview"><div class="section-heading"><h3>${escapeHtml(message("observedState"))}</h3><span>${escapeHtml(message("latestSignal"))}: ${escapeHtml(latestSignal(cluster))}</span></div><div class="overview-grid">${summaryCards
+      .map(([title, value, meta, tone]) => `<article class="overview-card ${tone ? `is-${tone}` : ""}"><span>${escapeHtml(title)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(meta)}</small></article>`)
+      .join("")}</div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("conditions"))}</h3><span>${escapeHtml(message("controllerReported"))}</span></div><div class="condition-list">${conditions.map((condition) => `<div class="condition-row"><strong>${escapeHtml(formatConditionType(condition.type))} · ${escapeHtml(formatConditionStatus(condition.status))}</strong><span>${escapeHtml(localizeBackendText(condition.message || condition.reason || message("conditionPlaceholder")))}</span></div>`).join("")}</div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("recentEvents"))}</h3><span>${escapeHtml(message("latestFirst"))}</span></div><div class="event-list">${events.map((event) => `<div class="event-row"><time>${escapeHtml(formatEventTime(event))}</time><p>${escapeHtml(localizeBackendText(event.message || event.reason || message("controllerEvent")))}</p></div>`).join("")}</div></section>`;
   }
 
   function connectionsHtml(cluster) {
     const result = state.clientConfig;
-    let configBody = `<div class="observability-box"><h3>${escapeHtml(message("clientConnection"))}</h3><p>${escapeHtml(message("clientConfigFetchNote", { name: cluster.name }))}</p><button class="button button-primary" type="button" data-action="load-client-config">${escapeHtml(message("loadClientConfig"))}</button></div>`;
+    const config = result?.name === cluster.name && result.data ? result.data : {};
+    const model = connectionModel(cluster, config);
+    let degradedNotice = "";
     if (result?.name === cluster.name && result.loading) {
-      configBody = `<div class="loading-state"><span>${escapeHtml(message("loadingClientConfig"))}</span><span class="loading-bar" aria-hidden="true"></span></div>`;
+      degradedNotice = `<div class="loading-state"><span>${escapeHtml(message("loadingClientConfig"))}</span><span class="loading-bar" aria-hidden="true"></span></div>`;
     } else if (result?.name === cluster.name && result.error) {
-      configBody = `<div class="observability-box"><h3>${escapeHtml(message("clientConfigUnavailable"))}</h3><p>${escapeHtml(result.error)}</p><button class="button button-secondary" type="button" data-action="load-client-config">${escapeHtml(message("retryClientConfig"))}</button></div>`;
-    } else if (result?.name === cluster.name && result.data) {
-      const config = result.data;
-      const servers = Array.isArray(config.bootstrapServers) ? config.bootstrapServers : [];
-      const serverRows = servers.length ? servers : [cluster.endpoint];
-      const degradedNotice = config.degraded ? `<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("clientConfigDegraded"))}</strong><p>${escapeHtml(config.message || "")}</p></div></div>` : "";
-      configBody = `<div class="connection-block">${serverRows
-        .map((server) => `<div class="copy-row"><code>${escapeHtml(server)}</code><button type="button" data-copy="${escapeHtml(server)}">${escapeHtml(message("copy"))}</button></div>`)
-        .join("")}<dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("username"))}</dt><dd><code>${escapeHtml(config.username || `${cluster.name}-client`)}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("secretReference"))}</dt><dd><code>${escapeHtml(config.secretRef || "Pending")}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("transport"))}</dt><dd>${escapeHtml(config.transport || message("tls"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("mechanism"))}</dt><dd>${escapeHtml(config.mechanism || message("scramSha512"))}</dd></div></dl>${degradedNotice}</div>`;
+      degradedNotice = `<div class="observability-box"><h3>${escapeHtml(message("clientConfigUnavailable"))}</h3><p>${escapeHtml(result.error)}</p><button class="button button-secondary" type="button" data-action="load-client-config">${escapeHtml(message("retryClientConfig"))}</button></div>`;
+    } else if (config.degraded) {
+      degradedNotice = `<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("clientConfigDegraded"))}</strong><p>${escapeHtml(config.message || "")}</p></div></div>`;
     }
-    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("clientConnection"))}</h3><span>${escapeHtml(message("credentialsStayServerSide"))}</span></div>${configBody}<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("credentialsProtected"))}</strong><p>${escapeHtml(message("noSecretMaterial"))}</p></div></div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("authentication"))}</h3></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("transport"))}</dt><dd>${escapeHtml(message("tls"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("mechanism"))}</dt><dd>${escapeHtml(message("scramSha512"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaUser"))}</dt><dd><code>${escapeHtml(cluster.name)}-client</code></dd></div><div class="info-item"><dt>${escapeHtml(message("access"))}</dt><dd>${escapeHtml(message("workspaceScoped"))}</dd></div></dl></section>`;
-  }
-
-  function settingsHtml(cluster) {
-    const canWrite = writesEnabled();
-    const deleteCopy =
-      cluster.deletionPolicy === "delete" || cluster.deletionPolicy === "Delete"
-        ? message("deleteDeleteImpact")
-        : message("deleteRetainImpact");
-    const error = state.deleteError?.name === cluster.name ? `<div class="form-error" role="alert">${escapeHtml(state.deleteError.message)}</div>` : "";
-    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("dangerZone"))}</h3><span>${escapeHtml(message("deletionPolicy"))}</span></div><div class="danger-panel"><div><strong>${escapeHtml(message("deleteCluster"))}</strong><p>${escapeHtml(message("deleteClusterDescription"))} ${escapeHtml(deleteCopy)}</p>${canWrite ? "" : `<p>${escapeHtml(message("deleteUnavailable"))}</p>`}</div><button class="button button-danger" type="button" data-action="delete-cluster" ${canWrite && !state.deleteSubmitting ? "" : "disabled"}>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</button></div>${error}</section>`;
+    const endpointPanel = (title, endpoint, meta) => {
+      const isInternal = title === message("internalAddress");
+      const disabled = !endpoint?.available;
+      const safe = endpoint || { host: "—", port: "—", connection: message("externalAccessDisabled") };
+      const stateName = disabled ? "pending" : "ready";
+      const testId = disabled && !isInternal ? "messagequeue.detail.connection-external-disabled" : `messagequeue.detail.connection-${isInternal ? "internal" : "external"}`;
+      const copyButton = (value) => `<button type="button" ${disabled ? "disabled" : `data-copy="${escapeHtml(value)}"`}>${escapeHtml(message("copy"))}</button>`;
+      return `<article class="connection-endpoint ${disabled ? "is-disabled" : ""}" data-testid="${testId}" data-qa-state="${stateName}"><div class="connection-endpoint-header"><h4>${escapeHtml(title)}</h4><span>${escapeHtml(meta)}</span></div><div class="connection-fields"><label><span>${escapeHtml(message("host"))}</span><code>${escapeHtml(safe.host)}</code>${copyButton(safe.host)}</label><label><span>${escapeHtml(message("port"))}</span><code>${escapeHtml(safe.port)}</code>${copyButton(safe.port)}</label><label class="is-wide"><span>${escapeHtml(message("connectionString"))}</span><code>${escapeHtml(safe.connection)}</code>${copyButton(safe.connection)}</label></div></article>`;
+    };
+    return `<section class="detail-section" data-testid="messagequeue.detail.connections"><div class="section-heading"><h3>${escapeHtml(message("clientConnection"))}</h3><span>${escapeHtml(message("credentialsStayServerSide"))}</span></div><div class="connection-layout">${endpointPanel(message("internalAddress"), model.internal, message("internalService"))}${endpointPanel(message("externalAddress"), model.external, message("externalAccessDisabled"))}</div>${degradedNotice}<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("credentialsProtected"))}</strong><p>${escapeHtml(message("noSecretMaterial"))}</p></div></div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("authentication"))}</h3></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("transport"))}</dt><dd>${escapeHtml(config.transport || message("tls"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("mechanism"))}</dt><dd>${escapeHtml(config.mechanism || message("scramSha512"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaUser"))}</dt><dd><code>${escapeHtml(config.username || `${cluster.name}-client`)}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("secretReference"))}</dt><dd><code>${escapeHtml(config.secretRef || "Pending")}</code></dd></div></dl></section>`;
   }
 
   function logsHtml(cluster) {
@@ -1346,35 +1534,62 @@
     if (result?.name === cluster.name && result.error) {
       return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("logsUnavailable"))}</h3><p>${escapeHtml(result.error)} ${escapeHtml(message("logsOptional"))}</p><button class="button button-secondary" type="button" data-action="load-logs">${escapeHtml(message("retryLogs"))}</button></div></section>`;
     }
-    if (result?.name === cluster.name && result.data) {
-      return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("brokerLogs"))}</h3><button class="button button-secondary" type="button" data-action="load-logs">${escapeHtml(message("refresh"))}</button></div><pre class="log-viewer" id="log-viewer">Loading…</pre></section>`;
+    if (result?.name === cluster.name && Object.prototype.hasOwnProperty.call(result, "data")) {
+      const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("logsUnavailable"))}</h3><p>${escapeHtml(result.message || message("logsOptional"))}</p></div>` : "";
+      return `<section class="detail-section" data-testid="messagequeue.detail.logs"><div class="section-heading"><h3>${escapeHtml(message("brokerLogs"))}</h3><button class="button button-secondary" type="button" data-action="load-logs">${escapeHtml(message("refresh"))}</button></div>${degradedNotice}<pre class="log-viewer" id="log-viewer">${escapeHtml(message("loadingState"))}</pre></section>`;
     }
-    return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("liveLogs"))}</h3><p>${escapeHtml(message("logsFetchNote", { name: cluster.name }))}</p><button class="button button-primary" type="button" data-action="load-logs">${escapeHtml(message("loadLogs"))}</button></div></section>`;
+    return `<section class="detail-section"><div class="loading-state"><span>${escapeHtml(message("loadingLogs"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
   }
 
-  function metricsHtml(cluster) {
-    const result = state.observability.metrics;
+  function monitoringHtml(cluster) {
+    const result = state.observability.monitoring;
     if (result?.name === cluster.name && result.loading) {
-      return `<section class="detail-section"><div class="loading-state"><span>${escapeHtml(message("loadingMetrics"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
+      return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="loading"><div class="loading-state"><span>${escapeHtml(message("loadingMetrics"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
     }
     if (result?.name === cluster.name && result.error) {
-      return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("metricsUnavailable"))}</h3><p>${escapeHtml(result.error)} ${escapeHtml(message("metricsOptional"))}</p><button class="button button-secondary" type="button" data-action="load-metrics">${escapeHtml(message("retryMetrics"))}</button></div></section>`;
+      return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="error"><div class="observability-box"><h3>${escapeHtml(message("monitoringUnavailable"))}</h3><p>${escapeHtml(result.error)} ${escapeHtml(message("metricsOptional"))}</p><button class="button button-secondary" type="button" data-action="load-metrics">${escapeHtml(message("retryMetrics"))}</button></div></section>`;
     }
     const metrics = result?.data || null;
     if (!metrics) {
-      return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("brokerHealth"))}</h3><p>${escapeHtml(message("metricsFetchNote"))}</p><button class="button button-primary" type="button" data-action="load-metrics">${escapeHtml(message("loadMetrics"))}</button></div></section>`;
+      return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="loading"><div class="loading-state"><span>${escapeHtml(message("loadingMetrics"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
     }
-    const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("metricsUnavailable"))}</h3><p>${escapeHtml(result.message || message("metricsProviderMissing"))}</p></div>` : "";
-    return `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("brokerHealth"))}</h3><button class="button button-secondary" type="button" data-action="load-metrics">${escapeHtml(message("refresh"))}</button></div><div class="metric-grid">${[
-      [message("metricsMessagesIn"), metrics.messagesIn ?? "—", message("perSecond")],
-      [message("metricsMessagesOut"), metrics.messagesOut ?? "—", message("perSecond")],
-      [message("metricsUnderReplicated"), metrics.underReplicated ?? "—", message("partitions")],
-      [message("metricsConsumerLag"), metrics.consumerLag ?? "—", message("messages")]
-    ]
-      .map(
-        ([name, value, unit]) => `<div class="metric-card"><span>${escapeHtml(name)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(unit)}</small></div>`
-      )
-      .join("")}</div>${degradedNotice}</section>`;
+    const card = (key, title, unit) => {
+      const series = metrics[key];
+      const latest = latestMetricValue(series);
+      return `<article class="metric-card" data-metric-key="${escapeHtml(key)}"><div class="metric-card-head"><span>${escapeHtml(title)}</span><small>${escapeHtml(series?.unit || unit || message("currentValue"))}</small></div><strong>${escapeHtml(formatMetricValue(latest, series?.unit || unit))}</strong>${sparklineSvg(series)}</article>`;
+    };
+    const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("monitoringUnavailable"))}</h3><p>${escapeHtml(result.message || message("metricsProviderMissing"))}</p></div>` : "";
+    return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="${result.degraded ? "degraded" : "ready"}"><div class="section-heading"><h3>${escapeHtml(message("monitoringOverview"))}</h3><button class="button button-secondary" type="button" data-action="load-metrics">${escapeHtml(message("refresh"))}</button></div><div class="monitoring-band"><div><strong>${escapeHtml(message("resourceUsage"))}</strong><span>${escapeHtml(message("metricsFetchNote"))}</span></div></div><div class="metric-grid">${[
+      card("cpu", message("metricCpu"), "cores"),
+      card("memory", message("metricMemory"), "Mi"),
+      card("storage", message("metricStorage"), "Gi"),
+      card("throughput", message("metricThroughput"), message("perSecond")),
+      card("consumer_lag", message("metricsConsumerLag"), message("messages")),
+      card("partition_health", message("metricPartitionHealth"), message("partitions"))
+    ].join("")}</div>${degradedNotice}</section>`;
+  }
+
+  function detailActionsHtml(cluster, label, statusClass) {
+    const suspended = String(cluster.phase || "").toLowerCase() === "suspended";
+    const deleteDisabled = !writesEnabled() || state.deleteSubmitting;
+    return `<div class="detail-actions" data-testid="messagequeue.detail.header-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button><button class="button button-secondary" type="button" title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(message("updateInstance"))}</button><button class="button button-secondary" type="button" title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(suspended ? message("resumeInstance") : message("pauseInstance"))}</button><button class="button button-danger" type="button" data-action="delete-cluster" data-cluster-name="${escapeHtml(cluster.name)}" ${deleteDisabled ? "disabled" : ""}>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</button></div>`;
+  }
+
+  function queueAutoLoadForActiveTab(cluster) {
+    if (!cluster) return;
+    if (state.tab === "connections" && state.apiState === "ready" && state.clientConfig?.name !== cluster.name) {
+      window.setTimeout(() => loadClientConfig(), 0);
+      return;
+    }
+    if (state.tab === "logs") {
+      const result = state.observability.logs;
+      if (result?.name !== cluster.name) window.setTimeout(() => loadObservability("logs"), 0);
+      return;
+    }
+    if (state.tab === "monitoring") {
+      const result = state.observability.monitoring;
+      if (result?.name !== cluster.name) window.setTimeout(() => loadMonitoring(), 0);
+    }
   }
 
   function renderDetail() {
@@ -1391,9 +1606,9 @@
       ["overview", message("overview")],
       ["connections", message("connections")],
       ["logs", message("logs")],
-      ["metrics", message("metrics")],
-      ["settings", message("settings")]
+      ["monitoring", message("monitoring")]
     ];
+    if (!tabs.some(([id]) => id === state.tab)) state.tab = "overview";
 
     const body =
       state.tab === "overview"
@@ -1402,16 +1617,16 @@
           ? connectionsHtml(cluster)
           : state.tab === "logs"
             ? logsHtml(cluster)
-            : state.tab === "settings"
-              ? settingsHtml(cluster)
-              : metricsHtml(cluster);
+            : monitoringHtml(cluster);
+    const deleteError = state.deleteError?.name === cluster.name ? `<div class="form-error detail-error" role="alert">${escapeHtml(state.deleteError.message)}</div>` : "";
 
-    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div><div class="detail-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button></div></div><div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${body}</div>`;
+    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div>${detailActionsHtml(cluster, label, statusClass)}</div>${deleteError}<div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${body}</div>`;
 
-    if (state.tab === "logs" && state.observability.logs?.name === cluster.name && state.observability.logs.data) {
+    if (state.tab === "logs" && state.observability.logs?.name === cluster.name && Object.prototype.hasOwnProperty.call(state.observability.logs, "data")) {
       const viewer = $("#log-viewer");
-      if (viewer) viewer.textContent = state.observability.logs.data;
+      if (viewer) viewer.textContent = state.observability.logs.data || state.observability.logs.message || message("logsUnavailable");
     }
+    queueAutoLoadForActiveTab(cluster);
   }
 
   function render() {
@@ -1506,27 +1721,59 @@
     state.observability[kind] = { name: cluster.name, loading: true };
     render();
     try {
-      const query = kind === "logs" ? "component=broker&tailLines=200" : "key=throughput";
+      const query = "component=broker&tailLines=200";
       const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/${kind}?${query}`);
-      if (kind === "logs") {
-        const lines = Array.isArray(payload?.lines)
-          ? payload.lines.map((line) => `${line.timestamp ? `[${line.timestamp}] ` : ""}${line.message}`).join("\n")
-          : payload?.text || payload?.data || "";
-        state.observability[kind] = { name: cluster.name, data: lines, degraded: payload?.degraded, message: payload?.message };
-      } else {
-        const values = Array.isArray(payload?.values) ? payload.values : [];
-        const latest = values[values.length - 1]?.value;
-        state.observability[kind] = {
-          name: cluster.name,
-          data: { messagesIn: latest ?? "—", messagesOut: "—", underReplicated: "—", consumerLag: "—" },
-          degraded: payload?.degraded,
-          message: payload?.message
-        };
-      }
+      const lines = Array.isArray(payload?.lines)
+        ? payload.lines.map((line) => `${line.timestamp ? `[${line.timestamp}] ` : ""}${line.message}`).join("\n")
+        : payload?.text || payload?.data || "";
+      state.observability[kind] = { name: cluster.name, data: lines, degraded: payload?.degraded, message: payload?.message };
     } catch (error) {
       state.observability[kind] = {
         name: cluster.name,
         error: describeApiError(error, "managementApiUnavailable")
+      };
+    }
+    render();
+  }
+
+  async function loadMonitoring() {
+    const cluster = selectedCluster();
+    if (!cluster) return;
+    state.observability.monitoring = { name: cluster.name, loading: true };
+    render();
+    const results = await Promise.all(
+      MONITORING_KEYS.map(async (key) => {
+        try {
+          const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/metrics?key=${encodeURIComponent(key)}`);
+          return { key, payload };
+        } catch (error) {
+          return { key, error };
+        }
+      })
+    );
+    const metrics = {};
+    const errors = [];
+    let degraded = false;
+    for (const result of results) {
+      if (result.payload) {
+        metrics[result.key] = result.payload;
+        degraded = degraded || Boolean(result.payload.degraded);
+      } else if (result.error) {
+        errors.push(describeApiError(result.error, "managementApiUnavailable"));
+        degraded = true;
+      }
+    }
+    if (!Object.keys(metrics).length) {
+      state.observability.monitoring = {
+        name: cluster.name,
+        error: errors[0] || message("metricsProviderMissing")
+      };
+    } else {
+      state.observability.monitoring = {
+        name: cluster.name,
+        data: metrics,
+        degraded,
+        message: errors[0] || Object.values(metrics).find((metric) => metric?.message)?.message || ""
       };
     }
     render();
@@ -1549,19 +1796,20 @@
     render();
   }
 
-  async function deleteCluster() {
-    const cluster = selectedCluster();
+  async function deleteCluster(name) {
+    const cluster = name ? clusterByName(name) : selectedCluster();
     if (!cluster || !writesEnabled() || state.deleteSubmitting) return;
     if (!window.confirm(message("deleteConfirmPrompt", { name: cluster.name }))) return;
     state.deleteSubmitting = true;
     state.deleteError = null;
-    renderDetail();
+    state.openActionMenu = "";
+    render();
     try {
       await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}`, { method: "DELETE" });
       state.tab = "overview";
       state.clientConfig = {};
       state.observability = {};
-      navigateToList();
+      if (state.route.view === "detail" && state.route.clusterName === cluster.name) navigateToList();
       await loadClusters();
     } catch (error) {
       state.deleteError = {
@@ -1571,10 +1819,10 @@
             ? message("permissionDeniedCopy")
             : message("deleteFailed", { message: describeApiError(error, "managementApiUnavailable") })
       };
-      renderDetail();
+      render();
     } finally {
       state.deleteSubmitting = false;
-      renderDetail();
+      render();
     }
   }
 
@@ -1764,6 +2012,7 @@
     $("#help-button")?.addEventListener("click", () => alert(message("noHelp")));
     $("#search-input")?.addEventListener("input", (event) => {
       state.search = event.currentTarget.value;
+      state.openActionMenu = "";
       renderClusterList();
       renderDetail();
     });
@@ -1783,6 +2032,25 @@
         openCreateModal();
         return;
       }
+      if (action?.dataset.action === "toggle-row-actions") {
+        event.preventDefault();
+        event.stopPropagation();
+        const name = action.dataset.clusterName || "";
+        state.openActionMenu = state.openActionMenu === name ? "" : name;
+        renderClusterList();
+        return;
+      }
+      if (action?.dataset.action === "delete-cluster") {
+        event.preventDefault();
+        event.stopPropagation();
+        deleteCluster(action.dataset.clusterName);
+        return;
+      }
+      if (event.target.closest(".cluster-row-actions")) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const row = event.target.closest("[data-cluster-name]");
       if (
         row &&
@@ -1793,10 +2061,24 @@
         !event.altKey
       ) {
         event.preventDefault();
+        state.openActionMenu = "";
         navigateToCluster(row.dataset.clusterName);
       }
     });
+    $("#cluster-list")?.addEventListener("keydown", (event) => {
+      const row = event.target.closest(".cluster-row[data-cluster-name]");
+      if (!row || event.target !== row || !["Enter", " "].includes(event.key)) return;
+      event.preventDefault();
+      state.openActionMenu = "";
+      navigateToCluster(row.dataset.clusterName);
+    });
     $("#detail-content")?.addEventListener("click", (event) => {
+      const copyButton = event.target.closest("[data-copy]");
+      if (copyButton) {
+        const copyValue = copyButton.getAttribute("data-copy");
+        if (copyValue) navigator.clipboard?.writeText(copyValue);
+        return;
+      }
       const button = event.target.closest("[data-action]");
       if (!button) return;
       if (button.dataset.action === "back-to-list") {
@@ -1821,15 +2103,13 @@
         return;
       }
       if (button.dataset.action === "load-metrics") {
-        loadObservability("metrics");
+        loadMonitoring();
         return;
       }
       if (button.dataset.action === "delete-cluster") {
-        deleteCluster();
+        deleteCluster(button.dataset.clusterName);
         return;
       }
-      const copyValue = button.getAttribute("data-copy");
-      if (copyValue) navigator.clipboard?.writeText(copyValue);
     });
     $("#detail-content")?.addEventListener("click", (event) => {
       const tabButton = event.target.closest("[data-tab]");
@@ -1863,6 +2143,7 @@
     window.addEventListener("hashchange", () => {
       const previous = { ...state.route };
       syncRouteFromLocation();
+      state.openActionMenu = "";
       if (state.route.view === "detail" && state.route.clusterName !== previous.clusterName) {
         state.tab = "overview";
         state.observability = {};

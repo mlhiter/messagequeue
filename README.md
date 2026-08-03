@@ -60,10 +60,11 @@ docs/          Architecture, information architecture, references, and runbook
 
 Release `0.1.9` provides a deployable Kafka control plane: Strimzi `0.46.0`
 reconciles Kafka `3.9.0`/`4.0.0` KRaft resources, the backend exposes namespaced
-status/log/metrics contracts plus create/delete and secret-free
+status/log/monitoring contracts plus create/delete and secret-free
 client-configuration contracts. The first-party UI uses a dedicated instance
-list page plus per-instance detail pages for connections, logs, metrics, and
-settings. The cluster-62 smoke path creates `ns-admin/kafka-dev`, verifies SCRAM
+list page plus per-instance detail pages for connections, logs, and monitoring;
+delete and future lifecycle actions live in row/header action areas. The
+cluster-62 smoke path creates `ns-admin/kafka-dev`, verifies SCRAM
 produce/consume, and registers an HTTPS `MessageQueue` iframe entry on Sealos
 Desktop.
 

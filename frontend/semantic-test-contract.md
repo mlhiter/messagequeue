@@ -1,9 +1,9 @@
-# MessageQueue Create Semantic Test Contract
+# MessageQueue Frontend Semantic Test Contract
 
 ## 1. 模块信息
 
 - 模块：MessageQueue frontend
-- 页面：Kafka instance create dialog
+- 页面：Kafka instance list, create dialog, and detail pages
 - 适用版本：v0.1.9+
 - 维护人：MessageQueue frontend owner
 
@@ -13,6 +13,7 @@
 | --- | --- | --- |
 | 实例列表 | `#/clusters` | Header `新建` 按钮打开创建弹窗。 |
 | 空列表 | `#/clusters` | Empty state create action打开同一个创建弹窗。 |
+| 实例详情 | `#/clusters/{name}` | 展示概览、连接、日志、监控和页面级操作。 |
 
 ## 3. 语义标签清单
 
@@ -33,6 +34,13 @@
 | 配额提示 | `frontend/index.html` | `messagequeue.create.quota-note` | state | 当前工作空间配额状态 | `data-qa-state=loading|ready|warning|degraded` | 否 | 是 | state | 配额信息不可见 |
 | 错误提示 | `frontend/index.html` | `messagequeue.create.error` | error | 创建校验或 API 错误 | `data-qa-state=error`, `data-qa-error-code=*` | 否 | 是 | API | 失败不可见 |
 | 提交按钮 | `frontend/index.html` | `messagequeue.create.submit-button` | action | 创建 Kafka 实例 | `data-qa-action=create`, `data-qa-state=ready|loading` | 是 | 是 | mutation | 写资源 |
+| 详情概览 | `frontend/app.js` | `messagequeue.detail.overview` | panel | 实例健康摘要 | none | 否 | 是 | status | 误读可用性 |
+| 连接信息 | `frontend/app.js` | `messagequeue.detail.connections` | panel | secret-free 内外网连接元数据 | none | 否 | 是 | API | 凭据泄露 |
+| 内网连接 | `frontend/app.js` | `messagequeue.detail.connection-internal` | panel | 内网 host、port、连接串 | `data-qa-state=ready|pending` | ready 时复制字段 | 是 | API | 连接地址错误 |
+| 外网未开启 | `frontend/app.js` | `messagequeue.detail.connection-external-disabled` | state | 外网访问关闭或无端点 | `data-qa-state=pending` | 否 | 是 | state | 误导公网可用 |
+| 日志面板 | `frontend/app.js` | `messagequeue.detail.logs` | panel | 自动加载的 broker 日志 | none | 刷新 | 是 | API | 诊断入口不可用 |
+| 监控面板 | `frontend/app.js` | `messagequeue.detail.monitoring` | panel | 自动加载的固定 key 监控 | `data-metric-key=*` | 刷新 | 是 | API | 暴露 raw query |
+| 详情操作区 | `frontend/app.js` | `messagequeue.detail.header-actions` | action-group | 刷新、更新、暂停/恢复、删除 | none | 部分可操作 | 是 | mutation | 生命周期误操作 |
 
 ## 4. 状态枚举
 
@@ -42,6 +50,8 @@
 | `messagequeue.create.quota-note` | `loading`, `ready`, `warning`, `degraded` | 当前工作空间配额摘要或降级状态。 |
 | `messagequeue.create.submit-button` | `ready`, `loading` | 可提交或正在提交。 |
 | `#custom-resource-fields` | `preset`, `custom` | 规格字段锁定或可编辑。 |
+| `messagequeue.detail.connection-internal` | `ready`, `pending` | 内网连接串可用或等待端点。 |
+| `messagequeue.detail.monitoring` | `loading`, `ready`, `degraded`, `error` | 监控自动加载并局部降级。 |
 
 ## 5. 禁用原因枚举
 
@@ -72,6 +82,8 @@
 | standard 规格 | covered | `3 broker / 1 CPU / 2Gi / 20Gi / Retain`。 |
 | custom 可编辑规格 | covered | broker、CPU、内存、存储、存储类、删除策略；后端按每 broker 8 CPU / 64Gi / 1024Gi 上限兜底。 |
 | raw Strimzi YAML | skipped | 主流程不暴露 YAML 编辑器。 |
+| Settings tab | skipped | 删除、更新、暂停/恢复入口在列表 more 和详情 header，不再通过 tab 控制。 |
+| raw PromQL / LogsQL | skipped | 前端只能请求后端固定 key 和固定日志参数。 |
 | 纯布局容器 | skipped | 不添加测试标签。 |
 
 ## 9. 变更规则
@@ -80,3 +92,4 @@
 - 删除或重命名标签必须同步更新本文档。
 - 自动化不得依赖 CSS class、DOM 层级或中文文案作为唯一定位方式。
 - 不得把密码、kubeconfig、Secret data 写入任何语义标签。
+- 连接串只能包含 secret-free 元数据，不得包含密码、私钥、kubeconfig、Secret data 或 raw query。

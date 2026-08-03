@@ -65,8 +65,8 @@ if (!config.includes("window.MESSAGEQUEUE_LOCALE")) {
 if (!source.includes('fetch(`${API_BASE}${path}`')) {
   throw new Error("request() no longer joins API_BASE with a relative path");
 }
-if (!source.includes("result.degraded") || !source.includes("metricsUnavailable")) {
-  throw new Error("metrics degraded state is not rendered explicitly");
+if (!source.includes("result.degraded") || !source.includes("monitoringUnavailable") || !source.includes("loadMonitoring")) {
+  throw new Error("monitoring degraded state is not rendered explicitly");
 }
 if (source.includes("CREATE_ENABLED") || source.includes("MESSAGEQUEUE_CREATE_ENABLED")) {
   throw new Error("write affordances must not depend on a create feature flag");
@@ -110,11 +110,28 @@ if (!html.includes('id="quota-note"') || !source.includes("quotaReady") || !sour
 if (!source.includes("function writesEnabled()") || !source.includes('return state.apiState === "ready";')) {
   throw new Error("write affordances must require a ready API");
 }
-if (!source.includes('/client-config') || !source.includes('data-action="load-client-config"')) {
-  throw new Error("safe client configuration entry point is missing");
+if (
+  !source.includes('/client-config') ||
+  !source.includes("connectionModel") ||
+  !source.includes("internalAddress") ||
+  !source.includes("externalAddress") ||
+  !source.includes("connectionString") ||
+  !source.includes("data-copy") ||
+  !source.includes("!endpoint?.available") ||
+  !source.includes('data-qa-state="${stateName}"')
+) {
+  throw new Error("safe internal/external client connection fields are missing");
 }
-if (!source.includes('method: "DELETE"') || !source.includes('data-action="delete-cluster"') || !source.includes('["settings", message("settings")]')) {
-  throw new Error("delete/settings closed-loop UI is missing");
+if (
+  !source.includes('method: "DELETE"') ||
+  !source.includes('data-action="delete-cluster"') ||
+  !source.includes("function rowActionsHtml") ||
+  !source.includes("function detailActionsHtml") ||
+  !source.includes('["monitoring", message("monitoring")]') ||
+  source.includes('["settings", message("settings")]') ||
+  source.includes('message("settings")')
+) {
+  throw new Error("delete actions must live in row/detail actions and Settings tab must be absent");
 }
 if (!source.includes('data-action="dismiss-notice"') || !source.includes("noticeDismissed")) {
   throw new Error("dismissible degraded notice is missing a stateful handler");
@@ -123,6 +140,15 @@ for (const key of [
   "loadClientConfig",
   "clientConfigUnavailable",
   "noSecretMaterial",
+  "internalAddress",
+  "externalAddress",
+  "connectionString",
+  "monitoring",
+  "monitoringUnavailable",
+  "updateInstance",
+  "pauseInstance",
+  "resumeInstance",
+  "moreActions",
   "deleteCluster",
   "deleteUnavailable",
   "deleteConfirmPrompt"
@@ -131,7 +157,14 @@ for (const key of [
     throw new Error(`new i18n key is missing: ${key}`);
   }
 }
-for (const forbidden of ["passwordInput", "privateKey", "kubeconfigText", "secretData"]) {
+if (
+  !source.includes('data-testid="messagequeue.detail.monitoring" data-qa-state="loading"') ||
+  !source.includes('data-testid="messagequeue.detail.monitoring" data-qa-state="error"') ||
+  !source.includes('${result.degraded ? "degraded" : "ready"}')
+) {
+  throw new Error("monitoring semantic panel must expose loading, ready, degraded, and error states");
+}
+for (const forbidden of ["passwordInput", "privateKey", "kubeconfigText", "secretData", "password=", "saslPassword"]) {
   if (source.includes(forbidden)) {
     throw new Error(`client config UI should not introduce secret material field: ${forbidden}`);
   }
@@ -151,8 +184,14 @@ if (source.includes('<div class="detail-actions"><button class="button button-se
 if (/location\.hash\s*=\s*target;\s*return;/.test(functionBody("navigateToList")) || /location\.hash\s*=\s*target;\s*return;/.test(functionBody("navigateToCluster"))) {
   throw new Error("route navigation still depends on hashchange before rendering");
 }
-if (!source.includes("data-cluster-name") || !source.includes("navigateToCluster(row.dataset.clusterName)")) {
-  throw new Error("cluster row clicks must use the same synchronous route commit as detail navigation");
+if (
+  !source.includes("data-cluster-name") ||
+  !source.includes("navigateToCluster(row.dataset.clusterName)") ||
+  !source.includes('data-action="toggle-row-actions"') ||
+  !source.includes('event.target.closest(".cluster-row-actions")') ||
+  !source.includes("list-delete-error")
+) {
+  throw new Error("cluster row clicks and row action menus must stay isolated");
 }
 
 for (const apiBase of ["/api", "/messagequeue/api", "https://api.example.test"]) {

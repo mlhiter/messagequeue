@@ -45,10 +45,11 @@ list. Tabs are ordered by the current vertical-slice workflow:
    lag, partition health, and scoped degraded states when metrics are
    unavailable
 
-Delete, update, pause, and resume controls belong in the instance detail header
-and list-row more menu. Deletion is available whenever the management API is
-ready and still requires explicit confirmation. Update, pause, and resume remain
-disabled or explanatory until backend lifecycle contracts are implemented.
+Delete, update, pause, and resume controls belong in the route header beside
+the back control and in the list-row more menu, not inside the detail content
+card. Deletion is available whenever the management API is ready and still
+requires explicit confirmation. Update, pause, and resume remain disabled or
+explanatory until backend lifecycle contracts are implemented.
 
 The following detail tabs are v0.2 surfaces, not part of the current v0.1
 closed loop:

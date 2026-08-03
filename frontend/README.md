@@ -39,7 +39,8 @@ entrypoint:
   create action.
 - `#/clusters/{name}`: a dedicated instance detail page with Overview,
   Connections, Logs, and Monitoring tabs. Lifecycle and delete actions live in
-  the detail header and the list row more menu rather than in a Settings tab.
+  the route header beside the back control and in the list row more menu rather
+  than inside the detail content card or a Settings tab.
 
 Do not reintroduce a split view that renders the list and detail side by side.
 Do not reintroduce a sidebar-first shell for this UI.

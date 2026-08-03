@@ -81,8 +81,9 @@ detailed numeric fields when custom is selected.
 Instance rows navigate to a dedicated detail page and expose row-level lifecycle
 actions through an explicit more menu. Detail pages own overview, connection,
 logs, and monitoring tabs, and always provide a clear return path to the
-instance list. Page-level lifecycle actions sit in the detail header; do not
-hide destructive or state-changing controls in a Settings tab. Do not
+instance list. Page-level lifecycle actions sit in the route header at the same
+height as the return control, outside the detail content card; do not hide
+destructive or state-changing controls in a Settings tab. Do not
 reintroduce a two-pane list-plus-detail layout.
 
 Motion is intentionally quiet. List rows, tabs, buttons, and shell controls use

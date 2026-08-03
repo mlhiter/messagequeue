@@ -129,6 +129,20 @@ pre {
   display: none;
 }
 
+.detail-header-actions {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.detail-header-actions .button {
+  min-height: 40px;
+  padding: 0 14px;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -790,6 +804,19 @@ pre {
 }
 
 .detail-panel {
+  overflow: visible;
+}
+
+.detail-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 0;
+}
+
+.detail-surface {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   border: 0.5px solid var(--line);
   border-radius: var(--radius-xl);
@@ -829,41 +856,51 @@ pre {
   text-wrap: pretty;
 }
 
-.detail-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.detail-actions .button {
-  min-height: 36px;
-  padding: 0 12px;
-  font-size: 13px;
-}
-
 .detail-tabs {
   display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  padding: 10px 16px 0;
-  border-bottom: 1px solid var(--line);
+  flex: 0 0 76px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  align-self: stretch;
+  padding: 8px;
+  border: 0.5px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .tab-button {
   position: relative;
-  min-height: 38px;
-  padding: 0 12px;
+  display: flex;
+  width: 60px;
+  min-height: 62px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 6px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   background: transparent;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
   box-shadow: none;
   transition: background-color 160ms ease, color 160ms ease;
+}
+
+.tab-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .tab-button.is-active {
@@ -1743,8 +1780,19 @@ legend.form-section-title {
     padding: 16px;
   }
 
+  .app-shell[data-view="detail"] .app-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .header-back-button {
     align-self: flex-start;
+  }
+
+  .detail-header-actions {
+    width: auto;
+    flex-wrap: wrap;
   }
 
   .header-actions {
@@ -1778,8 +1826,20 @@ legend.form-section-title {
     align-items: flex-start;
   }
 
-  .detail-actions {
-    justify-content: flex-start;
+  .detail-layout {
+    gap: 10px;
+  }
+
+  .detail-tabs {
+    flex-basis: 68px;
+    padding: 6px;
+  }
+
+  .tab-button {
+    width: 56px;
+    min-height: 58px;
+    padding: 7px 5px;
+    font-size: 12px;
   }
 
   .danger-panel {
@@ -1876,6 +1936,20 @@ legend.form-section-title {
 }
 
 @media (max-width: 480px) {
+  .app-shell[data-view="detail"] .app-header {
+    align-items: flex-start;
+  }
+
+  .detail-header-actions {
+    gap: 6px;
+  }
+
+  .detail-header-actions .button {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
   .brand-copy strong {
     font-size: 14px;
   }
@@ -1900,6 +1974,16 @@ legend.form-section-title {
 
   .detail-title h2 {
     font-size: 16px;
+  }
+
+  .detail-tabs {
+    flex-basis: 64px;
+  }
+
+  .tab-button {
+    width: 52px;
+    min-height: 56px;
+    font-size: 11px;
   }
 
   .modal {

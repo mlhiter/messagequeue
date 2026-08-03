@@ -709,6 +709,16 @@
     return icons[name] || "";
   }
 
+  function tabIcon(name) {
+    const icons = {
+      overview: '<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>',
+      connections: '<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L11 4.93"></path><path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07L13 19.07"></path></svg>',
+      logs: '<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"></path><path d="M14 2v5h5"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>',
+      monitoring: '<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l3-3 3 2 5-7"></path></svg>'
+    };
+    return icons[name] || "";
+  }
+
   function normalizeLanguage(raw) {
     let value = "";
     if (typeof raw === "string") {
@@ -960,6 +970,7 @@
     $("#help-button")?.setAttribute("aria-label", message("openHelp"));
     $("#help-button")?.setAttribute("title", message("openHelp"));
     $("#search-input")?.setAttribute("placeholder", message("searchPlaceholder"));
+    $("#detail-header-actions")?.setAttribute("aria-label", message("instanceActions"));
     if ($("#create-button")) {
       $("#create-button").disabled = !writesEnabled();
       $("#create-button").setAttribute("title", writesEnabled() ? message("newCluster") : message("clusterCreationUnavailable"));
@@ -1411,6 +1422,7 @@
     const breadcrumbClusters = $("#breadcrumb-clusters");
     const createButton = $("#create-button");
     const backButton = $("#back-button");
+    const detailHeaderActions = $("#detail-header-actions");
     const statGrid = $("#stat-grid");
     const listPanel = $("#list-panel");
     const detailPanel = $("#detail-panel");
@@ -1451,6 +1463,18 @@
       backButton.setAttribute("aria-hidden", isDetail ? "false" : "true");
       backButton.setAttribute("aria-label", message("backToList"));
       backButton.setAttribute("title", message("backToList"));
+    }
+    if (detailHeaderActions) {
+      const showDetailActions = Boolean(isDetail && cluster);
+      detailHeaderActions.classList.toggle("is-hidden", !showDetailActions);
+      detailHeaderActions.setAttribute("aria-hidden", showDetailActions ? "false" : "true");
+      detailHeaderActions.setAttribute("aria-label", message("instanceActions"));
+      if (showDetailActions) {
+        const [label, statusClass] = statusLabel(cluster.phase);
+        detailHeaderActions.innerHTML = detailActionsHtml(cluster, label, statusClass);
+      } else {
+        detailHeaderActions.innerHTML = "";
+      }
     }
     statGrid?.classList.add("is-hidden");
     listPanel?.classList.toggle("is-hidden", isDetail);
@@ -1590,7 +1614,7 @@
   }
 
   function detailActionsHtml(cluster, label, statusClass) {
-    return `<div class="detail-actions" data-testid="messagequeue.detail.header-actions"><span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button>${actionMenuHtml(cluster, `detail:${cluster.name}`)}</div>`;
+    return `<span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button>${actionMenuHtml(cluster, `detail:${cluster.name}`)}`;
   }
 
   function queueAutoLoadForActiveTab(cluster) {
@@ -1619,7 +1643,6 @@
       return;
     }
 
-    const [label, statusClass] = statusLabel(cluster.phase);
     const tabs = [
       ["overview", message("overview")],
       ["connections", message("connections")],
@@ -1638,7 +1661,7 @@
             : monitoringHtml(cluster);
     const deleteError = state.deleteError?.name === cluster.name ? `<div class="form-error detail-error" role="alert">${escapeHtml(state.deleteError.message)}</div>` : "";
 
-    panel.innerHTML = `<div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div>${detailActionsHtml(cluster, label, statusClass)}</div>${deleteError}<div class="detail-tabs" role="tablist" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${escapeHtml(title)}</button>`).join("")}</div><div class="detail-body">${body}</div>`;
+    panel.innerHTML = `<div class="detail-layout"><div class="detail-tabs" role="tablist" aria-orientation="vertical" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" id="detail-tab-${escapeHtml(id)}" type="button" role="tab" aria-selected="${state.tab === id}" aria-controls="detail-tabpanel" data-tab="${id}">${tabIcon(id)}<span>${escapeHtml(title)}</span></button>`).join("")}</div><div class="detail-surface"><div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div></div>${deleteError}<div class="detail-body" id="detail-tabpanel" role="tabpanel" tabindex="0" aria-labelledby="detail-tab-${escapeHtml(state.tab)}">${body}</div></div></div>`;
 
     if (state.tab === "logs" && state.observability.logs?.name === cluster.name && Object.prototype.hasOwnProperty.call(state.observability.logs, "data")) {
       const viewer = $("#log-viewer");
@@ -2083,6 +2106,25 @@
         navigateToCluster(row.dataset.clusterName);
       }
     });
+    $("#detail-header-actions")?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+      if (button.dataset.action === "toggle-row-actions") {
+        event.preventDefault();
+        event.stopPropagation();
+        const menuId = button.dataset.menuId || "";
+        state.openActionMenu = state.openActionMenu === menuId ? "" : menuId;
+        renderRouteChrome();
+        return;
+      }
+      if (button.dataset.action === "refresh-detail") {
+        loadClusters();
+        return;
+      }
+      if (button.dataset.action === "delete-cluster") {
+        deleteCluster(button.dataset.clusterName);
+      }
+    });
     $("#cluster-list")?.addEventListener("keydown", (event) => {
       const row = event.target.closest(".cluster-row[data-cluster-name]");
       if (!row || event.target !== row || !["Enter", " "].includes(event.key)) return;
@@ -2168,6 +2210,7 @@
       }
       if (event.key === "Escape" && state.openActionMenu) {
         state.openActionMenu = "";
+        renderRouteChrome();
         renderClusterList();
         renderDetail();
       }
@@ -2175,6 +2218,7 @@
     document.addEventListener("click", (event) => {
       if (!state.openActionMenu || event.target.closest(".action-menu")) return;
       state.openActionMenu = "";
+      renderRouteChrome();
       renderClusterList();
       renderDetail();
     });

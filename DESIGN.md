@@ -102,8 +102,9 @@ page-enter motion.
   keyboard-accessible.
 - **Do** let log viewers fill their tab surface and wrap long broker lines
   instead of introducing horizontal scroll.
-- **Do** use full-height metric icon rails with hover or focus instant-value
-  tooltips when monitoring cards are compact.
+- **Do** let monitoring tabs fill their surface with a compact metric grid and
+  a flexible detail panel; metric icons stay fixed-size and expose hover or
+  focus instant-value tooltips.
 - **Do** keep the list visible on the first screen; status summaries must not
   push the table below the fold.
 - **Do** pair every state color with text or an icon.

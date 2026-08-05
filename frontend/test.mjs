@@ -295,11 +295,20 @@ if (
   !source.includes('data-testid="messagequeue.detail.monitoring" data-qa-state="loading"') ||
   !source.includes('data-testid="messagequeue.detail.monitoring" data-qa-state="error"') ||
   !source.includes('${result.degraded ? "degraded" : "ready"}') ||
+  !source.includes('class="detail-section monitoring-section"') ||
   !source.includes("formatMetricInstant(series, unit)") ||
+  !source.includes("data-monitoring-key") ||
   !styles.includes(".metric-tooltip") ||
-  !styles.includes(".metric-icon:hover .metric-tooltip")
+  !styles.includes(".metric-icon:hover .metric-tooltip") ||
+  !styles.includes('.detail-body[data-tab="monitoring"]') ||
+  !styles.includes(".monitoring-fill") ||
+  !styles.includes(".monitoring-trend-grid") ||
+  !styles.includes("flex: 0 0 auto;") ||
+  !styles.includes("grid-template-rows: auto auto 42px") ||
+  !styles.includes("width: 36px;") ||
+  !styles.includes("height: 36px;")
 ) {
-  throw new Error("monitoring panel must expose semantic states and hoverable instant values");
+  throw new Error("monitoring tab must fill the detail surface without stretching metric cards or icons");
 }
 if (
   !styles.includes('.detail-body[data-tab="logs"]') ||

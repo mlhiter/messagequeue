@@ -1835,21 +1835,34 @@
     if (!metrics) {
       return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="loading"><div class="loading-state"><span>${escapeHtml(message("loadingMetrics"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
     }
-    const card = (key, title, unit) => {
+    const metricConfigs = [
+      { key: "cpu", title: message("metricCpu"), unit: "cores" },
+      { key: "memory", title: message("metricMemory"), unit: "Mi" },
+      { key: "storage", title: message("metricStorage"), unit: "Gi" },
+      { key: "throughput", title: message("metricThroughput"), unit: message("perSecond") },
+      { key: "consumer_lag", title: message("metricsConsumerLag"), unit: message("messages") },
+      { key: "partition_health", title: message("metricPartitionHealth"), unit: message("partitions") }
+    ];
+    const card = ({ key, title, unit }) => {
       const series = metrics[key];
       const latest = latestMetricValue(series);
       const instant = formatMetricInstant(series, unit);
       return `<article class="metric-card" data-metric-key="${escapeHtml(key)}"><span class="metric-icon" tabindex="0" aria-label="${escapeHtml(instant)}" title="${escapeHtml(instant)}">${metricIcon(key)}<span class="metric-tooltip" role="tooltip">${escapeHtml(instant)}</span></span><div class="metric-card-body"><div class="metric-card-head"><span>${escapeHtml(title)}</span><small>${escapeHtml(series?.unit || unit || message("currentValue"))}</small></div><strong>${escapeHtml(formatMetricValue(latest, series?.unit || unit))}</strong>${sparklineSvg(series)}</div></article>`;
     };
+    const trendTile = ({ key, title, unit }) => {
+      const series = metrics[key];
+      const latest = latestMetricValue(series);
+      const instant = formatMetricInstant(series, unit);
+      return `<article class="monitoring-trend" data-monitoring-key="${escapeHtml(key)}" title="${escapeHtml(instant)}"><div class="monitoring-trend-head"><span>${escapeHtml(title)}</span><strong>${escapeHtml(formatMetricValue(latest, series?.unit || unit))}</strong></div>${sparklineSvg(series)}</article>`;
+    };
+    const summaryRow = ({ key, title, unit }) => {
+      const series = metrics[key];
+      const latest = latestMetricValue(series);
+      const instant = formatMetricInstant(series, unit);
+      return `<div class="monitoring-summary-row" data-monitoring-key="${escapeHtml(key)}" title="${escapeHtml(instant)}"><span class="monitoring-summary-icon" aria-hidden="true">${metricIcon(key)}</span><span>${escapeHtml(title)}</span><strong>${escapeHtml(formatMetricValue(latest, series?.unit || unit))}</strong></div>`;
+    };
     const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("monitoringUnavailable"))}</h3><p>${escapeHtml(result.message || message("metricsProviderMissing"))}</p></div>` : "";
-    return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="${result.degraded ? "degraded" : "ready"}"><div class="section-heading"><h3>${escapeHtml(message("monitoringOverview"))}</h3></div><div class="metric-grid">${[
-      card("cpu", message("metricCpu"), "cores"),
-      card("memory", message("metricMemory"), "Mi"),
-      card("storage", message("metricStorage"), "Gi"),
-      card("throughput", message("metricThroughput"), message("perSecond")),
-      card("consumer_lag", message("metricsConsumerLag"), message("messages")),
-      card("partition_health", message("metricPartitionHealth"), message("partitions"))
-    ].join("")}</div>${degradedNotice}</section>`;
+    return `<section class="detail-section monitoring-section" data-testid="messagequeue.detail.monitoring" data-qa-state="${result.degraded ? "degraded" : "ready"}"><div class="section-heading"><h3>${escapeHtml(message("monitoringOverview"))}</h3></div><div class="metric-grid">${metricConfigs.map(card).join("")}</div><div class="monitoring-fill"><article class="monitoring-panel"><div class="monitoring-panel-head"><h4>${escapeHtml(message("resourceUsage"))}</h4><span>${escapeHtml(message("currentValue"))}</span></div><div class="monitoring-trend-grid">${metricConfigs.slice(0, 3).map(trendTile).join("")}</div></article><article class="monitoring-panel"><div class="monitoring-panel-head"><h4>${escapeHtml(message("trafficHealth"))}</h4><span>${escapeHtml(message("currentValue"))}</span></div><div class="monitoring-summary-list">${metricConfigs.slice(3).map(summaryRow).join("")}</div></article></div>${degradedNotice}</section>`;
   }
 
   function detailActionsHtml(cluster) {

@@ -66,10 +66,11 @@ iframes and browsers can otherwise keep stale same-name shell files.
   bootstrap endpoints come from `status.externalEndpoints` and the
   `externalBootstrapServers` response field.
 - `GET /api/v1/messagequeues/{name}/client-credentials` is called only after an
-  explicit password reveal/copy action. The UI keeps the password masked by
-  default; environment variable and SDK snippets copy visible placeholders
-  until the password has been revealed, then copy the revealed credential text.
-  Copy actions show a toast after success or failure.
+  explicit environment-variable copy action. The UI keeps password and CA
+  values masked in the rendered environment block, then fetches the real
+  credential material on click and writes the complete environment
+  configuration directly to the clipboard. Copy actions show a toast after
+  success or failure.
 - `PUT /api/v1/messagequeues/{name}/external-access` accepts exactly
   `{ "enabled": true|false }`. Listener type, address selection, ports, and
   namespace are server-owned; the response is the updated MessageQueue view.

@@ -38,8 +38,9 @@ list. Tabs are ordered by the current vertical-slice workflow:
    availability, resource footprint, storage/deletion policy, failure reason,
    conditions, and recent events
 2. Connections: internal and external Bootstrap addresses, explicit external
-   access toggle, username, Secret references, masked password reveal, and
-   copyable environment variable and SDK configuration snippets
+   access toggle, and a copyable environment variable block that masks
+   sensitive values on screen while copying the complete credential-backed
+   configuration on demand
 3. Logs: automatically loaded broker logs, background polling, poll-based error
    recovery, and scoped degraded states when logs are unavailable
 4. Monitoring: automatically loaded CPU, memory, storage, throughput, consumer

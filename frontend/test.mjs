@@ -138,12 +138,10 @@ if (
   !source.includes("externalAddress") ||
   !source.includes("connectionString") ||
   !source.includes("environmentVariables") ||
-  !source.includes("sdkExample") ||
-	  !source.includes("loadClientCredentials") ||
-	  !source.includes("copyClientTemplate") ||
-	  !source.includes("copyPassword") ||
-	  !source.includes("data-copy") ||
-	  !source.includes("copy-icon-button") ||
+  !source.includes("loadClientCredentials") ||
+  !source.includes("copyClientTemplate") ||
+  !source.includes("data-copy") ||
+  !source.includes("copy-icon-button") ||
   !source.includes("showToast") ||
   !source.includes("!endpoint?.available") ||
   !source.includes('data-qa-state="${stateName}"') ||
@@ -152,8 +150,17 @@ if (
 ) {
   throw new Error("auth-aware internal/external client connection fields are missing");
 }
-if (source.includes("copyIconButton(credentials.password") || !source.includes('"copy-password"') || !source.includes("function copyPassword")) {
-  throw new Error("password copy must not put hidden Secret values into data-copy DOM attributes");
+if (
+  source.includes("copyIconButton(credentials.password") ||
+  source.includes('"copy-password"') ||
+  source.includes("function copyPassword") ||
+  source.includes('data-testid="messagequeue.detail.connection-auth"') ||
+  source.includes("revealed") ||
+  !source.includes('actionIconButton("copy-client-template"') ||
+  !source.includes('const maskedSecret = "********";') ||
+  !functionBody("connectionsHtml").includes("envTemplate(cluster, mergedConfig, model, false)")
+) {
+  throw new Error("connection tab must keep individual credentials out of the DOM and show masked environment variables");
 }
 if (
   !source.includes('/external-access') ||
@@ -264,12 +271,12 @@ if (
 }
 const copyClientTemplateBody = functionBody("copyClientTemplate");
 if (
-  !copyClientTemplateBody.includes("const revealSecrets = Boolean(state.clientCredentials?.revealed)") ||
-  !copyClientTemplateBody.includes("if (revealSecrets && !config.password)") ||
-  !copyClientTemplateBody.includes("envTemplate(cluster, config, model, revealSecrets)") ||
-  copyClientTemplateBody.includes("await ensureClientCredentials();")
+  !copyClientTemplateBody.includes("await ensureClientCredentials()") ||
+  !copyClientTemplateBody.includes("!credentials?.password || !credentials?.caCertificate") ||
+  !copyClientTemplateBody.includes("envTemplate(cluster, config, model, true)") ||
+  copyClientTemplateBody.includes("state.clientCredentials?.revealed")
 ) {
-  throw new Error("env and SDK template copy must not fetch or copy hidden credentials unless the password is revealed");
+  throw new Error("environment copy must fetch real credentials on demand without reveal-state coupling");
 }
 if (
   !source.includes("const POLL_INTERVALS") ||
@@ -287,9 +294,20 @@ if (
 if (
   !source.includes('data-testid="messagequeue.detail.monitoring" data-qa-state="loading"') ||
   !source.includes('data-testid="messagequeue.detail.monitoring" data-qa-state="error"') ||
-  !source.includes('${result.degraded ? "degraded" : "ready"}')
+  !source.includes('${result.degraded ? "degraded" : "ready"}') ||
+  !source.includes("formatMetricInstant(series, unit)") ||
+  !styles.includes(".metric-tooltip") ||
+  !styles.includes(".metric-icon:hover .metric-tooltip")
 ) {
-  throw new Error("monitoring semantic panel must expose loading, ready, degraded, and error states");
+  throw new Error("monitoring panel must expose semantic states and hoverable instant values");
+}
+if (
+  !styles.includes('.detail-body[data-tab="logs"]') ||
+  !styles.includes("overflow-x: hidden") ||
+  !styles.includes("overflow-wrap: anywhere") ||
+  !source.includes('class="detail-section log-section"')
+) {
+  throw new Error("logs tab must fill the detail card and wrap long broker lines without horizontal scroll");
 }
 for (const forbidden of ["passwordInput", "privateKey", "kubeconfigText", "secretData", "saslPassword"]) {
   if (source.includes(forbidden)) {

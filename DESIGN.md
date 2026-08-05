@@ -100,6 +100,10 @@ page-enter motion.
   degraded, and permission-denied states.
 - **Do** keep operational tables and log surfaces dense, readable, and
   keyboard-accessible.
+- **Do** let log viewers fill their tab surface and wrap long broker lines
+  instead of introducing horizontal scroll.
+- **Do** use full-height metric icon rails with hover or focus instant-value
+  tooltips when monitoring cards are compact.
 - **Do** keep the list visible on the first screen; status summaries must not
   push the table below the fold.
 - **Do** pair every state color with text or an icon.

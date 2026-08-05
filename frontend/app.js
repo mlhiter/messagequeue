@@ -128,19 +128,11 @@
       saslMechanism: "SASL 机制",
       clientSecret: "客户端 Secret",
       caSecret: "CA Secret",
-      authentication: "认证",
       environmentVariables: "环境变量",
-      sdkExample: "SDK 示例",
-      loadCredentials: "显示密码",
-      loadingCredentials: "正在读取凭据…",
-      hidePassword: "隐藏密码",
-      copyPassword: "复制密码",
       copyEnvironment: "复制环境变量",
-      copyJavaProperties: "复制 Java 配置",
       credentialsUnavailable: "凭据暂不可用",
       copied: "已复制",
       copyFailed: "复制失败",
-      credentialsRevealed: "凭据已显示",
       externalAccessDisabled: "外网访问未开启",
       externalAccessEnabling: "正在开启外网访问…",
       enableExternalAccess: "开启外网访问",
@@ -401,19 +393,11 @@
       saslMechanism: "SASL mechanism",
       clientSecret: "Client Secret",
       caSecret: "CA Secret",
-      authentication: "Authentication",
       environmentVariables: "Environment variables",
-      sdkExample: "SDK example",
-      loadCredentials: "Show password",
-      loadingCredentials: "Loading credentials…",
-      hidePassword: "Hide password",
-      copyPassword: "Copy password",
       copyEnvironment: "Copy environment",
-      copyJavaProperties: "Copy Java config",
       credentialsUnavailable: "Credentials unavailable",
       copied: "Copied",
       copyFailed: "Copy failed",
-      credentialsRevealed: "Credentials shown",
       externalAccessDisabled: "External access is not enabled",
       externalAccessEnabling: "Enabling external access…",
       enableExternalAccess: "Enable external access",
@@ -1255,14 +1239,11 @@
     return `'${String(value ?? "").replace(/'/g, "'\\''")}'`;
   }
 
-  function javaQuote(value) {
-    return String(value ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  }
-
-  function envTemplate(cluster, config, model, revealSecrets) {
+  function envTemplate(cluster, config, model, includeSecrets = false) {
     const servers = selectedBootstrapServers(model).join(",");
-    const password = revealSecrets && config.password ? config.password : "${KAFKA_PASSWORD}";
-    const ca = revealSecrets && config.caCertificate ? config.caCertificate : "${KAFKA_CA_CERT}";
+    const maskedSecret = "********";
+    const password = includeSecrets && config.password ? config.password : maskedSecret;
+    const ca = includeSecrets && config.caCertificate ? config.caCertificate : maskedSecret;
     return [
       `KAFKA_BOOTSTRAP_SERVERS=${shellQuote(servers)}`,
       `KAFKA_SECURITY_PROTOCOL=${shellQuote(config.securityProtocol || "SASL_SSL")}`,
@@ -1270,17 +1251,6 @@
       `KAFKA_SASL_USERNAME=${shellQuote(config.username || `${cluster.name}-client`)}`,
       `KAFKA_SASL_PASSWORD=${shellQuote(password)}`,
       `KAFKA_CA_CERT=${shellQuote(ca)}`
-    ].join("\n");
-  }
-
-  function javaPropertiesTemplate(cluster, config, model, revealSecrets) {
-    const servers = selectedBootstrapServers(model).join(",");
-    const password = revealSecrets && config.password ? config.password : "${KAFKA_PASSWORD}";
-    return [
-      `bootstrap.servers=${servers}`,
-      `security.protocol=${config.securityProtocol || "SASL_SSL"}`,
-      `sasl.mechanism=${config.mechanism || "SCRAM-SHA-512"}`,
-      `sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${javaQuote(config.username || `${cluster.name}-client`)}" password="${javaQuote(password)}";`
     ].join("\n");
   }
 
@@ -1316,6 +1286,32 @@
     if (value == null) return "—";
     const formatted = Math.abs(value) >= 100 ? Math.round(value).toLocaleString() : Number(value.toFixed(2)).toLocaleString();
     return unit ? `${formatted} ${unit}` : formatted;
+  }
+
+  function latestMetricPoint(series) {
+    const values = Array.isArray(series?.values) ? series.values : [];
+    for (let index = values.length - 1; index >= 0; index -= 1) {
+      const point = values[index];
+      const value = Number(point?.value);
+      if (Number.isFinite(value)) return { value, timestamp: point?.timestamp || "" };
+    }
+    return null;
+  }
+
+  function formatMetricInstant(series, unit = "") {
+    const point = latestMetricPoint(series);
+    if (!point) return message("currentValue");
+    let timestamp = "";
+    const date = new Date(point.timestamp);
+    if (!Number.isNaN(date.getTime())) {
+      timestamp = new Intl.DateTimeFormat(state.language === "zh" ? "zh-CN" : "en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      }).format(date);
+    }
+    const value = formatMetricValue(point.value, series?.unit || unit);
+    return timestamp ? `${value} · ${timestamp}` : value;
   }
 
   function sparklineSvg(series) {
@@ -1760,9 +1756,7 @@
   function connectionsHtml(cluster) {
     const result = state.clientConfig;
     const config = result?.name === cluster.name && result.data ? result.data : {};
-    const credentialsResult = state.clientCredentials?.name === cluster.name ? state.clientCredentials : {};
     const mergedConfig = mergedClientConfig(cluster, config);
-    const credentials = credentialDataFor(cluster);
     const model = connectionModel(cluster, mergedConfig);
     let degradedNotice = "";
     if (result?.name === cluster.name && result.loading) {
@@ -1772,6 +1766,8 @@
     } else if (result?.name === cluster.name && config.degraded) {
       degradedNotice = `<div class="observability-box" data-tone="warning" data-testid="messagequeue.detail.client-config-degraded"><h3>${escapeHtml(message("clientConfigUnavailable"))}</h3><p>${escapeHtml(localizeBackendText(config.message || message("clientConfigOptional")))}</p></div>`;
     }
+    const credentialsResult = state.clientCredentials?.name === cluster.name ? state.clientCredentials : {};
+    const credentials = credentialDataFor(cluster);
     if (credentialsResult.error) {
       degradedNotice += `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("credentialsUnavailable"))}</h3><p>${escapeHtml(credentialsResult.error)}</p></div>`;
     } else if (credentials?.degraded) {
@@ -1807,26 +1803,9 @@
       const stateLabel = enabling ? message("externalAccessEnabling") : message("externalAccessDisabled");
       externalPanel = `<article class="external-access-state" data-testid="messagequeue.detail.connection-external-disabled" data-qa-state="${externalAction.error ? "error" : enabling ? "enabling" : "off"}"><div><h4>${escapeHtml(message("externalAddress"))}</h4><p>${escapeHtml(stateLabel)}</p>${externalError}</div><button class="button button-primary" type="button" data-action="set-external-access" data-enabled="true" ${writesDisabled || enabling ? "disabled" : ""}>${escapeHtml(message("enableExternalAccess"))}</button></article>`;
     }
-    const credentialsLoading = credentialsResult.loading;
-    const passwordRevealed = Boolean(credentialsResult.revealed && credentials?.password);
-    const passwordDisplay = passwordRevealed ? credentials.password : credentials?.password ? "••••••••••••" : "—";
-    const passwordActions = credentialsLoading
-      ? `<button class="copy-icon-button" type="button" disabled aria-label="${escapeHtml(message("loadingCredentials"))}" title="${escapeHtml(message("loadingCredentials"))}">${menuIcon("key")}</button>`
-      : credentials?.password
-        ? `${actionIconButton("toggle-password", passwordRevealed ? message("hidePassword") : message("loadCredentials"), passwordRevealed ? "eyeOff" : "eye")}${passwordRevealed ? actionIconButton("copy-password", message("copyPassword"), "copy") : ""}`
-        : actionIconButton("load-client-credentials", message("loadCredentials"), "eye");
-    const credentialRows = [
-      [message("username"), mergedConfig.username || "—", copyIconButton(mergedConfig.username, `${message("copy")} ${message("username")}`)],
-      [message("password"), passwordDisplay, passwordActions],
-      [message("securityProtocol"), mergedConfig.securityProtocol || "SASL_SSL", copyIconButton(mergedConfig.securityProtocol || "SASL_SSL", `${message("copy")} ${message("securityProtocol")}`)],
-      [message("saslMechanism"), mergedConfig.mechanism || "SCRAM-SHA-512", copyIconButton(mergedConfig.mechanism || "SCRAM-SHA-512", `${message("copy")} ${message("saslMechanism")}`)],
-      [message("clientSecret"), mergedConfig.secretRef || "—", copyIconButton(mergedConfig.secretRef, `${message("copy")} ${message("clientSecret")}`)],
-      [message("caSecret"), mergedConfig.caSecretRef || "—", copyIconButton(mergedConfig.caSecretRef, `${message("copy")} ${message("caSecret")}`)]
-    ];
-    const envBlock = envTemplate(cluster, mergedConfig, model, passwordRevealed);
-    const javaBlock = javaPropertiesTemplate(cluster, mergedConfig, model, passwordRevealed);
-    const snippet = (title, code, template, icon, label) => `<article class="config-snippet"><div class="config-snippet-head"><h4>${escapeHtml(title)}</h4>${actionIconButton("copy-client-template", label, icon, `data-template="${escapeHtml(template)}"`)}</div><pre><code>${escapeHtml(code)}</code></pre></article>`;
-    return `<section class="detail-section" data-testid="messagequeue.detail.connections"><div class="section-heading"><h3>${escapeHtml(message("clientConnection"))}</h3></div><div class="connection-layout">${endpointPanel("internal", message("internalAddress"), model.internal)}${externalPanel}<article class="credential-panel" data-testid="messagequeue.detail.connection-auth"><div class="connection-endpoint-header"><h4>${escapeHtml(message("authentication"))}</h4></div><div class="credential-grid">${credentialRows.map(([label, value, action]) => `<label><span>${escapeHtml(label)}</span><code>${escapeHtml(value)}</code><span class="credential-actions">${action}</span></label>`).join("")}</div></article><div class="config-snippet-grid">${snippet(message("environmentVariables"), envBlock, "env", "terminal", message("copyEnvironment"))}${snippet(message("sdkExample"), javaBlock, "java", "code", message("copyJavaProperties"))}</div></div>${degradedNotice}</section>`;
+    const envBlock = envTemplate(cluster, mergedConfig, model, false);
+    const snippet = `<article class="config-snippet"><div class="config-snippet-head"><h4>${escapeHtml(message("environmentVariables"))}</h4>${actionIconButton("copy-client-template", message("copyEnvironment"), "copy")}</div><pre><code>${escapeHtml(envBlock)}</code></pre></article>`;
+    return `<section class="detail-section" data-testid="messagequeue.detail.connections"><div class="section-heading"><h3>${escapeHtml(message("clientConnection"))}</h3></div><div class="connection-layout">${endpointPanel("internal", message("internalAddress"), model.internal)}${externalPanel}<div class="config-snippet-grid">${snippet}</div></div>${degradedNotice}</section>`;
   }
 
   function logsHtml(cluster) {
@@ -1839,7 +1818,7 @@
     }
     if (result?.name === cluster.name && Object.prototype.hasOwnProperty.call(result, "data")) {
       const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("logsUnavailable"))}</h3><p>${escapeHtml(result.message || message("logsOptional"))}</p></div>` : "";
-      return `<section class="detail-section" data-testid="messagequeue.detail.logs"><div class="section-heading"><h3>${escapeHtml(message("brokerLogs"))}</h3></div>${degradedNotice}<pre class="log-viewer" id="log-viewer">${escapeHtml(message("loadingState"))}</pre></section>`;
+      return `<section class="detail-section log-section" data-testid="messagequeue.detail.logs"><div class="section-heading"><h3>${escapeHtml(message("brokerLogs"))}</h3></div>${degradedNotice}<pre class="log-viewer" id="log-viewer">${escapeHtml(message("loadingState"))}</pre></section>`;
     }
     return `<section class="detail-section"><div class="loading-state"><span>${escapeHtml(message("loadingLogs"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
   }
@@ -1859,7 +1838,8 @@
     const card = (key, title, unit) => {
       const series = metrics[key];
       const latest = latestMetricValue(series);
-      return `<article class="metric-card" data-metric-key="${escapeHtml(key)}"><div class="metric-card-head"><span class="metric-icon">${metricIcon(key)}</span><div><span>${escapeHtml(title)}</span><small>${escapeHtml(series?.unit || unit || message("currentValue"))}</small></div></div><strong>${escapeHtml(formatMetricValue(latest, series?.unit || unit))}</strong>${sparklineSvg(series)}</article>`;
+      const instant = formatMetricInstant(series, unit);
+      return `<article class="metric-card" data-metric-key="${escapeHtml(key)}"><span class="metric-icon" tabindex="0" aria-label="${escapeHtml(instant)}" title="${escapeHtml(instant)}">${metricIcon(key)}<span class="metric-tooltip" role="tooltip">${escapeHtml(instant)}</span></span><div class="metric-card-body"><div class="metric-card-head"><span>${escapeHtml(title)}</span><small>${escapeHtml(series?.unit || unit || message("currentValue"))}</small></div><strong>${escapeHtml(formatMetricValue(latest, series?.unit || unit))}</strong>${sparklineSvg(series)}</div></article>`;
     };
     const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("monitoringUnavailable"))}</h3><p>${escapeHtml(result.message || message("metricsProviderMissing"))}</p></div>` : "";
     return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="${result.degraded ? "degraded" : "ready"}"><div class="section-heading"><h3>${escapeHtml(message("monitoringOverview"))}</h3></div><div class="metric-grid">${[
@@ -1936,7 +1916,7 @@
             : monitoringHtml(cluster);
     const deleteError = state.deleteError?.name === cluster.name ? `<div class="form-error detail-error" role="alert">${escapeHtml(state.deleteError.message)}</div>` : "";
 
-    panel.innerHTML = `<div class="detail-layout"><div class="detail-tabs" role="tablist" aria-orientation="vertical" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" id="detail-tab-${escapeHtml(id)}" type="button" role="tab" aria-selected="${state.tab === id}" aria-controls="detail-tabpanel" data-tab="${id}">${tabIcon(id)}<span>${escapeHtml(title)}</span></button>`).join("")}</div><div class="detail-surface"><div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div></div>${deleteError}<div class="detail-body" id="detail-tabpanel" role="tabpanel" tabindex="0" aria-labelledby="detail-tab-${escapeHtml(state.tab)}">${body}</div></div></div>`;
+    panel.innerHTML = `<div class="detail-layout"><div class="detail-tabs" role="tablist" aria-orientation="vertical" aria-label="${escapeHtml(message("detailTabsLabel"))}">${tabs.map(([id, title]) => `<button class="tab-button ${state.tab === id ? "is-active" : ""}" id="detail-tab-${escapeHtml(id)}" type="button" role="tab" aria-selected="${state.tab === id}" aria-controls="detail-tabpanel" data-tab="${id}">${tabIcon(id)}<span>${escapeHtml(title)}</span></button>`).join("")}</div><div class="detail-surface"><div class="detail-header"><div class="detail-title"><h2 id="detail-title">${escapeHtml(cluster.name)}</h2><p><code>${escapeHtml(cluster.namespace)}</code> · ${escapeHtml(message("lastTransition"))} ${escapeHtml(formatTime(cluster.lastTransitionTime))}</p></div></div>${deleteError}<div class="detail-body" id="detail-tabpanel" role="tabpanel" tabindex="0" aria-labelledby="detail-tab-${escapeHtml(state.tab)}" data-tab="${escapeHtml(state.tab)}">${body}</div></div></div>`;
 
     if (state.tab === "logs" && state.observability.logs?.name === cluster.name && Object.prototype.hasOwnProperty.call(state.observability.logs, "data")) {
       const viewer = $("#log-viewer");
@@ -2206,25 +2186,22 @@
     render();
   }
 
-  async function loadClientCredentials(options = {}) {
+  async function loadClientCredentials() {
     const cluster = selectedCluster();
     if (!cluster || state.clientCredentials?.loading) return null;
-    const reveal = Boolean(options.reveal);
-    const previous = state.clientCredentials;
-    state.clientCredentials = { name: cluster.name, loading: true, revealed: Boolean(previous?.revealed || reveal) };
+    state.clientCredentials = { name: cluster.name, loading: true };
     renderDetail();
     try {
       const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/client-credentials`);
       if (selectedCluster()?.name === cluster.name) {
-        state.clientCredentials = { name: cluster.name, data: payload, revealed: Boolean(previous?.revealed || reveal) };
-        if (reveal && payload?.password) showToast(message("credentialsRevealed"));
+        state.clientCredentials = { name: cluster.name, data: payload };
       }
       renderDetail();
       return payload;
     } catch (error) {
       const described = describeApiError(error, "managementApiUnavailable");
       if (selectedCluster()?.name === cluster.name) {
-        state.clientCredentials = { name: cluster.name, error: described, revealed: false };
+        state.clientCredentials = { name: cluster.name, error: described };
         renderDetail();
       }
       showToast(described, "error");
@@ -2232,65 +2209,28 @@
     }
   }
 
-  async function ensureClientCredentials(options = {}) {
+  async function ensureClientCredentials() {
     const cluster = selectedCluster();
     if (!cluster) return null;
     const existing = credentialDataFor(cluster);
-    if (existing?.password) {
-      if (options.reveal && !state.clientCredentials.revealed) {
-        state.clientCredentials = { ...state.clientCredentials, revealed: true };
-        renderDetail();
-        showToast(message("credentialsRevealed"));
-      }
-      return existing;
-    }
-    return loadClientCredentials(options);
+    if (existing?.password) return existing;
+    return loadClientCredentials();
   }
 
-  async function togglePasswordReveal() {
+  async function copyClientTemplate() {
     const cluster = selectedCluster();
     if (!cluster) return;
-    const existing = credentialDataFor(cluster);
-    if (!existing?.password) {
-      await loadClientCredentials({ reveal: true });
-      return;
-    }
-    const revealed = !state.clientCredentials.revealed;
-    state.clientCredentials = { ...state.clientCredentials, revealed };
-    renderDetail();
-    if (revealed) showToast(message("credentialsRevealed"));
-  }
-
-  async function copyClientTemplate(template) {
-    const cluster = selectedCluster();
-    if (!cluster) return;
-    const revealSecrets = Boolean(state.clientCredentials?.revealed);
     const configResult = state.clientConfig?.name === cluster.name && state.clientConfig.data ? state.clientConfig.data : {};
-    let config = mergedClientConfig(cluster, configResult);
-    if (revealSecrets && !config.password) {
-      const credentials = await ensureClientCredentials({ reveal: true });
-      if (!credentials?.password) {
-        showToast(message("credentialsUnavailable"), "error");
-        return;
-      }
-      config = mergedClientConfig(cluster, configResult);
-    }
-    const model = connectionModel(cluster, config);
-    const text = template === "java"
-      ? javaPropertiesTemplate(cluster, config, model, revealSecrets)
-      : envTemplate(cluster, config, model, revealSecrets);
-    await copyText(text);
-  }
-
-  async function copyPassword() {
-    const cluster = selectedCluster();
-    if (!cluster) return;
-    const credentials = credentialDataFor(cluster);
-    if (!state.clientCredentials?.revealed || !credentials?.password) {
+    const credentials = await ensureClientCredentials();
+    if (selectedCluster()?.name !== cluster.name) return;
+    if (!credentials?.password || !credentials?.caCertificate) {
       showToast(message("credentialsUnavailable"), "error");
       return;
     }
-    await copyText(credentials.password);
+    const config = mergedClientConfig(cluster, { ...configResult, ...credentials });
+    const model = connectionModel(cluster, config);
+    const text = envTemplate(cluster, config, model, true);
+    await copyText(text);
   }
 
   function replaceClusterView(payload) {
@@ -2678,20 +2618,8 @@
         loadClientConfig();
         return;
       }
-      if (button.dataset.action === "load-client-credentials") {
-        loadClientCredentials({ reveal: true });
-        return;
-      }
-      if (button.dataset.action === "toggle-password") {
-        togglePasswordReveal();
-        return;
-      }
-      if (button.dataset.action === "copy-password") {
-        copyPassword();
-        return;
-      }
       if (button.dataset.action === "copy-client-template") {
-        copyClientTemplate(button.dataset.template || "env");
+        copyClientTemplate();
         return;
       }
       if (button.dataset.action === "load-logs") {

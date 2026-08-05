@@ -35,12 +35,14 @@
 | 错误提示 | `frontend/index.html` | `messagequeue.create.error` | error | 创建校验或 API 错误 | `data-qa-state=error`, `data-qa-error-code=*` | 否 | 是 | API | 失败不可见 |
 | 提交按钮 | `frontend/index.html` | `messagequeue.create.submit-button` | action | 创建 Kafka 实例 | `data-qa-action=create`, `data-qa-state=ready|loading` | 是 | 是 | mutation | 写资源 |
 | 详情概览 | `frontend/app.js` | `messagequeue.detail.overview` | panel | 实例健康摘要 | none | 否 | 是 | status | 误读可用性 |
-| 连接信息 | `frontend/app.js` | `messagequeue.detail.connections` | panel | secret-free 内外网连接元数据 | none | 否 | 是 | API | 凭据泄露 |
-| 内网连接 | `frontend/app.js` | `messagequeue.detail.connection-internal` | panel | 内网 host、port、连接串 | `data-qa-state=ready|pending` | ready 时复制字段 | 是 | API | 连接地址错误 |
-| 外网未开启 | `frontend/app.js` | `messagequeue.detail.connection-external-disabled` | state | 外网访问关闭或无端点 | `data-qa-state=pending` | 否 | 是 | state | 误导公网可用 |
-| 日志面板 | `frontend/app.js` | `messagequeue.detail.logs` | panel | 自动加载的 broker 日志 | none | 刷新 | 是 | API | 诊断入口不可用 |
-| 监控面板 | `frontend/app.js` | `messagequeue.detail.monitoring` | panel | 自动加载的固定 key 监控 | `data-metric-key=*` | 刷新 | 是 | API | 暴露 raw query |
-| 详情操作区 | `frontend/index.html` + `frontend/app.js` | `messagequeue.detail.header-actions` | topbar-actions | 顶栏返回按钮同一高度的刷新，以及更多菜单中的更新、暂停/恢复、删除 | none | 部分可操作 | 是 | mutation | 生命周期误操作 |
+| 连接信息 | `frontend/app.js` | `messagequeue.detail.connections` | panel | Bootstrap、认证、环境变量和 SDK 示例 | none | 凭据操作时是 | 是 | API | 凭据泄露 |
+| 内网连接 | `frontend/app.js` | `messagequeue.detail.connection-internal` | panel | 内网 host、port、Bootstrap 地址 | `data-qa-state=ready|pending` | ready 时复制字段 | 是 | API | 连接地址错误 |
+| 外网访问关闭/开启中/错误 | `frontend/app.js` | `messagequeue.detail.connection-external-disabled` | state | 外网访问状态和开启动作 | `data-qa-state=off|enabling|error` | 开启时是 | 是 | state/mutation | 误导公网可用 |
+| 外网连接 | `frontend/app.js` | `messagequeue.detail.connection-external` | panel | 观测到的外网 host、port、Bootstrap 地址和关闭动作 | `data-qa-state=on|error` | 字段复制、关闭 | 是 | API/mutation | 连接地址错误 |
+| 认证信息 | `frontend/app.js` | `messagequeue.detail.connection-auth` | panel | 用户名、密码遮蔽、协议、SASL、Secret 引用 | none | 显示密码或复制密码时是；配置复制未 reveal 时只复制占位符 | 是 | API | 凭据泄露 |
+| 日志面板 | `frontend/app.js` | `messagequeue.detail.logs` | panel | 自动加载并轮询的 broker 日志 | none | 错误时重试 | 是 | API | 诊断入口不可用 |
+| 监控面板 | `frontend/app.js` | `messagequeue.detail.monitoring` | panel | 自动加载并轮询的固定 key 监控 | `data-metric-key=*` | 错误时重试 | 是 | API | 暴露 raw query |
+| 详情操作区 | `frontend/index.html` + `frontend/app.js` | `messagequeue.detail.header-actions` | topbar-actions | 顶栏右侧更新、暂停/恢复、删除 | none | 暂停/恢复/删除可操作 | 是 | mutation | 生命周期误操作 |
 
 ## 4. 状态枚举
 
@@ -50,8 +52,9 @@
 | `messagequeue.create.quota-note` | `loading`, `ready`, `warning`, `degraded` | 当前工作空间配额摘要或降级状态。 |
 | `messagequeue.create.submit-button` | `ready`, `loading` | 可提交或正在提交。 |
 | `#custom-resource-fields` | `preset`, `custom` | 规格字段锁定或可编辑。 |
-| `messagequeue.detail.connection-internal` | `ready`, `pending` | 内网连接串可用或等待端点。 |
-| `messagequeue.detail.monitoring` | `loading`, `ready`, `degraded`, `error` | 监控自动加载并局部降级。 |
+| `messagequeue.detail.connection-internal` | `ready`, `pending` | 内网 Bootstrap 地址可用或等待端点。 |
+| `messagequeue.detail.connection-external-disabled` | `off`, `enabling`, `error` | 外网访问由 PUT 子资源驱动，端点来自服务端观测状态。 |
+| `messagequeue.detail.monitoring` | `loading`, `ready`, `degraded`, `error` | 监控自动加载、轮询并局部降级。 |
 
 ## 5. 禁用原因枚举
 
@@ -92,4 +95,4 @@
 - 删除或重命名标签必须同步更新本文档。
 - 自动化不得依赖 CSS class、DOM 层级或中文文案作为唯一定位方式。
 - 不得把密码、kubeconfig、Secret data 写入任何语义标签。
-- 连接串只能包含 secret-free 元数据，不得包含密码、私钥、kubeconfig、Secret data 或 raw query。
+- 普通 `client-config` 只能包含 secret-free 元数据；显式凭据流程可以返回密码和 CA，但不得写入语义标签、日志、URL、指标标签或 raw query。

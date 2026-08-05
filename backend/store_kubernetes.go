@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -52,6 +54,130 @@ func (s *KubernetesStore) Get(ctx context.Context, namespace, name string) (Mess
 		return MessageQueue{}, err
 	}
 	return resource, nil
+}
+
+func (s *KubernetesStore) UpdateExternalAccess(ctx context.Context, namespace, name string, listener ExternalListener) (MessageQueue, error) {
+	listener = normalizeExternalListener(listener)
+	resource, err := s.Get(ctx, namespace, name)
+	if err != nil {
+		return MessageQueue{}, err
+	}
+	if resource.Spec.Kafka.Listeners != nil && resource.Spec.Kafka.Listeners.External != nil && externalListenersEqual(*resource.Spec.Kafka.Listeners.External, listener) {
+		return resource, nil
+	}
+	if !listener.Enabled && (resource.Spec.Kafka.Listeners == nil || resource.Spec.Kafka.Listeners.External == nil) {
+		return resource, nil
+	}
+
+	patch := map[string]any{
+		"spec": map[string]any{
+			"kafka": map[string]any{
+				"listeners": map[string]any{
+					"external": map[string]any{
+						"enabled":                      listener.Enabled,
+						"type":                         listener.Type,
+						"preferredNodePortAddressType": listener.PreferredNodePortAddressType,
+						"bootstrapAlternativeNames":    listener.BootstrapAlternativeNames,
+					},
+				},
+			},
+		},
+	}
+	var updated MessageQueue
+	if err := s.requestJSONWithContentType(ctx, http.MethodPatch, resourcePath(namespace, name), patch, &updated, "application/merge-patch+json"); err != nil {
+		return MessageQueue{}, err
+	}
+	return updated, nil
+}
+
+func normalizeExternalListener(listener ExternalListener) ExternalListener {
+	listener.BootstrapAlternativeNames = normalizedAlternativeNames(listener.BootstrapAlternativeNames)
+	if listener.BootstrapAlternativeNames == nil {
+		listener.BootstrapAlternativeNames = []string{}
+	}
+	return listener
+}
+
+func externalListenersEqual(left, right ExternalListener) bool {
+	return reflect.DeepEqual(normalizeExternalListener(left), normalizeExternalListener(right))
+}
+
+func (s *KubernetesStore) UpdateSuspension(ctx context.Context, namespace, name string, suspended bool) (MessageQueue, error) {
+	resource, err := s.Get(ctx, namespace, name)
+	if err != nil {
+		return MessageQueue{}, err
+	}
+	if resource.Spec.Suspend == suspended {
+		return resource, nil
+	}
+
+	patch := map[string]any{
+		"spec": map[string]any{
+			"suspend": suspended,
+		},
+	}
+	var updated MessageQueue
+	if err := s.requestJSONWithContentType(ctx, http.MethodPatch, resourcePath(namespace, name), patch, &updated, "application/merge-patch+json"); err != nil {
+		return MessageQueue{}, err
+	}
+	return updated, nil
+}
+
+func (s *KubernetesStore) ClientCredentials(ctx context.Context, namespace, name string) (ClientCredentialsResponse, error) {
+	resource, err := s.Get(ctx, namespace, name)
+	if err != nil {
+		return ClientCredentialsResponse{}, err
+	}
+	config := clientConfigOf(viewOf(resource, namespace), namespace)
+	response := ClientCredentialsResponse{
+		Name:                     config.Name,
+		Namespace:                config.Namespace,
+		BootstrapServers:         append([]string(nil), config.BootstrapServers...),
+		ExternalBootstrapServers: append([]string(nil), config.ExternalBootstrapServers...),
+		Username:                 config.Username,
+		SecretRef:                config.SecretRef,
+		CASecretRef:              config.CASecretRef,
+		Transport:                config.Transport,
+		Mechanism:                config.Mechanism,
+		SecurityProtocol:         config.SecurityProtocol,
+		Degraded:                 config.Degraded,
+		Message:                  config.Message,
+	}
+	if config.SecretRef == "" {
+		response.Degraded = true
+		response.Message = "client credentials are not available yet"
+		return response, nil
+	}
+
+	password, err := s.secretDataValue(ctx, namespace, config.SecretRef, "password")
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			response.Degraded = true
+			response.Message = "client credentials are not available yet"
+			return response, nil
+		}
+		return ClientCredentialsResponse{}, err
+	}
+	if strings.TrimSpace(password) == "" {
+		response.Degraded = true
+		response.Message = "client credentials are not available yet"
+		return response, nil
+	}
+	response.Password = password
+
+	if config.CASecretRef != "" {
+		ca, err := s.secretDataValue(ctx, namespace, config.CASecretRef, "ca.crt")
+		if err != nil {
+			if !errors.Is(err, ErrNotFound) {
+				return ClientCredentialsResponse{}, err
+			}
+			response.Degraded = true
+			response.Message = "client CA certificate is not available yet"
+		} else {
+			response.CACertificate = ca
+		}
+	}
+	return response, nil
 }
 
 func (s *KubernetesStore) Delete(ctx context.Context, namespace, name string) error {
@@ -118,7 +244,33 @@ func resourcePath(namespace, name string) string {
 	return base
 }
 
+func secretPath(namespace, name string) string {
+	return "/api/v1/namespaces/" + url.PathEscape(namespace) + "/secrets/" + url.PathEscape(name)
+}
+
+func (s *KubernetesStore) secretDataValue(ctx context.Context, namespace, name, key string) (string, error) {
+	var secret struct {
+		Data map[string]string `json:"data"`
+	}
+	if err := s.requestJSON(ctx, http.MethodGet, secretPath(namespace, name), nil, &secret); err != nil {
+		return "", err
+	}
+	encoded := secret.Data[key]
+	if encoded == "" {
+		return "", nil
+	}
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return "", ErrDependencyUnavailable
+	}
+	return string(decoded), nil
+}
+
 func (s *KubernetesStore) requestJSON(ctx context.Context, method, path string, payload any, output any) error {
+	return s.requestJSONWithContentType(ctx, method, path, payload, output, "application/json")
+}
+
+func (s *KubernetesStore) requestJSONWithContentType(ctx context.Context, method, path string, payload any, output any, contentType string) error {
 	var body io.Reader
 	if payload != nil {
 		encoded, err := json.Marshal(payload)
@@ -136,7 +288,7 @@ func (s *KubernetesStore) requestJSON(ctx context.Context, method, path string, 
 		request.Header.Set("Authorization", "Bearer "+access.Token)
 	}
 	if payload != nil {
-		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Content-Type", contentType)
 	}
 	client := access.Client
 	if client == nil {

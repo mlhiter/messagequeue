@@ -8,6 +8,11 @@
   const SEALOS_DESKTOP_LANGUAGE_API = "getLanguage";
   const SEALOS_DESKTOP_CHANGE_I18N_EVENT = "change_i18n";
   const SEALOS_DESKTOP_REQUEST_TIMEOUT_MS = 3000;
+  const POLL_INTERVALS = {
+    clusters: 15000,
+    logs: 10000,
+    monitoring: 30000
+  };
 
   const LOCALES = {
     zh: {
@@ -31,8 +36,8 @@
       newCluster: "新建",
       totalClusters: "实例总数",
       observedInWorkspace: "在当前工作空间中观测到",
-      ready: "就绪",
-      observedAndServing: "已观测且可服务",
+      ready: "运行中",
+      observedAndServing: "运行中且可服务",
       attention: "关注",
       provisioningOrDegraded: "正在创建或异常",
       engine: "引擎",
@@ -86,7 +91,11 @@
       updateInstance: "更新",
       pauseInstance: "暂停",
       resumeInstance: "恢复",
-      lifecycleUnavailable: "该操作需要后端生命周期接口接入后可用",
+      lifecycleUnavailable: "更新需要后端变更契约接入后可用",
+      pausingInstance: "正在暂停…",
+      resumingInstance: "正在恢复…",
+      pauseFailed: (message) => `暂停失败：${message}`,
+      resumeFailed: (message) => `恢复失败：${message}`,
       retainData: "保留数据",
       deleteWithCluster: "随实例删除",
       controllerDefault: "控制器默认",
@@ -101,34 +110,44 @@
       controllerEvent: "控制器事件",
       connections: "连接",
       clientConnection: "客户端连接",
-      credentialsStayServerSide: "凭据保留在服务端",
-      credentialsProtected:
-        "通过授权的服务端操作获取短期客户端配置。密码和私钥不会出现在浏览器日志或状态中。",
       loadClientConfig: "加载客户端配置",
       retryClientConfig: "重试配置",
       loadingClientConfig: "正在加载客户端配置…",
       clientConfigUnavailable: "客户端配置不可用",
+      clientConfigOptional: "连接配置暂不可用，实例管理仍可继续。",
       clientConfigFetchNote: (name) => `配置通过服务端获取，范围限定为 ${name}。`,
-      clientConfigDegraded: "客户端配置尚未就绪，不会暴露 Secret 数据。",
       bootstrapServers: "Bootstrap 服务",
       internalAddress: "内网地址",
       externalAddress: "外网地址",
       host: "Host",
       port: "Port",
-      connectionString: "连接串",
-      internalService: "集群内服务",
-      externalAccessDisabled: "外网访问未开启",
+      connectionString: "Bootstrap 地址",
       username: "用户名",
-      secretReference: "Secret 引用",
-      noSecretMaterial: "这里仅显示连接元数据。密码、私钥和 kubeconfig 不会返回到浏览器。",
+      password: "密码",
+      securityProtocol: "安全协议",
+      saslMechanism: "SASL 机制",
+      clientSecret: "客户端 Secret",
+      caSecret: "CA Secret",
       authentication: "认证",
-      transport: "传输",
-      mechanism: "机制",
-      kafkaUser: "Kafka 用户",
-      access: "访问",
-      tls: "TLS",
-      scramSha512: "SCRAM-SHA-512",
-      workspaceScoped: "工作空间级别",
+      environmentVariables: "环境变量",
+      sdkExample: "SDK 示例",
+      loadCredentials: "显示密码",
+      loadingCredentials: "正在读取凭据…",
+      hidePassword: "隐藏密码",
+      copyPassword: "复制密码",
+      copyEnvironment: "复制环境变量",
+      copyJavaProperties: "复制 Java 配置",
+      credentialsUnavailable: "凭据暂不可用",
+      copied: "已复制",
+      copyFailed: "复制失败",
+      credentialsRevealed: "凭据已显示",
+      externalAccessDisabled: "外网访问未开启",
+      externalAccessEnabling: "正在开启外网访问…",
+      enableExternalAccess: "开启外网访问",
+      disableExternalAccess: "关闭外网访问",
+      disablingExternalAccess: "正在关闭…",
+      externalAccessFailed: (message) => `外网访问操作失败：${message}`,
+      disableExternalAccessConfirm: (name) => `确认关闭 ${name} 的外网访问？现有外网连接会中断。`,
       copy: "复制",
       liveLogs: "实时日志",
       loadLogs: "加载日志",
@@ -146,8 +165,6 @@
       monitoringUnavailable: "监控不可用",
       metricsOptional:
         "VictoriaMetrics 可能不可用，或者还没有为这个工作空间配置。",
-      metricsFetchNote:
-        "监控使用固定的服务端查询。命名空间和实例选择器由后端注入。",
       metricsProviderMissing:
         "监控提供器未配置，不会影响 Kafka 操作。",
       metricsMessagesIn: "消息进入",
@@ -167,8 +184,6 @@
       perSecond: "每秒",
       partitions: "分区",
       messages: "条消息",
-      refresh: "刷新",
-      refreshData: "刷新数据",
       openHelp: "打开帮助",
       newResource: "新实例",
       createKafkaCluster: "创建 Kafka 实例",
@@ -227,7 +242,7 @@
       createButton: "创建实例",
       createButtonShort: "+ 新建",
       statusUnknown: "未知",
-      statusReady: "就绪",
+      statusReady: "运行中",
       statusProvisioning: "准备中",
       statusUpdating: "更新中",
       statusDegraded: "降级",
@@ -237,7 +252,7 @@
       statusLabel: "状态",
       details: "详情",
       loadingDemoClusters: "正在加载观测到的实例…",
-      stateReadyMeta: "已观测且可服务",
+      stateReadyMeta: "运行中且可服务",
       stateAttentionMeta: "正在创建或异常",
       demoReadyEvent1: "Kafka 用户凭据已完成协调。",
       demoReadyEvent2: "3 个 broker 已全部就绪。",
@@ -253,7 +268,6 @@
       credentialSafety: "密码和私钥不会出现在浏览器日志里。",
       topicPlaceholder: "示例：orders-dev",
       topbarHelp: "帮助",
-      topbarRefresh: "刷新",
       managementApiUnavailable:
         "后端不可达。这里显示只读演示数据；请先接通 API 再创建实例。",
       clusterCreationUnavailable:
@@ -350,7 +364,11 @@
       updateInstance: "Update",
       pauseInstance: "Pause",
       resumeInstance: "Resume",
-      lifecycleUnavailable: "This operation will be available after the lifecycle API is connected",
+      lifecycleUnavailable: "Update requires the backend change contract to be connected",
+      pausingInstance: "Pausing…",
+      resumingInstance: "Resuming…",
+      pauseFailed: (message) => `Pause failed: ${message}`,
+      resumeFailed: (message) => `Resume failed: ${message}`,
       retainData: "Retain data",
       deleteWithCluster: "Delete with instance",
       controllerDefault: "Controller default",
@@ -365,34 +383,44 @@
       controllerEvent: "Controller event",
       connections: "Connections",
       clientConnection: "Client connection",
-      credentialsStayServerSide: "Credentials stay server-side",
-      credentialsProtected:
-        "Retrieve a short-lived client configuration through an authorized server operation. Passwords and private keys are never rendered in browser logs or status.",
       loadClientConfig: "Load client config",
       retryClientConfig: "Retry config",
       loadingClientConfig: "Loading client configuration…",
       clientConfigUnavailable: "Client configuration unavailable",
+      clientConfigOptional: "Connection configuration is unavailable; instance management can continue.",
       clientConfigFetchNote: (name) => `Configuration is fetched through the server and scoped to ${name}.`,
-      clientConfigDegraded: "Client configuration is not ready yet; Secret data is not exposed.",
       bootstrapServers: "Bootstrap servers",
       internalAddress: "Internal address",
       externalAddress: "External address",
       host: "Host",
       port: "Port",
-      connectionString: "Connection string",
-      internalService: "In-cluster service",
-      externalAccessDisabled: "External access is not enabled",
+      connectionString: "Bootstrap address",
       username: "Username",
-      secretReference: "Secret reference",
-      noSecretMaterial: "Only connection metadata is shown here. Passwords, private keys, and kubeconfigs are never returned to the browser.",
+      password: "Password",
+      securityProtocol: "Security protocol",
+      saslMechanism: "SASL mechanism",
+      clientSecret: "Client Secret",
+      caSecret: "CA Secret",
       authentication: "Authentication",
-      transport: "Transport",
-      mechanism: "Mechanism",
-      kafkaUser: "Kafka user",
-      access: "Access",
-      tls: "TLS",
-      scramSha512: "SCRAM-SHA-512",
-      workspaceScoped: "Workspace scoped",
+      environmentVariables: "Environment variables",
+      sdkExample: "SDK example",
+      loadCredentials: "Show password",
+      loadingCredentials: "Loading credentials…",
+      hidePassword: "Hide password",
+      copyPassword: "Copy password",
+      copyEnvironment: "Copy environment",
+      copyJavaProperties: "Copy Java config",
+      credentialsUnavailable: "Credentials unavailable",
+      copied: "Copied",
+      copyFailed: "Copy failed",
+      credentialsRevealed: "Credentials shown",
+      externalAccessDisabled: "External access is not enabled",
+      externalAccessEnabling: "Enabling external access…",
+      enableExternalAccess: "Enable external access",
+      disableExternalAccess: "Disable external access",
+      disablingExternalAccess: "Disabling…",
+      externalAccessFailed: (message) => `External access operation failed: ${message}`,
+      disableExternalAccessConfirm: (name) => `Disable external access for ${name}? Existing external connections will be interrupted.`,
       copy: "Copy",
       liveLogs: "Live logs",
       loadLogs: "Load logs",
@@ -408,7 +436,6 @@
       loadingMetrics: "Loading monitoring data…",
       monitoringUnavailable: "Monitoring unavailable",
       metricsOptional: "VictoriaMetrics may be unavailable or not configured for this workspace.",
-      metricsFetchNote: "Monitoring data uses fixed server-owned queries. Namespace and instance selectors are injected by the backend.",
       metricsProviderMissing: "The monitoring provider is not configured; Kafka operations are unaffected.",
       metricsMessagesIn: "Messages in",
       metricsMessagesOut: "Messages out",
@@ -427,8 +454,6 @@
       perSecond: "per second",
       partitions: "partitions",
       messages: "messages",
-      refresh: "Refresh",
-      refreshData: "Refresh data",
       openHelp: "Open help",
       newResource: "New instance",
       createKafkaCluster: "Create Kafka instance",
@@ -513,7 +538,6 @@
       credentialSafety: "Passwords and private keys are never rendered in browser logs.",
       topicPlaceholder: "Example: orders-dev",
       topbarHelp: "Help",
-      topbarRefresh: "Refresh",
       managementApiUnavailable:
         "The backend could not be reached. Demo data is read only; connect the API before creating instances.",
       clusterCreationUnavailable: "The management API is unavailable, so instances cannot be created yet.",
@@ -537,7 +561,7 @@
 
   const STATUS_MAP = {
     zh: {
-      ready: ["就绪", "ready"],
+      ready: ["运行中", "ready"],
       provisioning: ["准备中", "provisioning"],
       creating: ["准备中", "provisioning"],
       updating: ["更新中", "updating"],
@@ -626,6 +650,10 @@
     openActionMenu: "",
     observability: {},
     clientConfig: {},
+    clientCredentials: {},
+    externalAccess: {},
+    suspension: {},
+    toast: null,
     createSubmitting: false,
     createProfile: "development",
     deleteSubmitting: false,
@@ -633,6 +661,11 @@
     workspaceQuota: { status: "idle", data: null, message: "" },
     language: detectLanguage(),
     route: { view: "list", clusterName: "" }
+  };
+
+  const polling = {
+    timers: { clusters: null, logs: null, monitoring: null },
+    active: { clusters: false, logs: false, monitoring: false, clientConfig: false }
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -669,10 +702,13 @@
     syncRouteFromLocation();
     window.scrollTo({ top: 0, behavior: "auto" });
     render();
+    syncAutoPolling();
   }
 
   function navigateToList() {
     state.openActionMenu = "";
+    state.externalAccess = {};
+    state.clientCredentials = {};
     commitRouteHash("#/clusters");
   }
 
@@ -680,6 +716,8 @@
     if (!name) return;
     state.tab = "overview";
     state.observability = {};
+    state.externalAccess = {};
+    state.clientCredentials = {};
     state.openActionMenu = "";
     commitRouteHash(`#/clusters/${encodeURIComponent(name)}`);
   }
@@ -704,7 +742,13 @@
       update: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>',
       pause: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>',
       resume: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"></path></svg>',
-      delete: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>'
+      delete: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>',
+      copy: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
+      eye: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+      eyeOff: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.2-.97"></path><path d="M9.9 4.24A10.4 10.4 0 0 1 12 4c6.5 0 10 8 10 8a15.5 15.5 0 0 1-3.1 4.26"></path><path d="M6.6 6.6C3.7 8.55 2 12 2 12s3.5 8 10 8a10.6 10.6 0 0 0 4.2-.86"></path></svg>',
+      key: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M11 12l9-9"></path><path d="M15 6l3 3"></path></svg>',
+      terminal: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 5 5-5 5"></path><path d="M12 19h8"></path></svg>',
+      code: '<svg data-icon="inline-start" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 18 6-6-6-6"></path><path d="m8 6-6 6 6 6"></path></svg>'
     };
     return icons[name] || "";
   }
@@ -714,9 +758,21 @@
       overview: '<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>',
       connections: '<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L11 4.93"></path><path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07L13 19.07"></path></svg>',
       logs: '<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"></path><path d="M14 2v5h5"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>',
-      monitoring: '<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l3-3 3 2 5-7"></path></svg>'
+      monitoring: '<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M8 14.5l2.7-3 2.8 2 3.5-5"></path><path d="M8 17h8"></path></svg>'
     };
     return icons[name] || "";
+  }
+
+  function metricIcon(key) {
+    const icons = {
+      cpu: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"></rect><path d="M4 10h3"></path><path d="M4 14h3"></path><path d="M17 10h3"></path><path d="M17 14h3"></path><path d="M10 4v3"></path><path d="M14 4v3"></path><path d="M10 17v3"></path><path d="M14 17v3"></path></svg>',
+      memory: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4z"></path><path d="M9 9h6"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>',
+      storage: '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"></ellipse><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"></path><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"></path></svg>',
+      throughput: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17h10"></path><path d="m14 13 4 4-4 4"></path><path d="M20 7H10"></path><path d="m10 3-4 4 4 4"></path></svg>',
+      consumer_lag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M5 18h9"></path><path d="M5 6h14"></path><path d="M17 15l3 3-3 3"></path></svg>',
+      partition_health: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path><path d="M8 6v12"></path><path d="M16 6v12"></path></svg>'
+    };
+    return icons[key] || icons.throughput;
   }
 
   function normalizeLanguage(raw) {
@@ -764,6 +820,58 @@
   function createMessageId() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  let toastTimer = null;
+
+  function renderToast() {
+    const region = $("#toast-region");
+    if (!region) return;
+    if (!state.toast) {
+      region.innerHTML = "";
+      return;
+    }
+    region.innerHTML = `<div class="toast" data-tone="${escapeHtml(state.toast.tone || "success")}"><span class="toast-dot" aria-hidden="true"></span><span>${escapeHtml(state.toast.message)}</span></div>`;
+  }
+
+  function showToast(text, tone = "success") {
+    state.toast = { message: text, tone };
+    renderToast();
+    if (toastTimer) window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => {
+      state.toast = null;
+      renderToast();
+    }, 2200);
+  }
+
+  async function writeClipboard(value) {
+    const text = String(value ?? "");
+    if (!text) throw new Error("empty clipboard value");
+    if (navigator.clipboard && window.isSecureContext !== false) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    if (!copied) throw new Error("clipboard fallback failed");
+  }
+
+  async function copyText(value) {
+    try {
+      await writeClipboard(value);
+      showToast(message("copied"));
+      return true;
+    } catch {
+      showToast(message("copyFailed"), "error");
+      return false;
+    }
   }
 
   function parseApiError(body) {
@@ -903,7 +1011,6 @@
       ["section-tag", "sectionTag"],
       ["page-title", "pageTitle"],
       ["page-description", "pageDescription"],
-      ["back-button", "backToList"],
       ["create-button", "newCluster"],
       ["stat-label-total", "totalClusters"],
       ["stat-total-meta", "observedInWorkspace"],
@@ -965,8 +1072,6 @@
       node.textContent = message(key);
     }
 
-    $("#refresh-button")?.setAttribute("aria-label", message("refreshData"));
-    $("#refresh-button")?.setAttribute("title", message("refreshData"));
     $("#help-button")?.setAttribute("aria-label", message("openHelp"));
     $("#help-button")?.setAttribute("title", message("openHelp"));
     $("#search-input")?.setAttribute("placeholder", message("searchPlaceholder"));
@@ -1106,16 +1211,99 @@
       cluster.endpoint
     ].filter(Boolean);
     const externalCandidates = [
+      ...endpointListFrom(cluster.status.externalEndpoints),
+      cluster.status.externalEndpoint,
       ...endpointListFrom(config.externalBootstrapServers),
       ...endpointListFrom(config.externalEndpoints),
       config.externalEndpoint,
-      config.publicEndpoint,
-      cluster.status.externalEndpoint
+      config.publicEndpoint
     ].filter(Boolean);
     return {
       internal: parseEndpoint(internalCandidates[0] || cluster.endpoint),
       external: externalCandidates.length ? parseEndpoint(externalCandidates[0]) : null
     };
+  }
+
+  function selectedBootstrapServers(model) {
+    if (model.external?.available) return [model.external.connection];
+    if (model.internal?.available) return [model.internal.connection];
+    return [];
+  }
+
+  function credentialDataFor(cluster) {
+    const result = state.clientCredentials;
+    return result?.name === cluster.name && result.data ? result.data : null;
+  }
+
+  function mergedClientConfig(cluster, config = {}) {
+    const credentials = credentialDataFor(cluster) || {};
+    return {
+      ...config,
+      ...credentials,
+      bootstrapServers: credentials.bootstrapServers || config.bootstrapServers,
+      externalBootstrapServers: credentials.externalBootstrapServers || config.externalBootstrapServers,
+      securityProtocol: credentials.securityProtocol || config.securityProtocol || "SASL_SSL",
+      mechanism: credentials.mechanism || config.mechanism || "SCRAM-SHA-512",
+      transport: credentials.transport || config.transport || "TLS",
+      username: credentials.username || config.username || `${cluster.name}-client`,
+      secretRef: credentials.secretRef || config.secretRef || cluster.status.clientSecretRef || `${cluster.name}-client`,
+      caSecretRef: credentials.caSecretRef || config.caSecretRef || `${cluster.name}-cluster-ca-cert`
+    };
+  }
+
+  function shellQuote(value) {
+    return `'${String(value ?? "").replace(/'/g, "'\\''")}'`;
+  }
+
+  function javaQuote(value) {
+    return String(value ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  }
+
+  function envTemplate(cluster, config, model, revealSecrets) {
+    const servers = selectedBootstrapServers(model).join(",");
+    const password = revealSecrets && config.password ? config.password : "${KAFKA_PASSWORD}";
+    const ca = revealSecrets && config.caCertificate ? config.caCertificate : "${KAFKA_CA_CERT}";
+    return [
+      `KAFKA_BOOTSTRAP_SERVERS=${shellQuote(servers)}`,
+      `KAFKA_SECURITY_PROTOCOL=${shellQuote(config.securityProtocol || "SASL_SSL")}`,
+      `KAFKA_SASL_MECHANISM=${shellQuote(config.mechanism || "SCRAM-SHA-512")}`,
+      `KAFKA_SASL_USERNAME=${shellQuote(config.username || `${cluster.name}-client`)}`,
+      `KAFKA_SASL_PASSWORD=${shellQuote(password)}`,
+      `KAFKA_CA_CERT=${shellQuote(ca)}`
+    ].join("\n");
+  }
+
+  function javaPropertiesTemplate(cluster, config, model, revealSecrets) {
+    const servers = selectedBootstrapServers(model).join(",");
+    const password = revealSecrets && config.password ? config.password : "${KAFKA_PASSWORD}";
+    return [
+      `bootstrap.servers=${servers}`,
+      `security.protocol=${config.securityProtocol || "SASL_SSL"}`,
+      `sasl.mechanism=${config.mechanism || "SCRAM-SHA-512"}`,
+      `sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${javaQuote(config.username || `${cluster.name}-client`)}" password="${javaQuote(password)}";`
+    ].join("\n");
+  }
+
+  function copyIconButton(value, label, extra = "") {
+    const disabled = !value || value === "—";
+    return `<button class="copy-icon-button ${extra}" type="button" ${disabled ? "disabled" : `data-copy="${escapeHtml(value)}"`} aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${menuIcon("copy")}</button>`;
+  }
+
+  function actionIconButton(action, label, icon, attrs = "") {
+    return `<button class="copy-icon-button" type="button" data-action="${escapeHtml(action)}" ${attrs} aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${menuIcon(icon)}</button>`;
+  }
+
+  function externalAccessDesired(cluster) {
+    const spec = cluster?.spec || {};
+    const kafka = spec.kafka || {};
+    const candidate =
+      kafka.listeners?.external ??
+      spec.listeners?.external ??
+      kafka.externalAccess ??
+      spec.externalAccess;
+    if (typeof candidate === "boolean") return candidate;
+    if (candidate && typeof candidate === "object") return Boolean(candidate.enabled);
+    return false;
   }
 
   function latestMetricValue(series) {
@@ -1140,14 +1328,15 @@
     const min = Math.min(...values);
     const max = Math.max(...values);
     const span = max - min || 1;
-    const points = values
+    const coords = values
       .map((value, index) => {
         const x = values.length === 1 ? width : (index / (values.length - 1)) * width;
         const y = height - ((value - min) / span) * (height - 8) - 4;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" ");
-    return `<svg class="metric-sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}"></polyline></svg>`;
+        return [x, y];
+      });
+    const linePath = coords.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+    const areaPath = `${linePath} L${width} ${height} L0 ${height} Z`;
+    return `<svg class="metric-sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><path class="metric-area" d="${areaPath}"></path><path class="metric-line" d="${linePath}"></path></svg>`;
   }
 
   function formatConditionType(type) {
@@ -1285,7 +1474,9 @@
       const storage = spec.storage || {};
       const status = raw?.status || {};
       const conditions = Array.isArray(status.conditions) ? status.conditions : [];
-      const phase = status.phase || (conditions.find((condition) => condition.type === "Ready" && condition.status === "True") ? "Ready" : "Provisioning");
+      const phase = spec.suspend
+        ? "Suspended"
+        : status.phase || (conditions.find((condition) => condition.type === "Ready" && condition.status === "True") ? "Ready" : "Provisioning");
       const firstEndpoint = status.endpoints?.[0];
       const endpoint = status.endpoint || status.bootstrapEndpoint || (typeof firstEndpoint === "string" ? firstEndpoint : firstEndpoint ? `${firstEndpoint.host}:${firstEndpoint.port}` : "Pending");
       return {
@@ -1404,9 +1595,18 @@
     const toggleLabel = `${message("moreActions")} ${cluster.name}`;
     const deleteDisabled = !writesEnabled() || state.deleteSubmitting;
     const unavailableTitle = escapeHtml(message("lifecycleUnavailable"));
+    const suspensionState = state.suspension?.name === cluster.name ? state.suspension : {};
+    const suspensionBusy = Boolean(suspensionState.submitting || suspensionState.pending);
     const lifecycleIcon = suspended ? menuIcon("resume") : menuIcon("pause");
-    const lifecycleLabel = suspended ? message("resumeInstance") : message("pauseInstance");
-    return `<span class="action-menu" data-menu-open="${isOpen ? "true" : "false"}" data-menu-id="${escapeHtml(menuId)}"><button class="icon-button action-menu-trigger" type="button" data-action="toggle-row-actions" data-menu-id="${escapeHtml(menuId)}" data-cluster-name="${clusterName}" aria-haspopup="menu" aria-expanded="${isOpen ? "true" : "false"}" aria-label="${escapeHtml(toggleLabel)}" title="${escapeHtml(message("moreActions"))}"><span aria-hidden="true">⋯</span></button>${isOpen ? `<span class="action-menu-content" role="menu" aria-label="${escapeHtml(message("instanceActions"))}"><span class="action-menu-group" role="group"><button class="action-menu-item" type="button" role="menuitem" data-action="lifecycle-unavailable" title="${unavailableTitle}" disabled>${menuIcon("update")}<span>${escapeHtml(message("updateInstance"))}</span></button><button class="action-menu-item" type="button" role="menuitem" data-action="lifecycle-unavailable" title="${unavailableTitle}" disabled>${lifecycleIcon}<span>${escapeHtml(lifecycleLabel)}</span></button></span><span class="action-menu-separator" role="separator"></span><span class="action-menu-group" role="group"><button class="action-menu-item is-destructive" type="button" role="menuitem" data-action="delete-cluster" data-cluster-name="${clusterName}" ${deleteDisabled ? "disabled" : ""}>${menuIcon("delete")}<span>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</span></button></span></span>` : ""}</span>`;
+    const lifecycleLabel = suspensionBusy
+      ? suspended
+        ? message("resumingInstance")
+        : message("pausingInstance")
+      : suspended
+        ? message("resumeInstance")
+        : message("pauseInstance");
+    const lifecycleDisabled = !writesEnabled() || suspensionBusy;
+    return `<span class="action-menu" data-menu-open="${isOpen ? "true" : "false"}" data-menu-id="${escapeHtml(menuId)}"><button class="icon-button action-menu-trigger" type="button" data-action="toggle-row-actions" data-menu-id="${escapeHtml(menuId)}" data-cluster-name="${clusterName}" aria-haspopup="menu" aria-expanded="${isOpen ? "true" : "false"}" aria-label="${escapeHtml(toggleLabel)}" title="${escapeHtml(message("moreActions"))}"><span aria-hidden="true">⋯</span></button>${isOpen ? `<span class="action-menu-content" role="menu" aria-label="${escapeHtml(message("instanceActions"))}"><span class="action-menu-group" role="group"><button class="action-menu-item" type="button" role="menuitem" data-action="lifecycle-unavailable" title="${unavailableTitle}" disabled>${menuIcon("update")}<span>${escapeHtml(message("updateInstance"))}</span></button><button class="action-menu-item" type="button" role="menuitem" data-action="set-suspension" data-cluster-name="${clusterName}" data-suspended="${suspended ? "false" : "true"}" ${lifecycleDisabled ? "disabled" : ""}>${lifecycleIcon}<span>${escapeHtml(lifecycleLabel)}</span></button></span><span class="action-menu-separator" role="separator"></span><span class="action-menu-group" role="group"><button class="action-menu-item is-destructive" type="button" role="menuitem" data-action="delete-cluster" data-cluster-name="${clusterName}" ${deleteDisabled ? "disabled" : ""}>${menuIcon("delete")}<span>${escapeHtml(state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster"))}</span></button></span></span>` : ""}</span>`;
   }
 
   function rowActionsHtml(cluster) {
@@ -1422,6 +1622,7 @@
     const breadcrumbClusters = $("#breadcrumb-clusters");
     const createButton = $("#create-button");
     const backButton = $("#back-button");
+    const detailStatusSlot = $("#detail-status-slot");
     const detailHeaderActions = $("#detail-header-actions");
     const statGrid = $("#stat-grid");
     const listPanel = $("#list-panel");
@@ -1464,14 +1665,24 @@
       backButton.setAttribute("aria-label", message("backToList"));
       backButton.setAttribute("title", message("backToList"));
     }
+    if (detailStatusSlot) {
+      const showStatus = Boolean(isDetail && cluster);
+      detailStatusSlot.classList.toggle("is-hidden", !showStatus);
+      detailStatusSlot.setAttribute("aria-hidden", showStatus ? "false" : "true");
+      if (showStatus) {
+        const [label, statusClass] = statusLabel(cluster.phase);
+        detailStatusSlot.innerHTML = `<span class="status-badge status-${statusClass}">${escapeHtml(label)}</span>`;
+      } else {
+        detailStatusSlot.innerHTML = "";
+      }
+    }
     if (detailHeaderActions) {
       const showDetailActions = Boolean(isDetail && cluster);
       detailHeaderActions.classList.toggle("is-hidden", !showDetailActions);
       detailHeaderActions.setAttribute("aria-hidden", showDetailActions ? "false" : "true");
       detailHeaderActions.setAttribute("aria-label", message("instanceActions"));
       if (showDetailActions) {
-        const [label, statusClass] = statusLabel(cluster.phase);
-        detailHeaderActions.innerHTML = detailActionsHtml(cluster, label, statusClass);
+        detailHeaderActions.innerHTML = detailActionsHtml(cluster);
       } else {
         detailHeaderActions.innerHTML = "";
       }
@@ -1549,25 +1760,73 @@
   function connectionsHtml(cluster) {
     const result = state.clientConfig;
     const config = result?.name === cluster.name && result.data ? result.data : {};
-    const model = connectionModel(cluster, config);
+    const credentialsResult = state.clientCredentials?.name === cluster.name ? state.clientCredentials : {};
+    const mergedConfig = mergedClientConfig(cluster, config);
+    const credentials = credentialDataFor(cluster);
+    const model = connectionModel(cluster, mergedConfig);
     let degradedNotice = "";
     if (result?.name === cluster.name && result.loading) {
       degradedNotice = `<div class="loading-state"><span>${escapeHtml(message("loadingClientConfig"))}</span><span class="loading-bar" aria-hidden="true"></span></div>`;
     } else if (result?.name === cluster.name && result.error) {
       degradedNotice = `<div class="observability-box"><h3>${escapeHtml(message("clientConfigUnavailable"))}</h3><p>${escapeHtml(result.error)}</p><button class="button button-secondary" type="button" data-action="load-client-config">${escapeHtml(message("retryClientConfig"))}</button></div>`;
-    } else if (config.degraded) {
-      degradedNotice = `<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("clientConfigDegraded"))}</strong><p>${escapeHtml(config.message || "")}</p></div></div>`;
+    } else if (result?.name === cluster.name && config.degraded) {
+      degradedNotice = `<div class="observability-box" data-tone="warning" data-testid="messagequeue.detail.client-config-degraded"><h3>${escapeHtml(message("clientConfigUnavailable"))}</h3><p>${escapeHtml(localizeBackendText(config.message || message("clientConfigOptional")))}</p></div>`;
     }
-    const endpointPanel = (title, endpoint, meta) => {
-      const isInternal = title === message("internalAddress");
+    if (credentialsResult.error) {
+      degradedNotice += `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("credentialsUnavailable"))}</h3><p>${escapeHtml(credentialsResult.error)}</p></div>`;
+    } else if (credentials?.degraded) {
+      degradedNotice += `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("credentialsUnavailable"))}</h3><p>${escapeHtml(localizeBackendText(credentials.message || message("clientConfigOptional")))}</p></div>`;
+    }
+    const endpointPanel = (kind, title, endpoint, action = "", qaState = "") => {
       const disabled = !endpoint?.available;
-      const safe = endpoint || { host: "—", port: "—", connection: message("externalAccessDisabled") };
-      const stateName = disabled ? "pending" : "ready";
-      const testId = disabled && !isInternal ? "messagequeue.detail.connection-external-disabled" : `messagequeue.detail.connection-${isInternal ? "internal" : "external"}`;
-      const copyButton = (value) => `<button type="button" ${disabled ? "disabled" : `data-copy="${escapeHtml(value)}"`}>${escapeHtml(message("copy"))}</button>`;
-      return `<article class="connection-endpoint ${disabled ? "is-disabled" : ""}" data-testid="${testId}" data-qa-state="${stateName}"><div class="connection-endpoint-header"><h4>${escapeHtml(title)}</h4><span>${escapeHtml(meta)}</span></div><div class="connection-fields"><label><span>${escapeHtml(message("host"))}</span><code>${escapeHtml(safe.host)}</code>${copyButton(safe.host)}</label><label><span>${escapeHtml(message("port"))}</span><code>${escapeHtml(safe.port)}</code>${copyButton(safe.port)}</label><label class="is-wide"><span>${escapeHtml(message("connectionString"))}</span><code>${escapeHtml(safe.connection)}</code>${copyButton(safe.connection)}</label></div></article>`;
+      const safe = endpoint || { host: "—", port: "—", connection: "—" };
+      const stateName = qaState || (disabled ? "pending" : "ready");
+      const testId = `messagequeue.detail.connection-${kind}`;
+      const copyButton = (value, label) => copyIconButton(disabled ? "" : value, label);
+      return `<article class="connection-endpoint ${disabled ? "is-disabled" : ""}" data-testid="${testId}" data-qa-state="${stateName}"><div class="connection-endpoint-header"><h4>${escapeHtml(title)}</h4>${action}</div><div class="connection-fields"><label><span>${escapeHtml(message("host"))}</span><code>${escapeHtml(safe.host)}</code>${copyButton(safe.host, `${message("copy")} ${message("host")}`)}</label><label><span>${escapeHtml(message("port"))}</span><code>${escapeHtml(safe.port)}</code>${copyButton(safe.port, `${message("copy")} ${message("port")}`)}</label><label class="is-wide"><span>${escapeHtml(message("connectionString"))}</span><code>${escapeHtml(safe.connection)}</code>${copyButton(safe.connection, `${message("copy")} ${message("connectionString")}`)}</label></div></article>`;
     };
-    return `<section class="detail-section" data-testid="messagequeue.detail.connections"><div class="section-heading"><h3>${escapeHtml(message("clientConnection"))}</h3><span>${escapeHtml(message("credentialsStayServerSide"))}</span></div><div class="connection-layout">${endpointPanel(message("internalAddress"), model.internal, message("internalService"))}${endpointPanel(message("externalAddress"), model.external, message("externalAccessDisabled"))}</div>${degradedNotice}<div class="notice" data-tone="warning"><span class="notice-icon" aria-hidden="true">i</span><div class="notice-copy"><strong>${escapeHtml(message("credentialsProtected"))}</strong><p>${escapeHtml(message("noSecretMaterial"))}</p></div></div></section><section class="detail-section"><div class="section-heading"><h3>${escapeHtml(message("authentication"))}</h3></div><dl class="info-grid"><div class="info-item"><dt>${escapeHtml(message("transport"))}</dt><dd>${escapeHtml(config.transport || message("tls"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("mechanism"))}</dt><dd>${escapeHtml(config.mechanism || message("scramSha512"))}</dd></div><div class="info-item"><dt>${escapeHtml(message("kafkaUser"))}</dt><dd><code>${escapeHtml(config.username || `${cluster.name}-client`)}</code></dd></div><div class="info-item"><dt>${escapeHtml(message("secretReference"))}</dt><dd><code>${escapeHtml(config.secretRef || "Pending")}</code></dd></div></dl></section>`;
+    const externalAction = state.externalAccess?.name === cluster.name ? state.externalAccess : {};
+    const observedExternal = Boolean(model.external?.available);
+    const desiredExternal = externalAccessDesired(cluster);
+    const externalBusy = Boolean(externalAction.submitting || externalAction.pending);
+    const writesDisabled = !writesEnabled() || externalBusy;
+    const externalError = externalAction.error
+      ? `<p class="external-access-error" role="alert">${escapeHtml(externalAction.error)}</p>`
+      : "";
+    let externalPanel = "";
+    if (observedExternal) {
+      const disableLabel = externalBusy && externalAction.enabled === true
+        ? message("externalAccessEnabling")
+        : externalBusy && externalAction.enabled === false
+          ? message("disablingExternalAccess")
+          : message("disableExternalAccess");
+      const disableButton = `<button class="button button-secondary external-access-action" type="button" data-action="set-external-access" data-enabled="false" ${writesDisabled ? "disabled" : ""}>${escapeHtml(disableLabel)}</button>`;
+      externalPanel = endpointPanel("external", message("externalAddress"), model.external, disableButton, externalAction.error ? "error" : "on") + externalError;
+    } else {
+      const enabling = (externalBusy && externalAction.enabled === true) || desiredExternal;
+      const stateLabel = enabling ? message("externalAccessEnabling") : message("externalAccessDisabled");
+      externalPanel = `<article class="external-access-state" data-testid="messagequeue.detail.connection-external-disabled" data-qa-state="${externalAction.error ? "error" : enabling ? "enabling" : "off"}"><div><h4>${escapeHtml(message("externalAddress"))}</h4><p>${escapeHtml(stateLabel)}</p>${externalError}</div><button class="button button-primary" type="button" data-action="set-external-access" data-enabled="true" ${writesDisabled || enabling ? "disabled" : ""}>${escapeHtml(message("enableExternalAccess"))}</button></article>`;
+    }
+    const credentialsLoading = credentialsResult.loading;
+    const passwordRevealed = Boolean(credentialsResult.revealed && credentials?.password);
+    const passwordDisplay = passwordRevealed ? credentials.password : credentials?.password ? "••••••••••••" : "—";
+    const passwordActions = credentialsLoading
+      ? `<button class="copy-icon-button" type="button" disabled aria-label="${escapeHtml(message("loadingCredentials"))}" title="${escapeHtml(message("loadingCredentials"))}">${menuIcon("key")}</button>`
+      : credentials?.password
+        ? `${actionIconButton("toggle-password", passwordRevealed ? message("hidePassword") : message("loadCredentials"), passwordRevealed ? "eyeOff" : "eye")}${passwordRevealed ? actionIconButton("copy-password", message("copyPassword"), "copy") : ""}`
+        : actionIconButton("load-client-credentials", message("loadCredentials"), "eye");
+    const credentialRows = [
+      [message("username"), mergedConfig.username || "—", copyIconButton(mergedConfig.username, `${message("copy")} ${message("username")}`)],
+      [message("password"), passwordDisplay, passwordActions],
+      [message("securityProtocol"), mergedConfig.securityProtocol || "SASL_SSL", copyIconButton(mergedConfig.securityProtocol || "SASL_SSL", `${message("copy")} ${message("securityProtocol")}`)],
+      [message("saslMechanism"), mergedConfig.mechanism || "SCRAM-SHA-512", copyIconButton(mergedConfig.mechanism || "SCRAM-SHA-512", `${message("copy")} ${message("saslMechanism")}`)],
+      [message("clientSecret"), mergedConfig.secretRef || "—", copyIconButton(mergedConfig.secretRef, `${message("copy")} ${message("clientSecret")}`)],
+      [message("caSecret"), mergedConfig.caSecretRef || "—", copyIconButton(mergedConfig.caSecretRef, `${message("copy")} ${message("caSecret")}`)]
+    ];
+    const envBlock = envTemplate(cluster, mergedConfig, model, passwordRevealed);
+    const javaBlock = javaPropertiesTemplate(cluster, mergedConfig, model, passwordRevealed);
+    const snippet = (title, code, template, icon, label) => `<article class="config-snippet"><div class="config-snippet-head"><h4>${escapeHtml(title)}</h4>${actionIconButton("copy-client-template", label, icon, `data-template="${escapeHtml(template)}"`)}</div><pre><code>${escapeHtml(code)}</code></pre></article>`;
+    return `<section class="detail-section" data-testid="messagequeue.detail.connections"><div class="section-heading"><h3>${escapeHtml(message("clientConnection"))}</h3></div><div class="connection-layout">${endpointPanel("internal", message("internalAddress"), model.internal)}${externalPanel}<article class="credential-panel" data-testid="messagequeue.detail.connection-auth"><div class="connection-endpoint-header"><h4>${escapeHtml(message("authentication"))}</h4></div><div class="credential-grid">${credentialRows.map(([label, value, action]) => `<label><span>${escapeHtml(label)}</span><code>${escapeHtml(value)}</code><span class="credential-actions">${action}</span></label>`).join("")}</div></article><div class="config-snippet-grid">${snippet(message("environmentVariables"), envBlock, "env", "terminal", message("copyEnvironment"))}${snippet(message("sdkExample"), javaBlock, "java", "code", message("copyJavaProperties"))}</div></div>${degradedNotice}</section>`;
   }
 
   function logsHtml(cluster) {
@@ -1576,11 +1835,11 @@
       return `<section class="detail-section"><div class="loading-state"><span>${escapeHtml(message("loadingLogs"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
     }
     if (result?.name === cluster.name && result.error) {
-      return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("logsUnavailable"))}</h3><p>${escapeHtml(result.error)} ${escapeHtml(message("logsOptional"))}</p><button class="button button-secondary" type="button" data-action="load-logs">${escapeHtml(message("retryLogs"))}</button></div></section>`;
+      return `<section class="detail-section"><div class="observability-box"><h3>${escapeHtml(message("logsUnavailable"))}</h3><p>${escapeHtml(result.error)} ${escapeHtml(message("logsOptional"))}</p></div></section>`;
     }
     if (result?.name === cluster.name && Object.prototype.hasOwnProperty.call(result, "data")) {
       const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("logsUnavailable"))}</h3><p>${escapeHtml(result.message || message("logsOptional"))}</p></div>` : "";
-      return `<section class="detail-section" data-testid="messagequeue.detail.logs"><div class="section-heading"><h3>${escapeHtml(message("brokerLogs"))}</h3><button class="button button-secondary" type="button" data-action="load-logs">${escapeHtml(message("refresh"))}</button></div>${degradedNotice}<pre class="log-viewer" id="log-viewer">${escapeHtml(message("loadingState"))}</pre></section>`;
+      return `<section class="detail-section" data-testid="messagequeue.detail.logs"><div class="section-heading"><h3>${escapeHtml(message("brokerLogs"))}</h3></div>${degradedNotice}<pre class="log-viewer" id="log-viewer">${escapeHtml(message("loadingState"))}</pre></section>`;
     }
     return `<section class="detail-section"><div class="loading-state"><span>${escapeHtml(message("loadingLogs"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
   }
@@ -1591,7 +1850,7 @@
       return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="loading"><div class="loading-state"><span>${escapeHtml(message("loadingMetrics"))}</span><span class="loading-bar" aria-hidden="true"></span></div></section>`;
     }
     if (result?.name === cluster.name && result.error) {
-      return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="error"><div class="observability-box"><h3>${escapeHtml(message("monitoringUnavailable"))}</h3><p>${escapeHtml(result.error)} ${escapeHtml(message("metricsOptional"))}</p><button class="button button-secondary" type="button" data-action="load-metrics">${escapeHtml(message("retryMetrics"))}</button></div></section>`;
+      return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="error"><div class="observability-box"><h3>${escapeHtml(message("monitoringUnavailable"))}</h3><p>${escapeHtml(result.error)} ${escapeHtml(message("metricsOptional"))}</p></div></section>`;
     }
     const metrics = result?.data || null;
     if (!metrics) {
@@ -1600,10 +1859,10 @@
     const card = (key, title, unit) => {
       const series = metrics[key];
       const latest = latestMetricValue(series);
-      return `<article class="metric-card" data-metric-key="${escapeHtml(key)}"><div class="metric-card-head"><span>${escapeHtml(title)}</span><small>${escapeHtml(series?.unit || unit || message("currentValue"))}</small></div><strong>${escapeHtml(formatMetricValue(latest, series?.unit || unit))}</strong>${sparklineSvg(series)}</article>`;
+      return `<article class="metric-card" data-metric-key="${escapeHtml(key)}"><div class="metric-card-head"><span class="metric-icon">${metricIcon(key)}</span><div><span>${escapeHtml(title)}</span><small>${escapeHtml(series?.unit || unit || message("currentValue"))}</small></div></div><strong>${escapeHtml(formatMetricValue(latest, series?.unit || unit))}</strong>${sparklineSvg(series)}</article>`;
     };
     const degradedNotice = result.degraded ? `<div class="observability-box" data-tone="warning"><h3>${escapeHtml(message("monitoringUnavailable"))}</h3><p>${escapeHtml(result.message || message("metricsProviderMissing"))}</p></div>` : "";
-    return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="${result.degraded ? "degraded" : "ready"}"><div class="section-heading"><h3>${escapeHtml(message("monitoringOverview"))}</h3><button class="button button-secondary" type="button" data-action="load-metrics">${escapeHtml(message("refresh"))}</button></div><div class="monitoring-band"><div><strong>${escapeHtml(message("resourceUsage"))}</strong><span>${escapeHtml(message("metricsFetchNote"))}</span></div></div><div class="metric-grid">${[
+    return `<section class="detail-section" data-testid="messagequeue.detail.monitoring" data-qa-state="${result.degraded ? "degraded" : "ready"}"><div class="section-heading"><h3>${escapeHtml(message("monitoringOverview"))}</h3></div><div class="metric-grid">${[
       card("cpu", message("metricCpu"), "cores"),
       card("memory", message("metricMemory"), "Mi"),
       card("storage", message("metricStorage"), "Gi"),
@@ -1613,8 +1872,24 @@
     ].join("")}</div>${degradedNotice}</section>`;
   }
 
-  function detailActionsHtml(cluster, label, statusClass) {
-    return `<span class="status-badge status-${statusClass}">${escapeHtml(label)}</span><button class="button button-secondary" type="button" data-action="refresh-detail">${escapeHtml(message("refresh"))}</button>${actionMenuHtml(cluster, `detail:${cluster.name}`)}`;
+  function detailActionsHtml(cluster) {
+    const suspended = String(cluster.phase || "").toLowerCase() === "suspended";
+    const suspensionState = state.suspension?.name === cluster.name ? state.suspension : {};
+    const suspensionBusy = Boolean(suspensionState.submitting || suspensionState.pending);
+    const lifecycleLabel = suspensionBusy
+      ? suspended
+        ? message("resumingInstance")
+        : message("pausingInstance")
+      : suspended
+        ? message("resumeInstance")
+        : message("pauseInstance");
+    const lifecycleIcon = suspended ? menuIcon("resume") : menuIcon("pause");
+    const unavailableTitle = escapeHtml(message("lifecycleUnavailable"));
+    const deleteDisabled = !writesEnabled() || state.deleteSubmitting;
+    const lifecycleDisabled = !writesEnabled() || suspensionBusy;
+    const updateLabel = message("updateInstance");
+    const deleteLabel = state.deleteSubmitting ? message("deletingCluster") : message("deleteCluster");
+    return `<button class="button button-secondary" type="button" aria-label="${escapeHtml(updateLabel)}" title="${unavailableTitle}" disabled>${menuIcon("update")}<span class="header-action-label">${escapeHtml(updateLabel)}</span></button><button class="button button-secondary" type="button" data-action="set-suspension" data-cluster-name="${escapeHtml(cluster.name)}" data-suspended="${suspended ? "false" : "true"}" aria-label="${escapeHtml(lifecycleLabel)}" title="${escapeHtml(lifecycleLabel)}" ${lifecycleDisabled ? "disabled" : ""}>${lifecycleIcon}<span class="header-action-label">${escapeHtml(lifecycleLabel)}</span></button><button class="button button-danger" type="button" data-action="delete-cluster" data-cluster-name="${escapeHtml(cluster.name)}" aria-label="${escapeHtml(deleteLabel)}" title="${escapeHtml(deleteLabel)}" ${deleteDisabled ? "disabled" : ""}>${menuIcon("delete")}<span class="header-action-label">${escapeHtml(deleteLabel)}</span></button>`;
   }
 
   function queueAutoLoadForActiveTab(cluster) {
@@ -1680,6 +1955,7 @@
     if (state.route.view === "detail") renderDetail();
     const operationsHint = $("#operations-hint");
     if (operationsHint) operationsHint.textContent = message("operationsComingSoon");
+    renderToast();
   }
 
   function renderWorkspaceQuotaNote() {
@@ -1711,27 +1987,91 @@
     note.dataset.qaState = tone;
   }
 
-  async function loadClusters() {
-    state.loading = true;
-    setApiState("loading");
-    render();
+  function clearPollTimer(kind) {
+    if (polling.timers[kind] != null) {
+      window.clearTimeout(polling.timers[kind]);
+      polling.timers[kind] = null;
+    }
+  }
+
+  function shouldPoll(kind) {
+    if (document.visibilityState === "hidden") return false;
+    if (kind === "clusters") return true;
+    if (state.route.view !== "detail" || !selectedCluster()) return false;
+    return state.tab === kind;
+  }
+
+  async function pollPrimaryView() {
+    await loadClusters({ background: true });
+    if (state.route.view === "detail" && state.tab === "connections") {
+      await loadClientConfig({ background: true });
+    }
+  }
+
+  function schedulePoll(kind) {
+    clearPollTimer(kind);
+    if (!shouldPoll(kind)) return;
+    polling.timers[kind] = window.setTimeout(async () => {
+      polling.timers[kind] = null;
+      if (!shouldPoll(kind)) return;
+      if (kind === "clusters") {
+        await pollPrimaryView();
+      } else if (kind === "logs") {
+        await loadObservability("logs", { background: true });
+      } else {
+        await loadMonitoring({ background: true });
+      }
+      schedulePoll(kind);
+    }, POLL_INTERVALS[kind]);
+  }
+
+  function syncAutoPolling() {
+    schedulePoll("clusters");
+    schedulePoll("logs");
+    schedulePoll("monitoring");
+  }
+
+  async function loadClusters(options) {
+    if (polling.active.clusters) return;
+    const background = Boolean(options && options.background === true);
+    polling.active.clusters = true;
+    if (!background) {
+      state.loading = true;
+      setApiState("loading");
+      render();
+    }
     try {
       const payload = await request(API_PREFIX);
       const items = Array.isArray(payload) ? payload : payload?.items || payload?.data || payload?.clusters || [];
       state.clusters = items;
       setApiState("ready");
+      if (state.externalAccess?.pending) {
+        const cluster = clusterByName(state.externalAccess.name);
+        const observed = endpointListFrom(cluster?.status?.externalEndpoints).length > 0 || Boolean(cluster?.status?.externalEndpoint);
+        if ((state.externalAccess.enabled && observed) || (!state.externalAccess.enabled && !observed && !externalAccessDesired(cluster))) {
+          state.externalAccess = { name: state.externalAccess.name, enabled: state.externalAccess.enabled };
+        }
+      }
+      if (state.suspension?.pending) {
+        const cluster = clusterByName(state.suspension.name);
+        const observed = Boolean(cluster?.spec?.suspend);
+        if (observed === state.suspension.suspended) {
+          state.suspension = { name: state.suspension.name, suspended: state.suspension.suspended };
+        }
+      }
     } catch (error) {
       if (error.code === 401 || error.code === 403) {
-        state.clusters = [];
+        if (!background) state.clusters = [];
         setApiState("forbidden", describeApiError(error, "permissionDeniedCopy"));
       } else {
-        state.clusters = demoClustersFor(state.language);
+        if (!background || !state.clusters.length) state.clusters = demoClustersFor(state.language);
         setApiState("degraded", describeApiError(error, "managementApiUnavailable"));
       }
     } finally {
-      state.loading = false;
+      if (!background) state.loading = false;
+      polling.active.clusters = false;
       render();
-      if (state.apiState === "ready") {
+      if (!background && state.apiState === "ready") {
         void loadWorkspaceQuota();
       }
     }
@@ -1756,32 +2096,47 @@
     renderWorkspaceQuotaNote();
   }
 
-  async function loadObservability(kind) {
+  async function loadObservability(kind, options) {
     const cluster = selectedCluster();
-    if (!cluster) return;
-    state.observability[kind] = { name: cluster.name, loading: true };
-    render();
+    if (!cluster || polling.active[kind]) return;
+    const background = Boolean(options && options.background === true);
+    const previous = state.observability[kind];
+    polling.active[kind] = true;
+    if (!background || previous?.name !== cluster.name || !Object.prototype.hasOwnProperty.call(previous, "data")) {
+      state.observability[kind] = { name: cluster.name, loading: true };
+      render();
+    }
     try {
       const query = "component=broker&tailLines=200";
       const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/${kind}?${query}`);
       const lines = Array.isArray(payload?.lines)
         ? payload.lines.map((line) => `${line.timestamp ? `[${line.timestamp}] ` : ""}${line.message}`).join("\n")
         : payload?.text || payload?.data || "";
-      state.observability[kind] = { name: cluster.name, data: lines, degraded: payload?.degraded, message: payload?.message };
+      if (selectedCluster()?.name === cluster.name) {
+        state.observability[kind] = { name: cluster.name, data: lines, degraded: payload?.degraded, message: payload?.message };
+      }
     } catch (error) {
-      state.observability[kind] = {
-        name: cluster.name,
-        error: describeApiError(error, "managementApiUnavailable")
-      };
+      if (selectedCluster()?.name === cluster.name && (!background || previous?.name !== cluster.name || !Object.prototype.hasOwnProperty.call(previous, "data"))) {
+        state.observability[kind] = {
+          name: cluster.name,
+          error: describeApiError(error, "managementApiUnavailable")
+        };
+      }
     }
+    polling.active[kind] = false;
     render();
   }
 
-  async function loadMonitoring() {
+  async function loadMonitoring(options) {
     const cluster = selectedCluster();
-    if (!cluster) return;
-    state.observability.monitoring = { name: cluster.name, loading: true };
-    render();
+    if (!cluster || polling.active.monitoring) return;
+    const background = Boolean(options && options.background === true);
+    const previous = state.observability.monitoring;
+    polling.active.monitoring = true;
+    if (!background || previous?.name !== cluster.name || !previous?.data) {
+      state.observability.monitoring = { name: cluster.name, loading: true };
+      render();
+    }
     const results = await Promise.all(
       MONITORING_KEYS.map(async (key) => {
         try {
@@ -1804,35 +2159,198 @@
         degraded = true;
       }
     }
-    if (!Object.keys(metrics).length) {
-      state.observability.monitoring = {
-        name: cluster.name,
-        error: errors[0] || message("metricsProviderMissing")
-      };
+    if (selectedCluster()?.name === cluster.name) {
+      if (!Object.keys(metrics).length) {
+        if (!background || previous?.name !== cluster.name || !previous?.data) {
+          state.observability.monitoring = {
+            name: cluster.name,
+            error: errors[0] || message("metricsProviderMissing")
+          };
+        }
+      } else {
+        const previousMetrics = previous?.data || {};
+        state.observability.monitoring = {
+          name: cluster.name,
+          data: { ...previousMetrics, ...metrics },
+          degraded,
+          message: errors[0] || Object.values(metrics).find((metric) => metric?.message)?.message || ""
+        };
+      }
+    }
+    polling.active.monitoring = false;
+    render();
+  }
+
+  async function loadClientConfig(options) {
+    const cluster = selectedCluster();
+    if (!cluster || polling.active.clientConfig) return;
+    const background = Boolean(options && options.background === true);
+    const previous = state.clientConfig;
+    polling.active.clientConfig = true;
+    if (!background || previous?.name !== cluster.name || !previous?.data) {
+      state.clientConfig = { name: cluster.name, loading: true };
+      render();
+    }
+    try {
+      const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/client-config`);
+      if (selectedCluster()?.name === cluster.name) state.clientConfig = { name: cluster.name, data: payload };
+    } catch (error) {
+      if (selectedCluster()?.name === cluster.name && (!background || previous?.name !== cluster.name || !previous?.data)) {
+        state.clientConfig = {
+          name: cluster.name,
+          error: describeApiError(error, "managementApiUnavailable")
+        };
+      }
+    }
+    polling.active.clientConfig = false;
+    render();
+  }
+
+  async function loadClientCredentials(options = {}) {
+    const cluster = selectedCluster();
+    if (!cluster || state.clientCredentials?.loading) return null;
+    const reveal = Boolean(options.reveal);
+    const previous = state.clientCredentials;
+    state.clientCredentials = { name: cluster.name, loading: true, revealed: Boolean(previous?.revealed || reveal) };
+    renderDetail();
+    try {
+      const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/client-credentials`);
+      if (selectedCluster()?.name === cluster.name) {
+        state.clientCredentials = { name: cluster.name, data: payload, revealed: Boolean(previous?.revealed || reveal) };
+        if (reveal && payload?.password) showToast(message("credentialsRevealed"));
+      }
+      renderDetail();
+      return payload;
+    } catch (error) {
+      const described = describeApiError(error, "managementApiUnavailable");
+      if (selectedCluster()?.name === cluster.name) {
+        state.clientCredentials = { name: cluster.name, error: described, revealed: false };
+        renderDetail();
+      }
+      showToast(described, "error");
+      return null;
+    }
+  }
+
+  async function ensureClientCredentials(options = {}) {
+    const cluster = selectedCluster();
+    if (!cluster) return null;
+    const existing = credentialDataFor(cluster);
+    if (existing?.password) {
+      if (options.reveal && !state.clientCredentials.revealed) {
+        state.clientCredentials = { ...state.clientCredentials, revealed: true };
+        renderDetail();
+        showToast(message("credentialsRevealed"));
+      }
+      return existing;
+    }
+    return loadClientCredentials(options);
+  }
+
+  async function togglePasswordReveal() {
+    const cluster = selectedCluster();
+    if (!cluster) return;
+    const existing = credentialDataFor(cluster);
+    if (!existing?.password) {
+      await loadClientCredentials({ reveal: true });
+      return;
+    }
+    const revealed = !state.clientCredentials.revealed;
+    state.clientCredentials = { ...state.clientCredentials, revealed };
+    renderDetail();
+    if (revealed) showToast(message("credentialsRevealed"));
+  }
+
+  async function copyClientTemplate(template) {
+    const cluster = selectedCluster();
+    if (!cluster) return;
+    const revealSecrets = Boolean(state.clientCredentials?.revealed);
+    const configResult = state.clientConfig?.name === cluster.name && state.clientConfig.data ? state.clientConfig.data : {};
+    let config = mergedClientConfig(cluster, configResult);
+    if (revealSecrets && !config.password) {
+      const credentials = await ensureClientCredentials({ reveal: true });
+      if (!credentials?.password) {
+        showToast(message("credentialsUnavailable"), "error");
+        return;
+      }
+      config = mergedClientConfig(cluster, configResult);
+    }
+    const model = connectionModel(cluster, config);
+    const text = template === "java"
+      ? javaPropertiesTemplate(cluster, config, model, revealSecrets)
+      : envTemplate(cluster, config, model, revealSecrets);
+    await copyText(text);
+  }
+
+  async function copyPassword() {
+    const cluster = selectedCluster();
+    if (!cluster) return;
+    const credentials = credentialDataFor(cluster);
+    if (!state.clientCredentials?.revealed || !credentials?.password) {
+      showToast(message("credentialsUnavailable"), "error");
+      return;
+    }
+    await copyText(credentials.password);
+  }
+
+  function replaceClusterView(payload) {
+    const resource = payload?.data || payload;
+    const name = resource?.metadata?.name || resource?.name;
+    if (!name) return;
+    const index = state.clusters.findIndex((item) => (item?.metadata?.name || item?.name) === name);
+    if (index === -1) {
+      state.clusters.push(resource);
     } else {
-      state.observability.monitoring = {
+      state.clusters[index] = resource;
+    }
+  }
+
+  async function setExternalAccess(enabled) {
+    const cluster = selectedCluster();
+    if (!cluster || !writesEnabled() || state.externalAccess?.submitting) return;
+    if (!enabled && !window.confirm(message("disableExternalAccessConfirm", { name: cluster.name }))) return;
+    state.externalAccess = { name: cluster.name, enabled, submitting: true, error: "" };
+    renderDetail();
+    try {
+      const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/external-access`, {
+        method: "PUT",
+        body: JSON.stringify({ enabled })
+      });
+      replaceClusterView(payload);
+      state.externalAccess = { name: cluster.name, enabled, pending: true, error: "" };
+      await loadClientConfig({ background: true });
+    } catch (error) {
+      state.externalAccess = {
         name: cluster.name,
-        data: metrics,
-        degraded,
-        message: errors[0] || Object.values(metrics).find((metric) => metric?.message)?.message || ""
+        enabled,
+        error: message("externalAccessFailed", { message: describeApiError(error, "managementApiUnavailable") })
       };
     }
     render();
   }
 
-  async function loadClientConfig() {
-    const cluster = selectedCluster();
-    if (!cluster) return;
-    state.clientConfig = { name: cluster.name, loading: true };
+  async function setSuspension(name, suspended) {
+    const cluster = name ? clusterByName(name) : selectedCluster();
+    if (!cluster || !writesEnabled() || state.suspension?.submitting) return;
+    state.suspension = { name: cluster.name, suspended, submitting: true, error: "" };
+    state.openActionMenu = "";
     render();
     try {
-      const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/client-config`);
-      state.clientConfig = { name: cluster.name, data: payload };
+      const payload = await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}/suspension`, {
+        method: "PUT",
+        body: JSON.stringify({ suspended })
+      });
+      replaceClusterView(payload);
+      state.suspension = { name: cluster.name, suspended, pending: true, error: "" };
+      await loadClusters({ background: true });
     } catch (error) {
-      state.clientConfig = {
+      const described = describeApiError(error, "managementApiUnavailable");
+      state.suspension = {
         name: cluster.name,
-        error: describeApiError(error, "managementApiUnavailable")
+        suspended,
+        error: suspended ? message("pauseFailed", { message: described }) : message("resumeFailed", { message: described })
       };
+      showToast(state.suspension.error, "error");
     }
     render();
   }
@@ -1849,6 +2367,7 @@
       await request(`${API_PREFIX}/${encodeURIComponent(cluster.name)}`, { method: "DELETE" });
       state.tab = "overview";
       state.clientConfig = {};
+      state.clientCredentials = {};
       state.observability = {};
       if (state.route.view === "detail" && state.route.clusterName === cluster.name) navigateToList();
       await loadClusters();
@@ -2049,7 +2568,6 @@
   }
 
   function bindEvents() {
-    $("#refresh-button")?.addEventListener("click", loadClusters);
     $("#help-button")?.addEventListener("click", () => alert(message("noHelp")));
     $("#search-input")?.addEventListener("input", (event) => {
       state.search = event.currentTarget.value;
@@ -2087,6 +2605,12 @@
         deleteCluster(action.dataset.clusterName);
         return;
       }
+      if (action?.dataset.action === "set-suspension") {
+        event.preventDefault();
+        event.stopPropagation();
+        setSuspension(action.dataset.clusterName, action.dataset.suspended === "true");
+        return;
+      }
       if (event.target.closest(".cluster-row-actions")) {
         event.preventDefault();
         event.stopPropagation();
@@ -2109,20 +2633,12 @@
     $("#detail-header-actions")?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-action]");
       if (!button) return;
-      if (button.dataset.action === "toggle-row-actions") {
-        event.preventDefault();
-        event.stopPropagation();
-        const menuId = button.dataset.menuId || "";
-        state.openActionMenu = state.openActionMenu === menuId ? "" : menuId;
-        renderRouteChrome();
-        return;
-      }
-      if (button.dataset.action === "refresh-detail") {
-        loadClusters();
-        return;
-      }
       if (button.dataset.action === "delete-cluster") {
         deleteCluster(button.dataset.clusterName);
+        return;
+      }
+      if (button.dataset.action === "set-suspension") {
+        setSuspension(button.dataset.clusterName, button.dataset.suspended === "true");
       }
     });
     $("#cluster-list")?.addEventListener("keydown", (event) => {
@@ -2136,7 +2652,7 @@
       const copyButton = event.target.closest("[data-copy]");
       if (copyButton) {
         const copyValue = copyButton.getAttribute("data-copy");
-        if (copyValue) navigator.clipboard?.writeText(copyValue);
+        if (copyValue) copyText(copyValue);
         return;
       }
       const button = event.target.closest("[data-action]");
@@ -2153,10 +2669,6 @@
         navigateToList();
         return;
       }
-      if (button.dataset.action === "refresh-detail") {
-        loadClusters();
-        return;
-      }
       if (button.dataset.action === "dismiss-notice") {
         state.noticeDismissed = true;
         renderNotice();
@@ -2166,12 +2678,32 @@
         loadClientConfig();
         return;
       }
+      if (button.dataset.action === "load-client-credentials") {
+        loadClientCredentials({ reveal: true });
+        return;
+      }
+      if (button.dataset.action === "toggle-password") {
+        togglePasswordReveal();
+        return;
+      }
+      if (button.dataset.action === "copy-password") {
+        copyPassword();
+        return;
+      }
+      if (button.dataset.action === "copy-client-template") {
+        copyClientTemplate(button.dataset.template || "env");
+        return;
+      }
       if (button.dataset.action === "load-logs") {
         loadObservability("logs");
         return;
       }
       if (button.dataset.action === "load-metrics") {
         loadMonitoring();
+        return;
+      }
+      if (button.dataset.action === "set-external-access") {
+        setExternalAccess(button.dataset.enabled === "true");
         return;
       }
       if (button.dataset.action === "delete-cluster") {
@@ -2184,6 +2716,7 @@
       if (!tabButton) return;
       state.tab = tabButton.dataset.tab;
       renderDetail();
+      syncAutoPolling();
     });
     $("#create-form")?.addEventListener("submit", createCluster);
     $("#create-form")?.addEventListener("change", (event) => {
@@ -2230,11 +2763,16 @@
         state.tab = "overview";
         state.observability = {};
         state.clientConfig = {};
+        state.clientCredentials = {};
+        state.externalAccess = {};
+        state.suspension = {};
         state.deleteError = null;
       }
       window.scrollTo({ top: 0, behavior: "auto" });
       render();
+      syncAutoPolling();
     });
+    document.addEventListener("visibilitychange", syncAutoPolling);
     $("#back-button")?.addEventListener("click", navigateToList);
   }
 
@@ -2254,7 +2792,7 @@
     }
     syncRouteFromLocation();
     render();
-    loadClusters();
+    void loadClusters().finally(syncAutoPolling);
   }
 
   boot();

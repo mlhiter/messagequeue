@@ -32,9 +32,14 @@ The Helm release namespace is the MessageQueue system namespace (default:
 `messagequeue-system`). The chart never creates Kafka workloads in that
 namespace. A workspace namespace owns `MessageQueue`, Strimzi resources,
 Kafka Pods, Services, PVCs, Secrets, NetworkPolicies, and optional Kafbat UI
-resources. Shared `ServiceMonitor`/`VMServiceScrape` definitions, when enabled,
+resources. Shared `ServiceMonitor`/`VMPodScrape` definitions, when enabled,
 are owned by the system release; VictoriaMetrics/VictoriaLogs storage remains
-platform infrastructure.
+platform infrastructure. The backend receives a server-owned
+`MESSAGEQUEUE_METRICS_URL` that must point at a VictoriaMetrics
+`/select/0/prometheus/api/v1` prefix when live monitoring is desired. The
+controller does not receive cluster-wide Secret read permission; the chart
+binds a workspace-scoped credential grant so it can create the backend's
+per-instance, resourceName-limited Secret Roles.
 
 ## Install order
 
@@ -108,4 +113,6 @@ data.
 The public Desktop entry exposes create and delete by default. On cluster 62,
 the backend uses the fixed server-owned workspace fallback for `ns-admin`; do
 not accept namespace values from the browser when replacing this with the
-Sealos session/workspace adapter.
+Sealos session/workspace adapter. The smoke script also enables the shared
+Kafka `VMPodScrape` and wires the current VictoriaMetrics select API into the
+backend container so the Monitoring tab can show live data.

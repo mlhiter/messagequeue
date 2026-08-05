@@ -106,8 +106,22 @@ type MessageQueueSpec struct {
 }
 
 type KafkaSpec struct {
-	Version  string `json:"version,omitempty"`
-	Replicas int32  `json:"replicas,omitempty"`
+	Version   string          `json:"version,omitempty"`
+	Replicas  int32           `json:"replicas,omitempty"`
+	Listeners *KafkaListeners `json:"listeners,omitempty"`
+}
+
+// KafkaListeners contains only desired listener intent. Listener type,
+// advertised addresses, and ports are controller-owned configuration.
+type KafkaListeners struct {
+	External *ExternalListener `json:"external,omitempty"`
+}
+
+type ExternalListener struct {
+	Enabled                      bool     `json:"enabled,omitempty"`
+	Type                         string   `json:"type,omitempty"`
+	PreferredNodePortAddressType string   `json:"preferredNodePortAddressType,omitempty"`
+	BootstrapAlternativeNames    []string `json:"bootstrapAlternativeNames,omitempty"`
 }
 
 type TopologySpec struct {
@@ -133,6 +147,7 @@ type MessageQueueStatus struct {
 	NodePoolRef        string         `json:"nodePoolRef,omitempty"`
 	ClientSecretRef    string         `json:"clientSecretRef,omitempty"`
 	Endpoints          []string       `json:"endpoints,omitempty"`
+	ExternalEndpoints  []string       `json:"externalEndpoints,omitempty"`
 	ReadyReplicas      int32          `json:"readyReplicas,omitempty"`
 	Message            string         `json:"message,omitempty"`
 	Endpoint           string         `json:"endpoint,omitempty"`
@@ -192,6 +207,14 @@ type FrontendKafkaSpec struct {
 
 type IntegrationSetting struct {
 	Enabled bool `json:"enabled,omitempty"`
+}
+
+type ExternalAccessRequest struct {
+	Enabled *bool `json:"enabled"`
+}
+
+type SuspensionRequest struct {
+	Suspended *bool `json:"suspended"`
 }
 
 func (r CreateRequest) ProductSpec() MessageQueueSpec {
@@ -268,6 +291,9 @@ func (r CreateRequest) Validate() error {
 	}
 	if r.Spec.Storage.DeleteClaim != nil {
 		return errors.New("storage.deleteClaim is managed by deletionPolicy")
+	}
+	if r.Spec.Kafka.Listeners != nil && r.Spec.Kafka.Listeners.External != nil {
+		return errors.New("kafka.listeners.external is managed by the external-access endpoint")
 	}
 	spec := r.ProductSpec()
 	if spec.Engine != "kafka" && spec.Engine != "" {
@@ -433,6 +459,7 @@ func safeStatusOf(status MessageQueueStatus) MessageQueueStatus {
 		NodePoolRef:        status.NodePoolRef,
 		ClientSecretRef:    status.ClientSecretRef,
 		Endpoints:          append([]string(nil), status.Endpoints...),
+		ExternalEndpoints:  append([]string(nil), status.ExternalEndpoints...),
 		ReadyReplicas:      status.ReadyReplicas,
 		Message:            status.Message,
 		Endpoint:           status.Endpoint,
@@ -461,15 +488,35 @@ type LogRequest struct {
 }
 
 type ClientConfigResponse struct {
-	Name             string   `json:"name"`
-	Namespace        string   `json:"namespace"`
-	BootstrapServers []string `json:"bootstrapServers"`
-	Username         string   `json:"username"`
-	SecretRef        string   `json:"secretRef,omitempty"`
-	Transport        string   `json:"transport"`
-	Mechanism        string   `json:"mechanism"`
-	Degraded         bool     `json:"degraded,omitempty"`
-	Message          string   `json:"message,omitempty"`
+	Name                     string   `json:"name"`
+	Namespace                string   `json:"namespace"`
+	BootstrapServers         []string `json:"bootstrapServers"`
+	ExternalBootstrapServers []string `json:"externalBootstrapServers"`
+	Username                 string   `json:"username"`
+	SecretRef                string   `json:"secretRef,omitempty"`
+	CASecretRef              string   `json:"caSecretRef,omitempty"`
+	Transport                string   `json:"transport"`
+	Mechanism                string   `json:"mechanism"`
+	SecurityProtocol         string   `json:"securityProtocol"`
+	Degraded                 bool     `json:"degraded,omitempty"`
+	Message                  string   `json:"message,omitempty"`
+}
+
+type ClientCredentialsResponse struct {
+	Name                     string   `json:"name"`
+	Namespace                string   `json:"namespace"`
+	BootstrapServers         []string `json:"bootstrapServers"`
+	ExternalBootstrapServers []string `json:"externalBootstrapServers"`
+	Username                 string   `json:"username"`
+	Password                 string   `json:"password,omitempty"`
+	SecretRef                string   `json:"secretRef,omitempty"`
+	CASecretRef              string   `json:"caSecretRef,omitempty"`
+	CACertificate            string   `json:"caCertificate,omitempty"`
+	Transport                string   `json:"transport"`
+	Mechanism                string   `json:"mechanism"`
+	SecurityProtocol         string   `json:"securityProtocol"`
+	Degraded                 bool     `json:"degraded,omitempty"`
+	Message                  string   `json:"message,omitempty"`
 }
 
 type LogResponse struct {

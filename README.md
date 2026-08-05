@@ -6,8 +6,8 @@ Strimzi. RabbitMQ is a planned engine, not part of the first release.
 
 > [!NOTE]
 > The first Kafka vertical slice is implemented and has been smoke-tested on
-> cluster 62. Metrics storage integration and the optional user console remain
-> follow-up work.
+> cluster 62. Live monitoring is available when the backend metrics URL is
+> configured; the optional user console remains follow-up work.
 
 ## Scope
 
@@ -60,10 +60,13 @@ docs/          Architecture, information architecture, references, and runbook
 
 Release `0.1.9` provides a deployable Kafka control plane: Strimzi `0.46.0`
 reconciles Kafka `3.9.0`/`4.0.0` KRaft resources, the backend exposes namespaced
-status/log/monitoring contracts plus create/delete and secret-free
-client-configuration contracts. The first-party UI uses a dedicated instance
-list page plus per-instance detail pages for connections, logs, and monitoring;
-delete and future lifecycle actions live in row/header action areas. The
+status/log/monitoring contracts plus create/delete, external-access, and
+secret-free client-configuration contracts. Explicit credential reveal/copy
+uses a separate no-store credentials route derived from the authenticated
+resource. The first-party UI uses a dedicated
+instance list page plus per-instance detail pages for connections, logs, and
+monitoring; delete and pause/resume live in row/header action areas while
+update remains gated on a resource-change contract. The
 cluster-62 smoke path creates `ns-admin/kafka-dev`, verifies SCRAM
 produce/consume, and registers an HTTPS `MessageQueue` iframe entry on Sealos
 Desktop.
@@ -76,9 +79,9 @@ profile from `deploy/examples/messagequeue-dev.yaml`: 1 broker, 500m CPU, 1Gi
 memory, 10Gi storage, and Retain deletion policy; standard and custom profiles
 make larger resource requests explicit before submission.
 
-Known limits are deliberate: metrics currently return a bounded degraded state
-until the platform VictoriaMetrics adapter is connected, historical logs are
-not implemented, the current cluster-62 deployment uses a single server-owned
+Known limits are deliberate: metrics return a bounded degraded state until the
+platform VictoriaMetrics adapter is connected, historical logs are not
+implemented, the current cluster-62 deployment uses a single server-owned
 workspace identity for `ns-admin`, and Kafbat is not deployed by this chart.
 
 ## Checks

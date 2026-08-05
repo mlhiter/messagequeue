@@ -40,6 +40,7 @@
 html,
 body {
   margin: 0;
+  height: 100%;
   min-height: 100%;
   background: var(--page-bg);
   color: var(--ink);
@@ -114,6 +115,12 @@ pre {
   background: var(--page-bg);
 }
 
+.app-shell[data-view="detail"] {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .app-header {
   display: flex;
   align-items: center;
@@ -138,9 +145,26 @@ pre {
   gap: 8px;
 }
 
+.detail-status-slot {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
 .detail-header-actions .button {
   min-height: 40px;
   padding: 0 14px;
+}
+
+.detail-header-actions [data-icon="inline-start"] {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .brand {
@@ -246,14 +270,21 @@ pre {
 }
 
 .header-back-button {
+  width: 40px;
+  height: 40px;
   flex: 0 0 auto;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0;
 }
 
-.header-back-button::before {
-  content: "←";
-  color: var(--muted);
+.header-back-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .button:hover,
@@ -305,6 +336,7 @@ pre {
 .cluster-row:focus-visible,
 .tab-button:focus-visible,
 .copy-row button:focus-visible,
+.copy-icon-button:focus-visible,
 .field input:focus,
 .field select:focus {
   outline: none;
@@ -354,6 +386,14 @@ pre {
   padding: 0 48px 32px;
 }
 
+#notice-region:empty {
+  display: none;
+}
+
+.app-shell[data-view="detail"] .main-content {
+  overflow: hidden;
+}
+
 .route-panel {
   display: flex;
   min-width: 0;
@@ -366,6 +406,8 @@ pre {
 }
 
 .detail-panel {
+  display: flex;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
@@ -807,15 +849,28 @@ pre {
   overflow: visible;
 }
 
+#detail-content {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
 .detail-layout {
   display: flex;
+  flex: 1 1 auto;
   align-items: stretch;
   gap: 12px;
   min-width: 0;
+  height: 100%;
+  min-height: 0;
 }
 
 .detail-surface {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
   flex: 1 1 auto;
   overflow: hidden;
   border: 0.5px solid var(--line);
@@ -910,7 +965,11 @@ pre {
 
 .detail-body {
   display: grid;
+  flex: 1 1 auto;
   gap: 20px;
+  min-height: 0;
+  align-content: start;
+  overflow: auto;
   padding: 18px 22px 22px;
 }
 
@@ -1118,9 +1177,12 @@ pre {
 }
 
 .metric-card {
+  --metric-accent: #2563eb;
+  --metric-soft: rgba(37, 99, 235, 0.08);
   display: grid;
-  gap: 10px;
-  min-height: 148px;
+  grid-template-rows: auto auto 1fr;
+  gap: 12px;
+  min-height: 154px;
   padding: 14px;
   border: 0.5px solid var(--line);
   border-radius: 12px;
@@ -1128,39 +1190,103 @@ pre {
   box-shadow: var(--shadow);
 }
 
-.metric-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.metric-card[data-metric-key="memory"] {
+  --metric-accent: #0891b2;
+  --metric-soft: rgba(8, 145, 178, 0.08);
 }
 
-.metric-card span,
+.metric-card[data-metric-key="storage"] {
+  --metric-accent: #7c3aed;
+  --metric-soft: rgba(124, 58, 237, 0.08);
+}
+
+.metric-card[data-metric-key="throughput"] {
+  --metric-accent: #16a34a;
+  --metric-soft: rgba(22, 163, 74, 0.08);
+}
+
+.metric-card[data-metric-key="consumer_lag"] {
+  --metric-accent: #d97706;
+  --metric-soft: rgba(217, 119, 6, 0.08);
+}
+
+.metric-card[data-metric-key="partition_health"] {
+  --metric-accent: #dc2626;
+  --metric-soft: rgba(220, 38, 38, 0.08);
+}
+
+.metric-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 9px;
+}
+
+.metric-card-head > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.metric-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: 0.5px solid color-mix(in srgb, var(--metric-accent) 22%, var(--line));
+  border-radius: 8px;
+  background: var(--metric-soft);
+  color: var(--metric-accent);
+}
+
+.metric-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.metric-card-head span:not(.metric-icon),
 .metric-card-head small {
   color: var(--muted);
   font-size: 11px;
+  line-height: 1.35;
 }
 
 .metric-card strong {
   display: block;
+  min-width: 0;
+  overflow: hidden;
   font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-sparkline {
   width: 100%;
   height: 54px;
   border-radius: 8px;
-  background: var(--surface-soft);
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
 }
 
-.metric-sparkline polyline {
+.metric-sparkline .metric-area {
+  fill: var(--metric-soft);
+}
+
+.metric-sparkline .metric-line {
   fill: none;
-  stroke: var(--accent);
+  stroke: var(--metric-accent);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 3;
+  stroke-width: 1.9;
+  vector-effect: non-scaling-stroke;
 }
 
 .metric-sparkline.is-empty {
@@ -1274,6 +1400,52 @@ pre {
   font-size: 12px;
 }
 
+.connection-endpoint-header .external-access-action {
+  min-height: 34px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+
+.external-access-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 92px;
+  padding: 14px;
+  border: 0.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.external-access-state > div {
+  min-width: 0;
+}
+
+.external-access-state h4 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.external-access-state p,
+.external-access-error {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.external-access-state .external-access-error,
+.external-access-error {
+  margin-top: 6px;
+  color: var(--red);
+}
+
+.external-access-state .button {
+  flex: 0 0 auto;
+}
+
 .connection-fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(160px, 0.4fr) minmax(0, 1.25fr);
@@ -1308,20 +1480,132 @@ pre {
   white-space: nowrap;
 }
 
-.connection-fields button {
+.copy-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
   min-height: 40px;
-  padding: 0 12px;
+  padding: 0;
   border: 0.5px solid var(--line-strong);
   border-radius: 8px;
   background: var(--surface);
   color: var(--muted);
   box-shadow: none;
-  font-weight: 600;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
-.connection-fields button:hover:not(:disabled) {
+.copy-icon-button [data-icon="inline-start"] {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.copy-icon-button:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.copy-icon-button:disabled {
+  cursor: not-allowed;
+  color: var(--faint);
+  border-color: var(--line);
+}
+
+.credential-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 0.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.credential-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.credential-grid label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 40px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.credential-grid label > span:first-child {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.credential-grid code {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 12px;
+  border: 0.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.credential-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.config-snippet-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.config-snippet {
+  min-width: 0;
+  overflow: hidden;
+  border: 0.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.config-snippet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.config-snippet-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.config-snippet pre {
+  overflow: auto;
+  min-height: 138px;
+  max-height: 220px;
+  margin: 0;
+  padding: 12px 14px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre;
 }
 
 .copy-row {
@@ -1355,6 +1639,44 @@ pre {
 .copy-row button:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.toast-region {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+  display: grid;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  max-width: min(320px, calc(100vw - 48px));
+  padding: 0 13px;
+  border: 0.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.toast-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--green);
+}
+
+.toast[data-tone="error"] .toast-dot {
+  background: var(--red);
 }
 
 .operations-hint {
@@ -1850,8 +2172,15 @@ legend.form-section-title {
   .overview-grid,
   .metric-grid,
   .connection-fields,
+  .credential-grid,
+  .config-snippet-grid,
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .external-access-state {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .preset-grid {
@@ -1945,9 +2274,22 @@ legend.form-section-title {
   }
 
   .detail-header-actions .button {
+    width: 36px;
     min-height: 36px;
-    padding: 0 10px;
+    padding: 0;
     font-size: 13px;
+  }
+
+  .detail-header-actions .header-action-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .brand-copy strong {

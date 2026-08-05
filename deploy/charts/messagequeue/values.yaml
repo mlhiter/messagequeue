@@ -60,6 +60,12 @@ backend:
   workspaceNamespace: ns-admin
   userID: messagequeue-backend
   logLevel: info
+  metrics:
+    url: ""
+  externalAccess:
+    listenerType: nodeport
+    nodeAddressType: InternalIP
+    bootstrapAlternativeNames: []
   resources:
     requests:
       cpu: 50m
@@ -122,12 +128,10 @@ observability:
     enabled: false
     interval: 30s
     scrapeTimeout: 10s
-  vmServiceScrape:
+  vmPodScrape:
     enabled: false
     interval: 30s
     scrapeTimeout: 10s
-    kafkaMetricsLabel: messagequeue.sealos.io/metrics
-    kafkaMetricsValue: kafka
 
 podDisruptionBudget:
   controller:

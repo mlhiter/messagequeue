@@ -13,15 +13,18 @@
     <div id="app" class="app-shell">
       <header class="app-header" aria-label="MessageQueue 顶栏">
         <button
-          class="button button-secondary header-back-button is-hidden"
+          class="icon-button header-back-button is-hidden"
           type="button"
           id="back-button"
           title="实例列表"
           aria-label="实例列表"
           aria-hidden="true"
         >
-          实例列表
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
         </button>
+        <div class="detail-status-slot is-hidden" id="detail-status-slot" aria-hidden="true"></div>
         <div
           class="detail-header-actions is-hidden"
           id="detail-header-actions"
@@ -41,9 +44,6 @@
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input id="search-input" type="search" placeholder="搜索实例" autocomplete="off" />
           </label>
-          <button class="icon-button" type="button" title="刷新数据" aria-label="刷新数据" id="refresh-button">
-            ↻
-          </button>
           <button class="button button-primary" type="button" id="create-button">新建</button>
         </div>
       </header>
@@ -65,6 +65,7 @@
         <p id="operations-hint" class="operations-hint sr-only">运维功能正在完善中</p>
       </main>
     </div>
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
     <dialog
       class="modal create-modal"

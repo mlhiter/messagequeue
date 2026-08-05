@@ -14,6 +14,12 @@ rules:
   - apiGroups: ["messagequeue.sealos.io"]
     resources: ["messagequeues/finalizers"]
     verbs: ["update"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["kafka.strimzi.io"]
     resources: ["kafkas", "kafkanodepools", "kafkausers"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
@@ -31,6 +37,34 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{ include "messagequeue.fullname" . }}-controller
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "messagequeue.controllerServiceAccount" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "messagequeue.fullname" . }}-controller-credential-grant
+  namespace: {{ required "backend.workspaceNamespace is required" .Values.backend.workspaceNamespace }}
+  labels:
+    {{- include "messagequeue.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "messagequeue.fullname" . }}-controller-credential-grant
+  namespace: {{ required "backend.workspaceNamespace is required" .Values.backend.workspaceNamespace }}
+  labels:
+    {{- include "messagequeue.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "messagequeue.fullname" . }}-controller-credential-grant
 subjects:
   - kind: ServiceAccount
     name: {{ include "messagequeue.controllerServiceAccount" . }}
@@ -74,7 +108,7 @@ metadata:
 rules:
   - apiGroups: ["messagequeue.sealos.io"]
     resources: ["messagequeues"]
-    verbs: ["get", "list", "watch", "create", "delete"]
+    verbs: ["get", "list", "watch", "create", "patch", "delete"]
   - apiGroups: ["messagequeue.sealos.io"]
     resources: ["messagequeues/status"]
     verbs: ["get", "list", "watch"]

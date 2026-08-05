@@ -13,11 +13,14 @@ uses Strimzi `0.46.0`, Kafka `3.9.0`, and MessageQueue image tag `v0.1.9`.
 3. Install the MessageQueue CRD and controller.
 4. Install the backend and management UI, then register the application entry.
 5. Install shared scrape and alert definitions when the target monitoring CRDs
-   are available.
+   are available. The backend only shows live monitoring data when
+   `MESSAGEQUEUE_METRICS_URL` points at a VictoriaMetrics `query_range` API
+   prefix and the chart's shared `VMPodScrape` is enabled.
 6. Create a development `MessageQueue` and validate produce, consume, live
-   logs, safe client configuration metadata, delete behavior, and the explicit
-   metrics-degraded state. Suspension, recovery, scaling, storage expansion,
-   and upgrade workflows remain v0.2 follow-up checks.
+   logs, safe client configuration metadata, external listener enablement,
+   pause/resume recovery, delete behavior, and the explicit metrics-degraded
+   state. Scaling, storage expansion, and upgrade workflows remain v0.2
+   follow-up checks.
 
 ## Health Checks
 
@@ -52,11 +55,25 @@ Secret data. The Job requests `250m/512Mi` and limits `1 CPU/1Gi`; this is
 required on the test cluster because the `ns-admin` LimitRange defaults Java
 containers to `50m/64Mi`.
 
+The cluster-62 smoke script also wires the backend metrics URL to the current
+VictoriaMetrics select API and enables the shared Kafka `VMPodScrape`, so the
+Monitoring tab can leave the explicit degraded state once metrics are flowing.
+
 A healthy instance has a current `observedGeneration`, a true `Ready` condition,
 ready Strimzi resources, expected broker and controller Pods, bound PVCs, and
 a working authenticated client. Metrics may still show an explicit degraded
 state until the platform VictoriaMetrics adapter is connected; this does not
 make Kafka management unhealthy.
+
+Credential RBAC is split deliberately. The backend workspace Role must not
+grant broad `secrets/get`; the controller receives the workspace-scoped
+credential grant only so Kubernetes allows it to create per-instance
+`<name>-credential-access` Roles. Each per-instance Role must list only
+`<name>-client` and `<name>-cluster-ca-cert`.
+
+To confirm metrics are actually live, verify the system `VMPodScrape` exists
+and that vmagent reports Kafka targets with `namespace` and `strimzi_io_cluster`
+labels before trusting the Monitoring tab values.
 
 For Sealos Desktop delivery, additionally verify `app-system/messagequeue`,
 the `messagequeue.192.168.0.62.nip.io` Ingress, `/logo.svg`, and a real iframe
@@ -85,10 +102,14 @@ create/delete against the authenticated workspace before rollout.
 
 ## Suspension and Account State
 
-Suspension must scale broker and controller node pools down in a tested order,
-retain PVCs, and preserve desired replicas for recovery. Namespace debt or
-account-deletion state must stop recreation loops. Never delete Strimzi-owned
-workloads directly as a suspension mechanism.
+Suspension is driven through `PUT /api/v1/messagequeues/{name}/suspension`
+with exactly `{"suspended":true|false}`. When suspended, the controller scales
+only its owner-referenced KafkaNodePool to `0`, keeps per-instance credential
+RBAC in place, clears ready replicas and connection endpoints from status, and
+retains PVCs. Resume sets `spec.suspend=false`; the controller restores the
+desired replicas from spec and waits for Strimzi Ready before external
+endpoints return. Never delete Strimzi-owned workloads directly as a
+suspension mechanism.
 
 ## Rollback
 

@@ -64,22 +64,46 @@ spec:
                   maximum: 9
                 kafka:
                   type: object
-                  default:
-                    version: 3.9.0
-                    replicas: 1
                   properties:
                     version:
                       type: string
                       enum:
                         - 3.9.0
                         - 4.0.0
-                      default: 3.9.0
                     replicas:
                       type: integer
                       format: int32
                       minimum: 1
                       maximum: 9
-                      default: 1
+                    listeners:
+                      type: object
+                      properties:
+                        external:
+                          type: object
+                          properties:
+                            enabled:
+                              type: boolean
+                            type:
+                              type: string
+                              enum:
+                                - nodeport
+                              default: nodeport
+                            preferredNodePortAddressType:
+                              type: string
+                              enum:
+                                - ExternalDNS
+                                - ExternalIP
+                                - Hostname
+                                - InternalDNS
+                                - InternalIP
+                              default: InternalIP
+                            bootstrapAlternativeNames:
+                              type: array
+                              maxItems: 16
+                              items:
+                                type: string
+                                maxLength: 253
+                                pattern: '^([a-z0-9]([-a-z0-9]*[a-z0-9])?)(\.([a-z0-9]([-a-z0-9]*[a-z0-9])?))*$|^[0-9a-fA-F:.]+$'
                 topology:
                   type: object
                   properties:
@@ -142,6 +166,10 @@ spec:
                 clientSecretRef:
                   type: string
                 endpoints:
+                  type: array
+                  items:
+                    type: string
+                externalEndpoints:
                   type: array
                   items:
                     type: string

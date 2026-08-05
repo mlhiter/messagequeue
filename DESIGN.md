@@ -82,8 +82,9 @@ Instance rows navigate to a dedicated detail page and expose row-level lifecycle
 actions through an explicit more menu. Detail pages own overview, connection,
 logs, and monitoring tabs, and always provide a clear return path to the
 instance list. Page-level lifecycle actions sit in the route header at the same
-height as the return control, outside the detail content card; do not hide
-destructive or state-changing controls in a Settings tab. Do not
+height as the return control, outside the detail content card; the return
+control is icon-only. Do not hide destructive or state-changing controls in a
+Settings tab. Do not
 reintroduce a two-pane list-plus-detail layout.
 
 Motion is intentionally quiet. List rows, tabs, buttons, and shell controls use
@@ -102,6 +103,8 @@ page-enter motion.
 - **Do** keep the list visible on the first screen; status summaries must not
   push the table below the fold.
 - **Do** pair every state color with text or an icon.
+- **Do** let logs and monitoring auto-refresh while active; error recovery
+  should come from the next poll, not a manual refresh button.
 
 ### Don't
 

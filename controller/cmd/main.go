@@ -50,7 +50,10 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
-	if err := (&controller.MessageQueueReconciler{Client: mgr.GetClient()}).SetupWithManager(mgr); err != nil {
+	reconciler := controller.NewReconciler(mgr.GetClient())
+	reconciler.BackendServiceAccountName = os.Getenv("MESSAGEQUEUE_BACKEND_SERVICE_ACCOUNT_NAME")
+	reconciler.BackendServiceAccountNamespace = os.Getenv("MESSAGEQUEUE_BACKEND_SERVICE_ACCOUNT_NAMESPACE")
+	if err := reconciler.SetupWithManager(mgr); err != nil {
 		os.Exit(1)
 	}
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

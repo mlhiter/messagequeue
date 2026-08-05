@@ -2,9 +2,12 @@ package controller
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	v1alpha1 "github.com/labring/messagequeue/controller/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -19,6 +22,12 @@ import (
 func testScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add corev1 scheme: %v", err)
+	}
+	if err := rbacv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add rbacv1 scheme: %v", err)
+	}
 	if err := v1alpha1.SchemeBuilder(scheme); err != nil {
 		t.Fatalf("add MessageQueue scheme: %v", err)
 	}
@@ -81,6 +90,7 @@ func TestRenderKRaftResources(t *testing.T) {
 			t.Fatalf("listener is missing SCRAM authentication: %v", listener)
 		}
 	}
+	assertManagedPodTemplate(t, kafka.Object, "spec", "kafka", "template")
 	for _, operator := range []string{"topicOperator", "userOperator"} {
 		requests, found, err := unstructured.NestedStringMap(kafka.Object, "spec", "entityOperator", operator, "resources", "requests")
 		if err != nil || !found {
@@ -123,6 +133,7 @@ func TestRenderKRaftResources(t *testing.T) {
 	if nodePool.GetLabels()["strimzi.io/cluster"] != mq.Name {
 		t.Fatalf("node pool cluster label missing: %v", nodePool.GetLabels())
 	}
+	assertManagedPodTemplate(t, nodePool.Object, "spec", "template")
 	user := RenderKafkaUser(mq)
 	if user.GetName() != "orders"+KafkaUserNameSuffix || user.GetLabels()["strimzi.io/cluster"] != mq.Name {
 		t.Fatalf("unexpected KafkaUser identity: name=%s labels=%v", user.GetName(), user.GetLabels())
@@ -135,6 +146,72 @@ func TestRenderKRaftResources(t *testing.T) {
 		t.Fatalf("expected topic/group/cluster ACLs, found=%v err=%v acls=%v", found, err, acls)
 	}
 }
+
+func TestRenderKafkaIncludesExternalListenerAndMetricsConfig(t *testing.T) {
+	mq := &v1alpha1.MessageQueue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "ns-demo"},
+		Spec: v1alpha1.MessageQueueSpec{
+			Kafka: v1alpha1.KafkaSpec{
+				Version:  "3.9.0",
+				Replicas: 3,
+				Listeners: &v1alpha1.KafkaListeners{
+					External: &v1alpha1.ExternalListener{
+						Enabled:                      true,
+						PreferredNodePortAddressType: "InternalIP",
+						BootstrapAlternativeNames:    []string{"192.168.0.62"},
+					},
+				},
+			},
+		},
+	}
+	desired, err := normalizeSpec(mq.Spec)
+	if err != nil {
+		t.Fatalf("normalize spec: %v", err)
+	}
+	kafka := RenderKafka(mq, desired)
+	listeners, found, err := unstructured.NestedSlice(kafka.Object, "spec", "kafka", "listeners")
+	if err != nil || !found || len(listeners) != 3 {
+		t.Fatalf("expected external listener to be rendered, found=%v err=%v listeners=%v", found, err, listeners)
+	}
+	external := listeners[2].(map[string]interface{})
+	if external["type"] != "nodeport" || external["port"] != int64(9094) {
+		t.Fatalf("unexpected external listener: %#v", external)
+	}
+	alternativeNames, found, err := unstructured.NestedStringSlice(external, "configuration", "bootstrap", "alternativeNames")
+	if err != nil || !found || len(alternativeNames) != 1 || alternativeNames[0] != "192.168.0.62" {
+		t.Fatalf("external listener bootstrap alternative names missing: found=%v err=%v names=%v", found, err, alternativeNames)
+	}
+	if cfg, found, err := unstructured.NestedMap(kafka.Object, "spec", "kafka", "metricsConfig"); err != nil || !found {
+		t.Fatalf("metricsConfig missing: found=%v err=%v", found, err)
+	} else {
+		valueFrom, found, _ := unstructured.NestedMap(cfg, "valueFrom")
+		if !found {
+			t.Fatal("metricsConfig.valueFrom missing")
+		}
+		ref, found, _ := unstructured.NestedMap(valueFrom, "configMapKeyRef")
+		if !found || ref["name"] != metricsConfigMapName(mq) || ref["key"] != kafkaMetricsConfigKey {
+			t.Fatalf("metrics config map ref = %#v", ref)
+		}
+	}
+	if exporter, found, err := unstructured.NestedMap(kafka.Object, "spec", "kafkaExporter"); err != nil || !found {
+		t.Fatalf("kafkaExporter missing: found=%v err=%v", found, err)
+	} else if exporter["topicRegex"] != ".*" || exporter["groupRegex"] != ".*" {
+		t.Fatalf("unexpected kafkaExporter config: %#v", exporter)
+	}
+	assertManagedPodTemplate(t, kafka.Object, "spec", "kafkaExporter", "template")
+}
+
+func assertManagedPodTemplate(t *testing.T, object map[string]interface{}, fields ...string) {
+	t.Helper()
+	labels, found, err := unstructured.NestedStringMap(object, append(fields, "pod", "metadata", "labels")...)
+	if err != nil || !found {
+		t.Fatalf("managed pod template labels missing at %v: found=%v err=%v", fields, found, err)
+	}
+	if labels["messagequeue.sealos.io/managed"] != "true" || labels["messagequeue.sealos.io/engine"] != "kafka" {
+		t.Fatalf("unexpected managed pod template labels at %v: %v", fields, labels)
+	}
+}
+
 func TestReconcileCreatesOwnedResourcesIdempotently(t *testing.T) {
 	scheme := testScheme(t)
 	mq := &v1alpha1.MessageQueue{
@@ -181,6 +258,31 @@ func TestReconcileCreatesOwnedResourcesIdempotently(t *testing.T) {
 	if len(list.Items) != 1 {
 		t.Fatalf("expected one Kafka after idempotent reconciles, got %d", len(list.Items))
 	}
+	metricsConfigMap := &corev1.ConfigMap{}
+	if err := c.Get(context.Background(), types.NamespacedName{Name: metricsConfigMapName(mq), Namespace: "ns-demo"}, metricsConfigMap); err != nil {
+		t.Fatalf("get Kafka metrics ConfigMap: %v", err)
+	}
+	role := &rbacv1.Role{}
+	if err := c.Get(context.Background(), types.NamespacedName{Name: credentialAccessName(mq), Namespace: "ns-demo"}, role); err != nil {
+		t.Fatalf("get credential Role: %v", err)
+	}
+	if len(role.Rules) != 1 || len(role.Rules[0].ResourceNames) != 2 {
+		t.Fatalf("credential Role should be limited to derived Secret names: %#v", role.Rules)
+	}
+	for _, forbidden := range []string{"other-secret", "orders"} {
+		for _, resourceName := range role.Rules[0].ResourceNames {
+			if resourceName == forbidden {
+				t.Fatalf("credential Role granted unexpected Secret name %q", forbidden)
+			}
+		}
+	}
+	roleBinding := &rbacv1.RoleBinding{}
+	if err := c.Get(context.Background(), types.NamespacedName{Name: credentialAccessName(mq), Namespace: "ns-demo"}, roleBinding); err != nil {
+		t.Fatalf("get credential RoleBinding: %v", err)
+	}
+	if len(roleBinding.Subjects) != 1 || roleBinding.Subjects[0].Kind != rbacv1.ServiceAccountKind {
+		t.Fatalf("credential RoleBinding should bind the backend ServiceAccount: %#v", roleBinding.Subjects)
+	}
 	stored := &v1alpha1.MessageQueue{}
 	if err := c.Get(context.Background(), client.ObjectKeyFromObject(mq), stored); err != nil {
 		t.Fatalf("get MessageQueue: %v", err)
@@ -223,6 +325,54 @@ func TestKafkaReadyStatus(t *testing.T) {
 	}
 }
 
+func TestKafkaReadyStatusExportsExternalEndpoints(t *testing.T) {
+	scheme := testScheme(t)
+	mq := &v1alpha1.MessageQueue{
+		TypeMeta:   metav1.TypeMeta{APIVersion: v1alpha1.GroupVersion.String(), Kind: "MessageQueue"},
+		ObjectMeta: metav1.ObjectMeta{Name: "ready", Namespace: "ns-demo", Generation: 1},
+		Spec: v1alpha1.MessageQueueSpec{
+			Kafka: v1alpha1.KafkaSpec{
+				Replicas:  1,
+				Listeners: &v1alpha1.KafkaListeners{External: &v1alpha1.ExternalListener{Enabled: true}},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&v1alpha1.MessageQueue{}).WithObjects(mq).Build()
+	r := NewReconciler(c)
+	if _, err := r.Reconcile(context.Background(), reconcileRequest(mq)); err != nil {
+		t.Fatalf("provision reconcile: %v", err)
+	}
+	kafka := &unstructured.Unstructured{}
+	kafka.SetGroupVersionKind(kafkaGVK)
+	if err := c.Get(context.Background(), types.NamespacedName{Name: "ready", Namespace: "ns-demo"}, kafka); err != nil {
+		t.Fatalf("get Kafka: %v", err)
+	}
+	_ = unstructured.SetNestedField(kafka.Object, []interface{}{
+		map[string]interface{}{
+			"name":             "external",
+			"bootstrapServers": "192.168.0.62:31234",
+			"addresses": []interface{}{
+				map[string]interface{}{"host": "192.168.0.62", "port": int64(31234)},
+			},
+		},
+	}, "status", "listeners")
+	_ = unstructured.SetNestedField(kafka.Object, []interface{}{map[string]interface{}{"type": "Ready", "status": "True", "reason": "KafkaIsReady"}}, "status", "conditions")
+	_ = unstructured.SetNestedField(kafka.Object, int64(1), "status", "readyReplicas")
+	if err := c.Update(context.Background(), kafka); err != nil {
+		t.Fatalf("update Kafka status: %v", err)
+	}
+	if _, err := r.Reconcile(context.Background(), reconcileRequest(mq)); err != nil {
+		t.Fatalf("ready reconcile: %v", err)
+	}
+	stored := &v1alpha1.MessageQueue{}
+	if err := c.Get(context.Background(), client.ObjectKeyFromObject(mq), stored); err != nil {
+		t.Fatalf("get MessageQueue: %v", err)
+	}
+	if len(stored.Status.ExternalEndpoints) == 0 || stored.Status.ExternalEndpoints[0] != "192.168.0.62:31234" {
+		t.Fatalf("unexpected external endpoints: %#v", stored.Status.ExternalEndpoints)
+	}
+}
+
 func TestReconcileTerminalPreconditions(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -231,6 +381,8 @@ func TestReconcileTerminalPreconditions(t *testing.T) {
 	}{
 		{name: "invalid", spec: v1alpha1.MessageQueueSpec{Kafka: v1alpha1.KafkaSpec{Version: "3.7.0"}}, phase: v1alpha1.PhaseFailed},
 		{name: "suspended", spec: v1alpha1.MessageQueueSpec{Suspend: true}, phase: v1alpha1.PhaseSuspended},
+		{name: "invalid-external-listener", spec: v1alpha1.MessageQueueSpec{Kafka: v1alpha1.KafkaSpec{Listeners: &v1alpha1.KafkaListeners{External: &v1alpha1.ExternalListener{Enabled: true, Type: "loadbalancer"}}}}, phase: v1alpha1.PhaseFailed},
+		{name: "invalid-external-san", spec: v1alpha1.MessageQueueSpec{Kafka: v1alpha1.KafkaSpec{Listeners: &v1alpha1.KafkaListeners{External: &v1alpha1.ExternalListener{Enabled: true, BootstrapAlternativeNames: []string{"bad name"}}}}}, phase: v1alpha1.PhaseFailed},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -254,6 +406,120 @@ func TestReconcileTerminalPreconditions(t *testing.T) {
 				t.Fatalf("precondition should not create Kafka, got err=%v object=%v", err, kafka.Object)
 			}
 		})
+	}
+}
+
+func TestReconcileSuspensionScalesExistingNodePoolToZero(t *testing.T) {
+	scheme := testScheme(t)
+	mq := &v1alpha1.MessageQueue{
+		TypeMeta: metav1.TypeMeta{APIVersion: v1alpha1.GroupVersion.String(), Kind: "MessageQueue"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "orders",
+			Namespace:  "ns-demo",
+			Generation: 2,
+			UID:        types.UID("orders-uid"),
+		},
+		Spec: v1alpha1.MessageQueueSpec{
+			Suspend: true,
+			Kafka:   v1alpha1.KafkaSpec{Replicas: 3},
+		},
+		Status: v1alpha1.MessageQueueStatus{
+			ReadyReplicas:     3,
+			Endpoints:         []string{"orders-kafka-bootstrap.ns-demo.svc:9093"},
+			ExternalEndpoints: []string{"192.168.0.62:31234"},
+		},
+	}
+	nodePool := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": KafkaAPIVersion,
+		"kind":       KafkaNodePoolKind,
+		"metadata": map[string]interface{}{
+			"name":      "orders" + KafkaNodePoolNameSuffix,
+			"namespace": "ns-demo",
+			"labels": map[string]interface{}{
+				"strimzi.io/cluster": "orders",
+			},
+		},
+		"spec": map[string]interface{}{
+			"replicas": int64(3),
+		},
+	}}
+	nodePool.SetGroupVersionKind(kafkaNodePoolGVK)
+	nodePool.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(mq, v1alpha1.GroupVersion.WithKind("MessageQueue"))})
+
+	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&v1alpha1.MessageQueue{}).WithObjects(mq, nodePool).Build()
+	r := NewReconciler(c)
+	if _, err := r.Reconcile(context.Background(), reconcileRequest(mq)); err != nil {
+		t.Fatalf("suspend reconcile: %v", err)
+	}
+	storedNodePool := &unstructured.Unstructured{}
+	storedNodePool.SetGroupVersionKind(kafkaNodePoolGVK)
+	if err := c.Get(context.Background(), types.NamespacedName{Name: "orders" + KafkaNodePoolNameSuffix, Namespace: "ns-demo"}, storedNodePool); err != nil {
+		t.Fatalf("get KafkaNodePool: %v", err)
+	}
+	replicas, found, err := unstructured.NestedInt64(storedNodePool.Object, "spec", "replicas")
+	if err != nil || !found || replicas != 0 {
+		t.Fatalf("suspended MessageQueue must scale KafkaNodePool to 0, found=%v err=%v replicas=%d", found, err, replicas)
+	}
+	stored := &v1alpha1.MessageQueue{}
+	if err := c.Get(context.Background(), client.ObjectKeyFromObject(mq), stored); err != nil {
+		t.Fatalf("get MessageQueue: %v", err)
+	}
+	if stored.Status.Phase != v1alpha1.PhaseSuspended || stored.Status.ReadyReplicas != 0 {
+		t.Fatalf("unexpected suspended status: %+v", stored.Status)
+	}
+	if len(stored.Status.Endpoints) != 0 || len(stored.Status.ExternalEndpoints) != 0 {
+		t.Fatalf("suspended status must clear connection endpoints: %+v", stored.Status)
+	}
+	role := &rbacv1.Role{}
+	if err := c.Get(context.Background(), types.NamespacedName{Name: credentialAccessName(mq), Namespace: "ns-demo"}, role); err != nil {
+		t.Fatalf("suspend must still reconcile credential Role: %v", err)
+	}
+	roleBinding := &rbacv1.RoleBinding{}
+	if err := c.Get(context.Background(), types.NamespacedName{Name: credentialAccessName(mq), Namespace: "ns-demo"}, roleBinding); err != nil {
+		t.Fatalf("suspend must still reconcile credential RoleBinding: %v", err)
+	}
+}
+
+func TestReconcileSuspensionRefusesUnmanagedNodePool(t *testing.T) {
+	scheme := testScheme(t)
+	mq := &v1alpha1.MessageQueue{
+		TypeMeta: metav1.TypeMeta{APIVersion: v1alpha1.GroupVersion.String(), Kind: "MessageQueue"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "orders",
+			Namespace:  "ns-demo",
+			Generation: 2,
+			UID:        types.UID("orders-uid"),
+		},
+		Spec: v1alpha1.MessageQueueSpec{
+			Suspend: true,
+		},
+	}
+	nodePool := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": KafkaAPIVersion,
+		"kind":       KafkaNodePoolKind,
+		"metadata": map[string]interface{}{
+			"name":      "orders" + KafkaNodePoolNameSuffix,
+			"namespace": "ns-demo",
+		},
+		"spec": map[string]interface{}{
+			"replicas": int64(3),
+		},
+	}}
+	nodePool.SetGroupVersionKind(kafkaNodePoolGVK)
+
+	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&v1alpha1.MessageQueue{}).WithObjects(mq, nodePool).Build()
+	_, err := NewReconciler(c).Reconcile(context.Background(), reconcileRequest(mq))
+	if err == nil || !strings.Contains(err.Error(), "unmanaged KafkaNodePool") {
+		t.Fatalf("expected unmanaged NodePool error, got %v", err)
+	}
+	storedNodePool := &unstructured.Unstructured{}
+	storedNodePool.SetGroupVersionKind(kafkaNodePoolGVK)
+	if err := c.Get(context.Background(), types.NamespacedName{Name: "orders" + KafkaNodePoolNameSuffix, Namespace: "ns-demo"}, storedNodePool); err != nil {
+		t.Fatalf("get KafkaNodePool: %v", err)
+	}
+	replicas, found, err := unstructured.NestedInt64(storedNodePool.Object, "spec", "replicas")
+	if err != nil || !found || replicas != 3 {
+		t.Fatalf("unmanaged KafkaNodePool must not be scaled, found=%v err=%v replicas=%d", found, err, replicas)
 	}
 }
 

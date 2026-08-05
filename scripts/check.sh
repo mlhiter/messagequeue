@@ -24,14 +24,18 @@ for file in "${required_files[@]}"; do
   fi
 done
 
-if find . -type f -name '*.md' -not -path './.git/*' -print0 \
+repo_files() {
+  git ls-files --cached --others --exclude-standard -z "$@"
+}
+
+if repo_files -- '*.md' \
   | xargs -0 grep -nE 'TODO|TBD|Lorem ipsum'; then
   echo "placeholder text found" >&2
   exit 1
 fi
 
-if find . -type f -not -path './.git/*' -print0 \
-  | xargs -0 grep -nE '[[:blank:]]$'; then
+if repo_files \
+  | xargs -0 grep -nIE '[[:blank:]]$'; then
   echo "trailing whitespace found" >&2
   exit 1
 fi

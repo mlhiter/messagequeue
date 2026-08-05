@@ -55,6 +55,10 @@ if (source.includes("cluster-meta") || styles.includes(".cluster-meta")) {
 if (!html.includes('id="back-button"') || !html.includes("header-back-button")) {
   throw new Error("top-left detail back button is missing from the shell");
 }
+const backButtonMarkup = html.match(/<button[\s\S]*?id="back-button"[\s\S]*?<\/button>/)?.[0] || "";
+if (!backButtonMarkup.includes("<svg") || />\s*实例列表\s*</.test(backButtonMarkup)) {
+  throw new Error("top-left detail back button must be icon-only");
+}
 if (!html.includes('id="detail-header-actions"') || !html.includes('data-testid="messagequeue.detail.header-actions"')) {
   throw new Error("detail header actions slot is missing from the shell top bar");
 }
@@ -128,15 +132,52 @@ if (!source.includes("function writesEnabled()") || !source.includes('return sta
 }
 if (
   !source.includes('/client-config') ||
+  !source.includes('/client-credentials') ||
   !source.includes("connectionModel") ||
   !source.includes("internalAddress") ||
   !source.includes("externalAddress") ||
   !source.includes("connectionString") ||
-  !source.includes("data-copy") ||
+  !source.includes("environmentVariables") ||
+  !source.includes("sdkExample") ||
+	  !source.includes("loadClientCredentials") ||
+	  !source.includes("copyClientTemplate") ||
+	  !source.includes("copyPassword") ||
+	  !source.includes("data-copy") ||
+	  !source.includes("copy-icon-button") ||
+  !source.includes("showToast") ||
   !source.includes("!endpoint?.available") ||
-  !source.includes('data-qa-state="${stateName}"')
+  !source.includes('data-qa-state="${stateName}"') ||
+  !source.includes("config.degraded") ||
+  !source.includes('data-testid="messagequeue.detail.client-config-degraded"')
 ) {
-  throw new Error("safe internal/external client connection fields are missing");
+  throw new Error("auth-aware internal/external client connection fields are missing");
+}
+if (source.includes("copyIconButton(credentials.password") || !source.includes('"copy-password"') || !source.includes("function copyPassword")) {
+  throw new Error("password copy must not put hidden Secret values into data-copy DOM attributes");
+}
+if (
+  !source.includes('/external-access') ||
+  !source.includes('method: "PUT"') ||
+  !source.includes('body: JSON.stringify({ enabled })') ||
+  !source.includes('data-action="set-external-access"') ||
+  !source.includes('data-qa-state="${externalAction.error ? "error" : enabling ? "enabling" : "off"}') ||
+  !source.includes('externalAction.error ? "error" : "on"') ||
+  !source.includes("status.externalEndpoints") ||
+  !source.includes("status.externalEndpoint") ||
+  !source.includes("config.externalBootstrapServers")
+) {
+  throw new Error("external access must expose off/enabling/error states and use the bounded PUT contract");
+}
+for (const removedCopy of [
+  "credentialsStayServerSide",
+  "credentialsProtected",
+  "noSecretMaterial",
+  "secretReference",
+  "metricsFetchNote"
+]) {
+  if (source.includes(removedCopy)) {
+    throw new Error(`detail UI still includes redundant descriptive copy: ${removedCopy}`);
+  }
 }
 if (
   !source.includes('method: "DELETE"') ||
@@ -152,17 +193,35 @@ if (
   !source.includes("function detailActionsHtml") ||
   !source.includes('$("#detail-header-actions")?.addEventListener("click"') ||
   !source.includes("action-menu-content") ||
-  !styles.includes('[data-icon="inline-start"]') ||
-  !styles.includes(".detail-layout") ||
-  !styles.includes(".detail-surface") ||
-  !styles.includes(".tab-icon") ||
-  !styles.includes(".action-menu-content") ||
+	  !styles.includes('[data-icon="inline-start"]') ||
+	  !styles.includes(".detail-layout") ||
+	  !styles.includes(".detail-surface") ||
+	  !styles.includes('.app-shell[data-view="detail"]') ||
+	  !styles.includes("#notice-region:empty") ||
+	  !styles.includes(".tab-icon") ||
+	  !styles.includes(".action-menu-content") ||
   !source.includes('["monitoring", message("monitoring")]') ||
   source.includes('["settings", message("settings")]') ||
-  source.includes('message("settings")') ||
-  source.includes('title="${escapeHtml(message("lifecycleUnavailable"))}" disabled>${escapeHtml(message("updateInstance"))}</button><button class="button button-secondary"')
+  source.includes('message("settings")')
 ) {
-  throw new Error("row/detail lifecycle actions must live in the dropdown menu and Settings tab must be absent");
+  throw new Error("row lifecycle actions must stay in its menu and Settings tab must be absent");
+}
+if (
+  styles.includes("min-height: 560px") ||
+  !styles.includes("height: 100vh") ||
+  !styles.includes("height: 100%;\n  min-height: 0;")
+) {
+  throw new Error("detail view must fill the viewport without fixed minimum height causing outer scroll");
+}
+const detailActionsBody = functionBody("detailActionsHtml");
+if (
+  detailActionsBody.includes("actionMenuHtml(") ||
+  detailActionsBody.includes("refresh-detail") ||
+  !detailActionsBody.includes("updateInstance") ||
+  !detailActionsBody.includes("lifecycleLabel") ||
+  !detailActionsBody.includes('data-action="delete-cluster"')
+) {
+  throw new Error("detail header must directly lay out status, update, pause/resume, and delete without refresh or a menu");
 }
 if (functionBody("renderDetail").includes("detailActionsHtml(")) {
   throw new Error("detail actions must render in the top bar, not inside the detail card");
@@ -173,9 +232,11 @@ if (!source.includes('data-action="dismiss-notice"') || !source.includes("notice
 for (const key of [
   "loadClientConfig",
   "clientConfigUnavailable",
-  "noSecretMaterial",
   "internalAddress",
   "externalAddress",
+  "enableExternalAccess",
+  "disableExternalAccess",
+  "externalAccessFailed",
   "connectionString",
   "monitoring",
   "monitoringUnavailable",
@@ -192,16 +253,51 @@ for (const key of [
   }
 }
 if (
+  html.includes('id="refresh-button"') ||
+  source.includes('data-action="refresh-detail"') ||
+  functionBody("logsHtml").includes('data-action="load-logs"') ||
+  functionBody("monitoringHtml").includes('data-action="load-metrics"') ||
+  functionBody("logsHtml").includes('message("refresh")') ||
+  functionBody("monitoringHtml").includes('message("refresh")')
+) {
+  throw new Error("normal list, detail, logs, and monitoring refresh buttons must be removed");
+}
+const copyClientTemplateBody = functionBody("copyClientTemplate");
+if (
+  !copyClientTemplateBody.includes("const revealSecrets = Boolean(state.clientCredentials?.revealed)") ||
+  !copyClientTemplateBody.includes("if (revealSecrets && !config.password)") ||
+  !copyClientTemplateBody.includes("envTemplate(cluster, config, model, revealSecrets)") ||
+  copyClientTemplateBody.includes("await ensureClientCredentials();")
+) {
+  throw new Error("env and SDK template copy must not fetch or copy hidden credentials unless the password is revealed");
+}
+if (
+  !source.includes("const POLL_INTERVALS") ||
+  !source.includes("clusters: 15000") ||
+  !source.includes("logs: 10000") ||
+  !source.includes("monitoring: 30000") ||
+  !source.includes("function syncAutoPolling()") ||
+  !source.includes('document.addEventListener("visibilitychange", syncAutoPolling)') ||
+  !functionBody("loadClusters").includes("options.background === true") ||
+  !functionBody("loadObservability").includes("options.background === true") ||
+  !functionBody("loadMonitoring").includes("options.background === true")
+) {
+  throw new Error("bounded visibility-aware background polling is missing");
+}
+if (
   !source.includes('data-testid="messagequeue.detail.monitoring" data-qa-state="loading"') ||
   !source.includes('data-testid="messagequeue.detail.monitoring" data-qa-state="error"') ||
   !source.includes('${result.degraded ? "degraded" : "ready"}')
 ) {
   throw new Error("monitoring semantic panel must expose loading, ready, degraded, and error states");
 }
-for (const forbidden of ["passwordInput", "privateKey", "kubeconfigText", "secretData", "password=", "saslPassword"]) {
+for (const forbidden of ["passwordInput", "privateKey", "kubeconfigText", "secretData", "saslPassword"]) {
   if (source.includes(forbidden)) {
     throw new Error(`client config UI should not introduce secret material field: ${forbidden}`);
   }
+}
+if (functionBody("loadClientConfig").includes("/client-credentials")) {
+  throw new Error("ordinary client config loading must remain secret-free");
 }
 if (!source.includes("function commitRouteHash(target)") || !functionBody("commitRouteHash").includes("render();")) {
   throw new Error("route navigation must render immediately after changing the hash");

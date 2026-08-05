@@ -52,8 +52,22 @@ type MessageQueueSpec struct {
 }
 
 type KafkaSpec struct {
-	Version  string `json:"version,omitempty"`
-	Replicas int32  `json:"replicas,omitempty"`
+	Version   string          `json:"version,omitempty"`
+	Replicas  int32           `json:"replicas,omitempty"`
+	Listeners *KafkaListeners `json:"listeners,omitempty"`
+}
+
+// KafkaListeners contains listener intent only. The controller owns the
+// rendered listener type, port, and address strategy.
+type KafkaListeners struct {
+	External *ExternalListener `json:"external,omitempty"`
+}
+
+type ExternalListener struct {
+	Enabled                      bool     `json:"enabled,omitempty"`
+	Type                         string   `json:"type,omitempty"`
+	PreferredNodePortAddressType string   `json:"preferredNodePortAddressType,omitempty"`
+	BootstrapAlternativeNames    []string `json:"bootstrapAlternativeNames,omitempty"`
 }
 
 type TopologySpec struct {
@@ -83,6 +97,7 @@ type MessageQueueStatus struct {
 	NodePoolRef        string             `json:"nodePoolRef,omitempty"`
 	ClientSecretRef    string             `json:"clientSecretRef,omitempty"`
 	Endpoints          []string           `json:"endpoints,omitempty"`
+	ExternalEndpoints  []string           `json:"externalEndpoints,omitempty"`
 	ReadyReplicas      int32              `json:"readyReplicas,omitempty"`
 	Message            string             `json:"message,omitempty"`
 	Conditions         []metav1.Condition `json:"conditions,omitempty"`
@@ -116,6 +131,16 @@ func (in *MessageQueue) DeepCopyInto(out *MessageQueue) {
 	if in.Spec.Storage.DeleteClaim != nil {
 		v := *in.Spec.Storage.DeleteClaim
 		out.Spec.Storage.DeleteClaim = &v
+	}
+	if in.Spec.Kafka.Listeners != nil {
+		out.Spec.Kafka.Listeners = &KafkaListeners{}
+		if in.Spec.Kafka.Listeners.External != nil {
+			v := *in.Spec.Kafka.Listeners.External
+			if in.Spec.Kafka.Listeners.External.BootstrapAlternativeNames != nil {
+				v.BootstrapAlternativeNames = append([]string(nil), in.Spec.Kafka.Listeners.External.BootstrapAlternativeNames...)
+			}
+			out.Spec.Kafka.Listeners.External = &v
+		}
 	}
 }
 
@@ -164,6 +189,9 @@ func (in *MessageQueueStatus) DeepCopy() *MessageQueueStatus {
 	*out = *in
 	if in.Endpoints != nil {
 		out.Endpoints = append([]string(nil), in.Endpoints...)
+	}
+	if in.ExternalEndpoints != nil {
+		out.ExternalEndpoints = append([]string(nil), in.ExternalEndpoints...)
 	}
 	if in.Conditions != nil {
 		out.Conditions = append([]metav1.Condition(nil), in.Conditions...)

@@ -13,10 +13,12 @@ release_name="${RELEASE_NAME:-messagequeue}"
 apply="${APPLY:-0}"
 chart_dir="$repo_root/deploy/charts/messagequeue"
 image_registry="${IMAGE_REGISTRY:-crpi-7jr40k6elhldekqp.cn-hangzhou.personal.cr.aliyuncs.com/mlhiter}"
-image_tag="${IMAGE_TAG:-v0.1.9}"
-controller_digest="${CONTROLLER_DIGEST:-sha256:5c47b5845b9f32112531a4dafc3887213a1c3eba1b61f9abd17a6c4e8e880b85}"
-backend_digest="${BACKEND_DIGEST:-sha256:bedcef708a9e4f01586251e5536053a186fc6ec9d1af85f91c95af3f039cfe6f}"
-frontend_digest="${FRONTEND_DIGEST:-sha256:ea9e89ae512cbc4bd51b62cb037c20ea8de10eb7d123345713ef4efeb079c91e}"
+image_tag="${IMAGE_TAG:-v0.1.9-chicago-31e439e-20260805131343}"
+controller_digest="${CONTROLLER_DIGEST:-sha256:05e6b2bcb9f31c9a7401e9656144168808600cb263752e577b2dcf45aa37f57a}"
+backend_digest="${BACKEND_DIGEST:-sha256:169760cd759ce0b75a2c74c67b7508fcef6608684e4f4ca2deeace8c24eb4fbe}"
+frontend_digest="${FRONTEND_DIGEST:-sha256:a5b3a338a7aa3d1e6f859b737228448a075e80d7504c6e316391dc94dad7abb2}"
+backend_metrics_url="${BACKEND_METRICS_URL:-http://vmselect-vm-stack-victoria-metrics-k8s-stack.vm.svc:8481/select/0/prometheus/api/v1}"
+external_bootstrap_alt_name="${EXTERNAL_BOOTSTRAP_ALTERNATIVE_NAME:-192.168.0.62}"
 
 if [[ ! -r "$kubeconfig_path" ]]; then
   echo "kubeconfig is not readable: $kubeconfig_path" >&2
@@ -38,9 +40,13 @@ echo "== cluster 62 preflight =="
 echo "== render chart (no cluster mutation) =="
 "${helm_cmd[@]}" template "$release_name" "$chart_dir" \
   --namespace "$system_namespace" \
+  --api-versions operator.victoriametrics.com/v1beta1 \
   --include-crds \
   --set global.systemNamespace="$system_namespace" \
   --set backend.workspaceNamespace="$workspace_namespace" \
+  --set backend.metrics.url="$backend_metrics_url" \
+  --set "backend.externalAccess.bootstrapAlternativeNames[0]=$external_bootstrap_alt_name" \
+  --set observability.vmPodScrape.enabled=true \
   --set images.controller.repository="$image_registry/messagequeue-controller" \
   --set images.backend.repository="$image_registry/messagequeue-backend" \
   --set images.frontend.repository="$image_registry/messagequeue-frontend" \
@@ -100,6 +106,9 @@ fi
   --set global.systemNamespace="$system_namespace" \
   --set backend.workspaceNamespace="$workspace_namespace" \
   --set backend.userID=cluster-62-smoke \
+  --set backend.metrics.url="$backend_metrics_url" \
+  --set "backend.externalAccess.bootstrapAlternativeNames[0]=$external_bootstrap_alt_name" \
+  --set observability.vmPodScrape.enabled=true \
   --set images.controller.repository="$image_registry/messagequeue-controller" \
   --set images.backend.repository="$image_registry/messagequeue-backend" \
   --set images.frontend.repository="$image_registry/messagequeue-frontend" \

@@ -10,6 +10,10 @@ data:
   MESSAGEQUEUE_WORKSPACE_NAMESPACE: {{ required "backend.workspaceNamespace is required" .Values.backend.workspaceNamespace | quote }}
   MESSAGEQUEUE_USER_ID: {{ .Values.backend.userID | quote }}
   MESSAGEQUEUE_LISTEN_ADDR: {{ printf ":%d" (int .Values.backend.port) | quote }}
+  MESSAGEQUEUE_METRICS_URL: {{ .Values.backend.metrics.url | quote }}
+  MESSAGEQUEUE_EXTERNAL_LISTENER_TYPE: {{ .Values.backend.externalAccess.listenerType | quote }}
+  MESSAGEQUEUE_EXTERNAL_NODE_ADDRESS_TYPE: {{ .Values.backend.externalAccess.nodeAddressType | quote }}
+  MESSAGEQUEUE_EXTERNAL_BOOTSTRAP_ALTERNATIVE_NAMES: {{ join "," .Values.backend.externalAccess.bootstrapAlternativeNames | quote }}
 ---
 apiVersion: v1
 kind: ConfigMap

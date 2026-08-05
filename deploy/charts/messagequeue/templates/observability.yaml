@@ -21,10 +21,10 @@ spec:
 {{- else if .Values.observability.serviceMonitor.enabled }}
 {{- fail "observability.serviceMonitor.enabled requires monitoring.coreos.com/v1" }}
 {{- end }}
-{{- if and .Values.observability.vmServiceScrape.enabled (.Capabilities.APIVersions.Has "operator.victoriametrics.com/v1beta1") }}
+{{- if and .Values.observability.vmPodScrape.enabled (.Capabilities.APIVersions.Has "operator.victoriametrics.com/v1beta1") }}
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
-kind: VMServiceScrape
+kind: VMPodScrape
 metadata:
   name: {{ include "messagequeue.fullname" . }}-kafka
   namespace: {{ .Release.Namespace }}
@@ -32,15 +32,33 @@ metadata:
     {{- include "messagequeue.labels" . | nindent 4 }}
 spec:
   namespaceSelector:
-    any: true
+    matchNames:
+      - {{ required "backend.workspaceNamespace is required" .Values.backend.workspaceNamespace | quote }}
   selector:
-    matchLabels:
-      {{ .Values.observability.vmServiceScrape.kafkaMetricsLabel }}: {{ .Values.observability.vmServiceScrape.kafkaMetricsValue }}
-  endpoints:
-    - port: metrics
+    matchExpressions:
+      - key: messagequeue.sealos.io/managed
+        operator: In
+        values:
+          - "true"
+      - key: strimzi.io/component-type
+        operator: In
+        values:
+          - kafka
+          - kafka-exporter
+  podMetricsEndpoints:
+    - port: tcp-prometheus
       path: /metrics
-      interval: {{ .Values.observability.vmServiceScrape.interval }}
-      scrapeTimeout: {{ .Values.observability.vmServiceScrape.scrapeTimeout }}
-{{- else if .Values.observability.vmServiceScrape.enabled }}
-{{- fail "observability.vmServiceScrape.enabled requires operator.victoriametrics.com/v1beta1" }}
+      interval: {{ .Values.observability.vmPodScrape.interval }}
+      scrapeTimeout: {{ .Values.observability.vmPodScrape.scrapeTimeout }}
+      relabelConfigs:
+        - sourceLabels:
+            - __meta_kubernetes_namespace
+          targetLabel: namespace
+          action: replace
+        - sourceLabels:
+            - __meta_kubernetes_pod_label_strimzi_io_cluster
+          targetLabel: strimzi_io_cluster
+          action: replace
+{{- else if .Values.observability.vmPodScrape.enabled }}
+{{- fail "observability.vmPodScrape.enabled requires operator.victoriametrics.com/v1beta1" }}
 {{- end }}

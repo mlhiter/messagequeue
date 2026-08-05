@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -106,6 +107,9 @@ type MessageQueueStore interface {
 	List(context.Context, string) ([]MessageQueue, error)
 	Create(context.Context, string, MessageQueue) (MessageQueue, error)
 	Get(context.Context, string, string) (MessageQueue, error)
+	UpdateExternalAccess(context.Context, string, string, ExternalListener) (MessageQueue, error)
+	UpdateSuspension(context.Context, string, string, bool) (MessageQueue, error)
+	ClientCredentials(context.Context, string, string) (ClientCredentialsResponse, error)
 	Delete(context.Context, string, string) error
 	Logs(context.Context, string, string, LogRequest) (LogResponse, error)
 }
@@ -118,12 +122,97 @@ type MetricsProvider interface {
 }
 
 type Server struct {
-	Store    MessageQueueStore
-	Metrics  MetricsProvider
-	Quota    QuotaProvider
-	Identity IdentityProvider
-	Logger   *slog.Logger
-	Now      func() time.Time
+	Store          MessageQueueStore
+	Metrics        MetricsProvider
+	Quota          QuotaProvider
+	Identity       IdentityProvider
+	ExternalAccess ExternalAccessConfig
+	Logger         *slog.Logger
+	Now            func() time.Time
+}
+
+type ExternalAccessConfig struct {
+	ListenerType                 string
+	PreferredNodePortAddressType string
+	BootstrapAlternativeNames    []string
+}
+
+func externalAccessConfigFromEnv() (ExternalAccessConfig, error) {
+	config := ExternalAccessConfig{
+		ListenerType:                 strings.ToLower(envOr("MESSAGEQUEUE_EXTERNAL_LISTENER_TYPE", "nodeport")),
+		PreferredNodePortAddressType: envOr("MESSAGEQUEUE_EXTERNAL_NODE_ADDRESS_TYPE", "InternalIP"),
+		BootstrapAlternativeNames:    splitCSV(os.Getenv("MESSAGEQUEUE_EXTERNAL_BOOTSTRAP_ALTERNATIVE_NAMES")),
+	}
+	return config.normalized()
+}
+
+func (c ExternalAccessConfig) normalized() (ExternalAccessConfig, error) {
+	if strings.TrimSpace(c.ListenerType) == "" {
+		c.ListenerType = "nodeport"
+	}
+	if strings.TrimSpace(c.PreferredNodePortAddressType) == "" {
+		c.PreferredNodePortAddressType = "InternalIP"
+	}
+	c.ListenerType = strings.ToLower(strings.TrimSpace(c.ListenerType))
+	c.PreferredNodePortAddressType = strings.TrimSpace(c.PreferredNodePortAddressType)
+	c.BootstrapAlternativeNames = normalizedAlternativeNames(c.BootstrapAlternativeNames)
+	if c.ListenerType != "nodeport" {
+		return ExternalAccessConfig{}, errors.New("external listener type must be nodeport")
+	}
+	validAddressTypes := map[string]bool{
+		"ExternalDNS": true,
+		"ExternalIP":  true,
+		"Hostname":    true,
+		"InternalDNS": true,
+		"InternalIP":  true,
+	}
+	if !validAddressTypes[c.PreferredNodePortAddressType] {
+		return ExternalAccessConfig{}, errors.New("external node address type is invalid")
+	}
+	for _, name := range c.BootstrapAlternativeNames {
+		if net.ParseIP(name) == nil && !validDNSSubdomain(name) {
+			return ExternalAccessConfig{}, errors.New("external bootstrap alternative names must be IP addresses or DNS names")
+		}
+	}
+	return c, nil
+}
+
+func (c ExternalAccessConfig) listener(enabled bool) (ExternalListener, error) {
+	normalized, err := c.normalized()
+	if err != nil {
+		return ExternalListener{}, err
+	}
+	return ExternalListener{
+		Enabled:                      enabled,
+		Type:                         normalized.ListenerType,
+		PreferredNodePortAddressType: normalized.PreferredNodePortAddressType,
+		BootstrapAlternativeNames:    append([]string(nil), normalized.BootstrapAlternativeNames...),
+	}, nil
+}
+
+func splitCSV(value string) []string {
+	parts := strings.Split(value, ",")
+	items := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if item := strings.TrimSpace(part); item != "" {
+			items = append(items, item)
+		}
+	}
+	return items
+}
+
+func normalizedAlternativeNames(values []string) []string {
+	seen := map[string]bool{}
+	items := make([]string, 0, len(values))
+	for _, value := range values {
+		item := strings.TrimSpace(value)
+		if item == "" || seen[item] {
+			continue
+		}
+		seen[item] = true
+		items = append(items, item)
+	}
+	return items
 }
 
 type IdentityProvider interface {
@@ -222,6 +311,30 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		methodNotAllowed(w, http.MethodGet, http.MethodDelete)
 		return
 	}
+	if len(parts) == 2 && parts[1] == "external-access" {
+		if r.Method == http.MethodPut {
+			s.externalAccess(w, r, name)
+			return
+		}
+		methodNotAllowed(w, http.MethodPut)
+		return
+	}
+	if len(parts) == 2 && parts[1] == "suspension" {
+		if r.Method == http.MethodPut {
+			s.suspension(w, r, name)
+			return
+		}
+		methodNotAllowed(w, http.MethodPut)
+		return
+	}
+	if len(parts) == 2 && parts[1] == "client-credentials" {
+		if r.Method == http.MethodGet {
+			s.clientCredentials(w, r, name)
+			return
+		}
+		methodNotAllowed(w, http.MethodGet)
+		return
+	}
 	if len(parts) != 2 || r.Method != http.MethodGet {
 		methodNotAllowed(w, http.MethodGet)
 		return
@@ -311,6 +424,103 @@ func (s *Server) delete(w http.ResponseWriter, r *http.Request, name string) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (s *Server) externalAccess(w http.ResponseWriter, r *http.Request, name string) {
+	request, err := decodeExternalAccessRequest(r.Body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "request body must contain exactly one boolean enabled field")
+		return
+	}
+
+	identity := identityFromContext(r.Context())
+	listener, err := s.ExternalAccess.listener(*request.Enabled)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "dependency_unavailable", "external access is not configured")
+		return
+	}
+	updated, err := s.Store.UpdateExternalAccess(r.Context(), identity.Namespace, name, listener)
+	if err != nil {
+		s.writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, viewOf(updated, identity.Namespace))
+}
+
+func (s *Server) suspension(w http.ResponseWriter, r *http.Request, name string) {
+	request, err := decodeSuspensionRequest(r.Body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "request body must contain exactly one boolean suspended field")
+		return
+	}
+
+	identity := identityFromContext(r.Context())
+	updated, err := s.Store.UpdateSuspension(r.Context(), identity.Namespace, name, *request.Suspended)
+	if err != nil {
+		s.writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, viewOf(updated, identity.Namespace))
+}
+
+func decodeExternalAccessRequest(body io.Reader) (ExternalAccessRequest, error) {
+	return decodeBooleanBody[ExternalAccessRequest](body, "enabled", func(value bool) ExternalAccessRequest {
+		return ExternalAccessRequest{Enabled: &value}
+	}, func(request ExternalAccessRequest) bool { return request.Enabled != nil })
+}
+
+func decodeSuspensionRequest(body io.Reader) (SuspensionRequest, error) {
+	return decodeBooleanBody[SuspensionRequest](body, "suspended", func(value bool) SuspensionRequest {
+		return SuspensionRequest{Suspended: &value}
+	}, func(request SuspensionRequest) bool { return request.Suspended != nil })
+}
+
+func decodeBooleanBody[T any](body io.Reader, field string, assign func(bool) T, hasValue func(T) bool) (T, error) {
+	decoder := json.NewDecoder(io.LimitReader(body, 1<<20))
+	opening, err := decoder.Token()
+	if err != nil || opening != json.Delim('{') {
+		var zero T
+		return zero, ErrInvalid
+	}
+	var request T
+	for decoder.More() {
+		rawKey, err := decoder.Token()
+		if err != nil {
+			var zero T
+			return zero, ErrInvalid
+		}
+		key, ok := rawKey.(string)
+		if !ok || key != field || hasValue(request) {
+			var zero T
+			return zero, ErrInvalid
+		}
+		var rawEnabled json.RawMessage
+		if err := decoder.Decode(&rawEnabled); err != nil {
+			var zero T
+			return zero, ErrInvalid
+		}
+		var enabled bool
+		switch strings.TrimSpace(string(rawEnabled)) {
+		case "true":
+			enabled = true
+		case "false":
+			enabled = false
+		default:
+			var zero T
+			return zero, ErrInvalid
+		}
+		request = assign(enabled)
+	}
+	closing, err := decoder.Token()
+	if err != nil || closing != json.Delim('}') || !hasValue(request) {
+		var zero T
+		return zero, ErrInvalid
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		var zero T
+		return zero, ErrInvalid
+	}
+	return request, nil
+}
+
 func (s *Server) status(w http.ResponseWriter, r *http.Request, name string) {
 	item, err := s.Store.Get(r.Context(), identityFromContext(r.Context()).Namespace, name)
 	if err != nil {
@@ -327,15 +537,21 @@ func (s *Server) clientConfig(w http.ResponseWriter, r *http.Request, name strin
 		s.writeStoreError(w, err)
 		return
 	}
-	view := viewOf(item, identity.Namespace)
+	writeJSON(w, http.StatusOK, clientConfigOf(viewOf(item, identity.Namespace), identity.Namespace))
+}
+
+func clientConfigOf(view MessageQueueView, namespace string) ClientConfigResponse {
 	response := ClientConfigResponse{
-		Name:             view.Name,
-		Namespace:        identity.Namespace,
-		BootstrapServers: append([]string(nil), view.Status.Endpoints...),
-		Username:         view.Name + "-client",
-		SecretRef:        view.Status.ClientSecretRef,
-		Transport:        "TLS",
-		Mechanism:        "SCRAM-SHA-512",
+		Name:                     view.Name,
+		Namespace:                namespace,
+		BootstrapServers:         preferredTLSBootstrapServers(view.Status.Endpoints),
+		ExternalBootstrapServers: append([]string{}, view.Status.ExternalEndpoints...),
+		Username:                 view.Name + "-client",
+		SecretRef:                view.Status.ClientSecretRef,
+		CASecretRef:              caSecretRefFor(view),
+		Transport:                "TLS",
+		Mechanism:                "SCRAM-SHA-512",
+		SecurityProtocol:         "SASL_SSL",
 	}
 	if len(response.BootstrapServers) == 0 && view.Status.Endpoint != "" {
 		response.BootstrapServers = []string{view.Status.Endpoint}
@@ -344,6 +560,51 @@ func (s *Server) clientConfig(w http.ResponseWriter, r *http.Request, name strin
 		response.Degraded = true
 		response.Message = "client configuration is not available yet"
 	}
+	return response
+}
+
+func preferredTLSBootstrapServers(endpoints []string) []string {
+	if len(endpoints) == 0 {
+		return nil
+	}
+	tlsEndpoints := make([]string, 0, len(endpoints))
+	otherEndpoints := make([]string, 0, len(endpoints))
+	for _, endpoint := range endpoints {
+		trimmed := strings.TrimSpace(endpoint)
+		if trimmed == "" {
+			continue
+		}
+		if strings.HasSuffix(trimmed, ":9093") {
+			tlsEndpoints = append(tlsEndpoints, trimmed)
+		} else {
+			otherEndpoints = append(otherEndpoints, trimmed)
+		}
+	}
+	if len(tlsEndpoints) > 0 {
+		return tlsEndpoints
+	}
+	return otherEndpoints
+}
+
+func caSecretRefFor(view MessageQueueView) string {
+	kafkaName := strings.TrimSpace(view.Status.KafkaRef)
+	if kafkaName == "" {
+		kafkaName = view.Name
+	}
+	if kafkaName == "" {
+		return ""
+	}
+	return kafkaName + "-cluster-ca-cert"
+}
+
+func (s *Server) clientCredentials(w http.ResponseWriter, r *http.Request, name string) {
+	identity := identityFromContext(r.Context())
+	response, err := s.Store.ClientCredentials(r.Context(), identity.Namespace, name)
+	if err != nil {
+		s.writeStoreError(w, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, response)
 }
 
@@ -467,17 +728,23 @@ func main() {
 		logger.Error("backend cannot connect to Kubernetes", "error", err)
 		os.Exit(1)
 	}
+	externalAccess, err := externalAccessConfigFromEnv()
+	if err != nil {
+		logger.Error("backend cannot start with invalid external access configuration", "error", err)
+		os.Exit(1)
+	}
 	var fallbackProvider IdentityProvider
 	if hasFallbackIdentity {
 		fallbackProvider = EnvIdentityProvider{Namespace: fallbackIdentity.Namespace, UserID: fallbackIdentity.UserID}
 	}
 	server := &Server{
-		Store:    store,
-		Metrics:  UnavailableMetricsProvider{},
-		Quota:    store,
-		Identity: KubeconfigIdentityProvider{Fallback: fallbackProvider},
-		Logger:   logger,
-		Now:      time.Now,
+		Store:          store,
+		Metrics:        metricsProviderFromEnv(),
+		Quota:          store,
+		Identity:       KubeconfigIdentityProvider{Fallback: fallbackProvider},
+		ExternalAccess: externalAccess,
+		Logger:         logger,
+		Now:            time.Now,
 	}
 	listen := envOr("MESSAGEQUEUE_LISTEN_ADDR", ":8080")
 	logger.Info("messagequeue backend listening", "addr", listen, "fallbackWorkspace", hasFallbackIdentity)

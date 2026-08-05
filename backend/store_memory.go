@@ -10,13 +10,18 @@ import (
 // MemoryStore is used by API tests and local contract development. It models
 // the Kubernetes store boundary; it is never wired by the production main.
 type MemoryStore struct {
-	mu      sync.RWMutex
-	items   map[string]map[string]MessageQueue
-	logData map[string]LogResponse
+	mu          sync.RWMutex
+	items       map[string]map[string]MessageQueue
+	logData     map[string]LogResponse
+	credentials map[string]ClientCredentialsResponse
 }
 
 func NewMemoryStore() *MemoryStore {
-	return &MemoryStore{items: make(map[string]map[string]MessageQueue), logData: make(map[string]LogResponse)}
+	return &MemoryStore{
+		items:       make(map[string]map[string]MessageQueue),
+		logData:     make(map[string]LogResponse),
+		credentials: make(map[string]ClientCredentialsResponse),
+	}
 }
 
 func (s *MemoryStore) List(_ context.Context, namespace string) ([]MessageQueue, error) {
@@ -57,6 +62,85 @@ func (s *MemoryStore) Get(_ context.Context, namespace, name string) (MessageQue
 	return resource, nil
 }
 
+func (s *MemoryStore) UpdateExternalAccess(_ context.Context, namespace, name string, listener ExternalListener) (MessageQueue, error) {
+	listener = normalizeExternalListener(listener)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	resource, ok := s.items[namespace][name]
+	if !ok {
+		return MessageQueue{}, ErrNotFound
+	}
+	if resource.Spec.Kafka.Listeners != nil && resource.Spec.Kafka.Listeners.External != nil && externalListenersEqual(*resource.Spec.Kafka.Listeners.External, listener) {
+		return resource, nil
+	}
+	if !listener.Enabled && (resource.Spec.Kafka.Listeners == nil || resource.Spec.Kafka.Listeners.External == nil) {
+		return resource, nil
+	}
+	listeners := KafkaListeners{}
+	if resource.Spec.Kafka.Listeners != nil {
+		listeners = *resource.Spec.Kafka.Listeners
+	}
+	listeners.External = &listener
+	resource.Spec.Kafka.Listeners = &listeners
+	resource.Metadata.Generation++
+	s.items[namespace][name] = resource
+	return resource, nil
+}
+
+func (s *MemoryStore) UpdateSuspension(_ context.Context, namespace, name string, suspended bool) (MessageQueue, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	resource, ok := s.items[namespace][name]
+	if !ok {
+		return MessageQueue{}, ErrNotFound
+	}
+	if resource.Spec.Suspend == suspended {
+		return resource, nil
+	}
+	resource.Spec.Suspend = suspended
+	resource.Metadata.Generation++
+	s.items[namespace][name] = resource
+	return resource, nil
+}
+
+func (s *MemoryStore) ClientCredentials(_ context.Context, namespace, name string) (ClientCredentialsResponse, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	resource, ok := s.items[namespace][name]
+	if !ok {
+		return ClientCredentialsResponse{}, ErrNotFound
+	}
+	config := clientConfigOf(viewOf(resource, namespace), namespace)
+	response := ClientCredentialsResponse{
+		Name:                     config.Name,
+		Namespace:                config.Namespace,
+		BootstrapServers:         append([]string(nil), config.BootstrapServers...),
+		ExternalBootstrapServers: append([]string(nil), config.ExternalBootstrapServers...),
+		Username:                 config.Username,
+		SecretRef:                config.SecretRef,
+		CASecretRef:              config.CASecretRef,
+		Transport:                config.Transport,
+		Mechanism:                config.Mechanism,
+		SecurityProtocol:         config.SecurityProtocol,
+		Degraded:                 true,
+		Message:                  "client credentials are not available yet",
+	}
+	if stored, ok := s.credentials[namespace+"/"+name]; ok {
+		stored.Name = response.Name
+		stored.Namespace = response.Namespace
+		stored.BootstrapServers = append([]string(nil), response.BootstrapServers...)
+		stored.ExternalBootstrapServers = append([]string(nil), response.ExternalBootstrapServers...)
+		stored.Username = response.Username
+		stored.SecretRef = response.SecretRef
+		stored.CASecretRef = response.CASecretRef
+		stored.Transport = response.Transport
+		stored.Mechanism = response.Mechanism
+		stored.SecurityProtocol = response.SecurityProtocol
+		return stored, nil
+	}
+	return response, nil
+}
+
 func (s *MemoryStore) Delete(_ context.Context, namespace, name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -91,6 +175,15 @@ func (s *MemoryStore) SetLogs(namespace, name string, response LogResponse) {
 		s.logData = make(map[string]LogResponse)
 	}
 	s.logData[namespace+"/"+name+"/"+response.Component] = response
+}
+
+func (s *MemoryStore) SetClientCredentials(namespace, name string, response ClientCredentialsResponse) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.credentials == nil {
+		s.credentials = make(map[string]ClientCredentialsResponse)
+	}
+	s.credentials[namespace+"/"+name] = response
 }
 
 type UnavailableMetricsProvider struct{}

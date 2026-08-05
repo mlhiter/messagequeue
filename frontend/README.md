@@ -61,8 +61,20 @@ iframes and browsers can otherwise keep stale same-name shell files.
   "deletionPolicy": "Retain" } }`; workspace identity is server-derived.
 - `GET /api/v1/messagequeues/{name}` is reserved for detail refreshes.
 - `GET /api/v1/messagequeues/{name}/client-config` loads safe connection
-  metadata for the Connections tab. It may include a Secret name reference but
-  never Secret `data`, passwords, private keys, or kubeconfigs.
+  metadata for the Connections tab. It may include Secret name references but
+  never Secret `data`, passwords, private keys, or kubeconfigs. Observed external
+  bootstrap endpoints come from `status.externalEndpoints` and the
+  `externalBootstrapServers` response field.
+- `GET /api/v1/messagequeues/{name}/client-credentials` is called only after an
+  explicit password reveal/copy action. The UI keeps the password masked by
+  default; environment variable and SDK snippets copy visible placeholders
+  until the password has been revealed, then copy the revealed credential text.
+  Copy actions show a toast after success or failure.
+- `PUT /api/v1/messagequeues/{name}/external-access` accepts exactly
+  `{ "enabled": true|false }`. Listener type, address selection, ports, and
+  namespace are server-owned; the response is the updated MessageQueue view.
+- `PUT /api/v1/messagequeues/{name}/suspension` accepts exactly
+  `{ "suspended": true|false }` for pause and resume.
 - `GET /api/v1/messagequeues/-/quota` returns the authenticated workspace quota
   snapshot used by the create dialog's quota note.
 - `DELETE /api/v1/messagequeues/{name}` is called from the detail header or
@@ -71,7 +83,11 @@ iframes and browsers can otherwise keep stale same-name shell files.
 - `GET /api/v1/messagequeues/{name}/logs?component=broker&tailLines=200` and
   `GET /api/v1/messagequeues/{name}/metrics?key=cpu|memory|storage|throughput|consumer_lag|partition_health`
   are fixed, bounded observability queries. The Logs and Monitoring tabs fetch
-  automatically when opened. The UI never sends raw PromQL or LogsQL.
+  automatically when opened and poll while active (logs every 10 seconds,
+  monitoring every 30 seconds). The list/detail view polls every 15 seconds.
+  Polling pauses when the tab is hidden or the route/tab changes, and background
+  failures retain the last successful data. The UI never sends raw PromQL or
+  LogsQL and exposes no normal refresh button.
 
 The list and detail views distinguish loading, empty, ready, provisioning,
 degraded, failed, deleting, suspended, and permission-denied states. If the API

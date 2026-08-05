@@ -8,20 +8,21 @@ product
 
 The primary users are Sealos workspace owners and managers who need to deploy
 and operate Kafka without managing raw operator resources. Developers consume
-connection information, logs, monitoring, and a user-facing Kafka console within
-the permissions of their workspace. Platform operators install and maintain
-the shared controller, Strimzi, and observability integrations. The public
-Sealos Desktop entry exposes the same create and lifecycle workflows as the
-management API, with workspace ownership derived on the server side.
+connection information, external listener access, logs, monitoring, and a
+user-facing Kafka console within the permissions of their workspace. Platform
+operators install and maintain the shared controller, Strimzi, and
+observability integrations. The public Sealos Desktop entry exposes the same
+create and lifecycle workflows as the management API, with workspace ownership
+derived on the server side.
 
 ## Product Purpose
 
 MessageQueue provides a focused Kubernetes message-broker control plane. It
-turns a small, explicit product API into secure Kafka instances, lifecycle
-operations, credentials, logs, and monitoring. Success means users can provision,
-diagnose, and safely change Kafka without understanding Strimzi internals, while
-platform operators retain predictable ownership, quota, billing, and rollback
-behavior.
+turns a small, explicit product API into secure Kafka instances, external
+listener access, lifecycle operations, credentials, logs, and monitoring.
+Success means users can provision, diagnose, and safely change Kafka without
+understanding Strimzi internals, while platform operators retain predictable
+ownership, quota, billing, and rollback behavior.
 
 Kafka is the first engine. RabbitMQ can be added through its own operator after
 the Kafka contract is stable. Existing KubeBlocks-managed Kafka resources are

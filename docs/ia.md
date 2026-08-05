@@ -37,24 +37,26 @@ list. Tabs are ordered by the current vertical-slice workflow:
 1. Overview: health summary, observed readiness, broker readiness, connection
    availability, resource footprint, storage/deletion policy, failure reason,
    conditions, and recent events
-2. Connections: secret-free internal and external host, port, connection string,
-   authentication metadata, and copyable fields
-3. Logs: automatically loaded broker logs, refresh/retry, and scoped degraded
-   states when logs are unavailable
+2. Connections: internal and external Bootstrap addresses, explicit external
+   access toggle, username, Secret references, masked password reveal, and
+   copyable environment variable and SDK configuration snippets
+3. Logs: automatically loaded broker logs, background polling, poll-based error
+   recovery, and scoped degraded states when logs are unavailable
 4. Monitoring: automatically loaded CPU, memory, storage, throughput, consumer
-   lag, partition health, and scoped degraded states when metrics are
-   unavailable
+   lag, partition health, background polling, and scoped degraded states when
+   metrics are unavailable
 
-Delete, update, pause, and resume controls belong in the route header beside
-the back control and in the list-row more menu, not inside the detail content
-card. Deletion is available whenever the management API is ready and still
-requires explicit confirmation. Update, pause, and resume remain disabled or
-explanatory until backend lifecycle contracts are implemented.
+The observed status badge belongs beside the icon-only back control. Delete,
+update, pause, and resume controls belong in the route header's action area and
+in the list-row more menu, not inside the detail content card. Deletion is
+available whenever the management API is ready and still requires explicit
+confirmation. Pause and resume patch the server-owned suspension endpoint.
+Update remains disabled until a resource-change contract exists.
 
 The following detail tabs are v0.2 surfaces, not part of the current v0.1
 closed loop:
 
-- Operations: scaling, restart, upgrade, suspension, and operation history
+- Operations: scaling, restart, upgrade, and operation history
 - Advanced configuration: advanced engine settings and future lifecycle controls
 
 The optional Kafka console is opened as a separate user-facing workspace after
